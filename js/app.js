@@ -930,14 +930,19 @@ if (matchTabBtn) {
 // ==========================================
 window.toggleSidebar = function () {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('mobile-overlay');
-    if (sidebar && overlay) {
+    const overlay = document.getElementById('sidebar-overlay'); // On utilise l'ID de l'étape 2
+    
+    if (sidebar) {
         if (sidebar.classList.contains('-translate-x-full')) {
+            // Ouvrir le menu
             sidebar.classList.remove('-translate-x-full');
-            overlay.classList.remove('hidden');
+            if (overlay) overlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 🔒 Bloque le scroll derrière le menu
         } else {
+            // Fermer le menu
             sidebar.classList.add('-translate-x-full');
-            overlay.classList.add('hidden');
+            if (overlay) overlay.classList.add('hidden');
+            document.body.style.overflow = ''; // 🔓 Réactive le scroll de la page
         }
     }
 };
