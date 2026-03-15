@@ -27,7 +27,7 @@
 
 <body class="bg-deepblue text-white font-sans antialiased overflow-x-hidden w-full relative">
 
-    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden transition-opacity md:hidden" onclick="toggleSidebar()"></div>
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 hidden transition-opacity md:hidden touch-none overscroll-none" onclick="toggleSidebar()"></div>
 
 <aside id="sidebar"
     class="fixed md:relative h-full w-[85%] max-w-[320px] md:w-64 bg-[#0d1321] border-r border-gray-800 flex flex-col justify-between flex-shrink-0 shadow-[5px_0_15px_rgba(0,0,0,0.5)] z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
@@ -44,7 +44,7 @@
             </div>
         </div>
 
-        <nav class="flex-1 py-4 flex flex-col overflow-y-auto no-scrollbar gap-1">
+        <nav class="flex-1 py-4 flex flex-col overflow-y-auto no-scrollbar overscroll-contain gap-1 pb-10">
             <div class="px-6 py-2 text-[10px] font-black tracking-widest text-gray-600 uppercase">Analyses V1</div>
             <button onclick="switchTab('tab-matchs', this)" class="nav-item active"><i
                     class="fas fa-calendar-alt text-blue-400 drop-shadow-[0_0_5px_#60A5FA]"></i> Prochains
