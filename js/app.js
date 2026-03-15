@@ -930,31 +930,28 @@ if (matchTabBtn) {
 // ==========================================
 window.toggleSidebar = function () {
     const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay'); // On utilise l'ID de l'étape 2
-    
+    const overlay = document.getElementById('sidebar-overlay');
+
     if (sidebar) {
         if (sidebar.classList.contains('-translate-x-full')) {
             // Ouvrir le menu
             sidebar.classList.remove('-translate-x-full');
             if (overlay) overlay.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // 🔒 Bloque le scroll derrière le menu
+            
+            // 🔒 Bloque le scroll de manière robuste (PC + Mobile/iOS)
+            document.body.classList.add('overflow-hidden');
+            document.documentElement.classList.add('overflow-hidden');
         } else {
             // Fermer le menu
             sidebar.classList.add('-translate-x-full');
             if (overlay) overlay.classList.add('hidden');
-            document.body.style.overflow = ''; // 🔓 Réactive le scroll de la page
+            
+            // 🔓 Réactive le scroll
+            document.body.classList.remove('overflow-hidden');
+            document.documentElement.classList.remove('overflow-hidden');
         }
     }
 };
-
-// Fermer le menu mobile automatiquement quand on clique sur un bouton de navigation
-document.querySelectorAll('aside nav button').forEach(btn => {
-    btn.addEventListener('click', () => {
-        if (window.innerWidth < 768) { // Si on est sur un écran de type mobile
-            window.toggleSidebar();
-        }
-    });
-});
 
 
 
