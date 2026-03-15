@@ -98,54 +98,54 @@ async def signup(request: Request):
 LIVE_PLAYER_TEAMS = {}
 
 def auto_sync_rosters():
-    """
-    Tourne en arrière-plan pour mettre à jour les équipes des joueurs
-    en cas de transferts (trades), blessures ou rappels AHL.
-    """
     global LIVE_PLAYER_TEAMS, PLAYERS_CACHE
+    print("🔄 [LNH LIVE] Lancement du scan complet des 32 équipes...")
     while True:
         try:
-            print("🔄 [LNH LIVE] Détection des transferts et mise à jour des effectifs...")
-            
-            # 1. Récupération des 32 équipes
-            res = requests.get("https://api-web.nhle.com/v1/standings/now")
-            if res.status_code == 200:
-                teams = [t["teamAbbrev"]["default"] for t in res.json().get("standings", [])]
-                
-                new_roster = {}
-                new_players_cache = [] # 🌉 LE PONT EST ICI
-                
-                # 2. On scanne le vestiaire de chaque équipe
-                for team in teams:
-                    r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current")
+            new_roster = {}
+            new_players_cache = []
+            # On boucle sur les 32 abréviations officielles
+            for team in TEAM_ABBREVS:
+                try:
+                    r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current", timeout=10)
                     if r_res.status_code == 200:
                         data = r_res.json()
+                        # On récupère Attaquants, Défenseurs et Gardiens
                         for category in ["forwards", "defensemen", "goalies"]:
                             for p in data.get(category, []):
-                                name = f"{p['firstName']['default']} {p['lastName']['default']}".strip()
+                                first_name = p.get('firstName', {}).get('default', '')
+                                last_name = p.get('lastName', {}).get('default', '')
+                                name = f"{first_name} {last_name}".strip()
+                                player_id = p.get('id')
+                                
+                                # Remplissage du dictionnaire de correspondance nom -> équipe
                                 new_roster[name.lower()] = team
                                 
-                                # On met à jour l'annuaire global de l'application
+                                # Remplissage du cache détaillé pour le front-end
                                 new_players_cache.append({
-                                    "id": p.get('id'), 
+                                    "id": player_id,
                                     "name": name,
-                                    "team": team, 
+                                    "team": team,
                                     "position": p.get('positionCode', 'N/A'),
-                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{p.get('id')}.png"
+                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{player_id}.png"
                                 })
-                
+                    # Petite pause pour ne pas se faire bannir par l'API NHL
+                    time.sleep(0.5)
+                except Exception as e:
+                    print(f"⚠️ Erreur sur l'équipe {team}: {e}")
+                    continue
+            
+            # Une fois le scan fini, on met à jour les variables globales d'un coup
+            if new_players_cache:
                 LIVE_PLAYER_TEAMS = new_roster
-                
-                # Validation du pont : On écrase l'ancien annuaire avec le nouveau, 100% à jour !
-                if new_players_cache:
-                    PLAYERS_CACHE = new_players_cache 
-                    print(f"✅ [LNH LIVE] Pont activé ! L'IA utilise les effectifs en temps réel ({len(PLAYERS_CACHE)} joueurs).")
-        
+                PLAYERS_CACHE = new_players_cache
+                print(f"✅ [LNH LIVE] Scan terminé : {len(PLAYERS_CACHE)} joueurs chargés.")
+            
         except Exception as e:
-            print(f"⚠️ [ERREUR LNH LIVE] Impossible de synchroniser : {e}")
+            print(f"❌ Erreur générale Sync Rosters: {e}")
         
-        # 3. Le robot s'endort et revérifiera dans 1 heure (Mise à jour rapide des absents/blessés)
-        time.sleep(3600)
+        # On recommence toutes les 4 heures pour les transferts/blessures
+        time.sleep(14400)
 
 # On lance le travailleur de l'ombre au démarrage du serveur
 threading.Thread(target=auto_sync_rosters, daemon=True).start()
