@@ -105,10 +105,9 @@ def auto_sync_rosters():
             temp_roster = {}
             temp_cache = []
             
-            for i, team in enumerate(TEAM_ABBREVS):
-                print(f"📡 Scan {i+1}/32 : {team}...", end="\r")
+            for team in TEAM_ABBREVS:
+                print(f"📡 Scan en cours : {team}...") # On va voir défiler chaque équipe
                 try:
-                    # On augmente le timeout et on force le User-Agent
                     headers = {"User-Agent": "Mozilla/5.0"}
                     r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current", headers=headers, timeout=15)
                     
@@ -116,32 +115,33 @@ def auto_sync_rosters():
                         data = r_res.json()
                         for category in ["forwards", "defensemen", "goalies"]:
                             for p in data.get(category, []):
-                                f_name = p.get('firstName', {}).get('default', '')
-                                l_name = p.get('lastName', {}).get('default', '')
-                                name = f"{f_name} {last_name}".strip() if 'last_name' not in locals() else f"{f_name} {l_name}".strip()
-                                pid = p.get('id')
-                                
-                                temp_roster[name.lower()] = team
-                                temp_cache.append({
-                                    "id": pid, "name": name, "team": team,
-                                    "position": p.get('positionCode', 'N/A'),
-                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{pid}.png"
-                                })
-                    # Pause pour éviter le blocage IP
-                    time.sleep(0.3) 
+                                try:
+                                    f_name = p.get('firstName', {}).get('default', 'Unknown')
+                                    l_name = p.get('lastName', {}).get('default', 'Player')
+                                    name = f"{f_name} {l_name}".strip()
+                                    pid = p.get('id')
+                                    
+                                    if pid:
+                                        temp_roster[name.lower()] = team
+                                        temp_cache.append({
+                                            "id": pid, "name": name, "team": team,
+                                            "position": p.get('positionCode', 'N/A'),
+                                            "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{pid}.png"
+                                        })
+                                except: continue # Si un joueur a un bug, on passe au suivant sans stopper l'équipe
+                    time.sleep(0.2) 
                 except Exception as e:
-                    print(f"\n⚠️ Erreur sur {team}: {e}")
+                    print(f"⚠️ Erreur sur {team}: {e}")
                     continue
             
-            if len(temp_cache) > 500:
+            # On ne met à jour que si on a un nombre décent de joueurs
+            if len(temp_cache) > 100:
                 LIVE_PLAYER_TEAMS = temp_roster
                 PLAYERS_CACHE = temp_cache
-                print(f"\n✅ [LNH LIVE] SUCCÈS : {len(PLAYERS_CACHE)} joueurs chargés dans le cerveau.")
-            else:
-                print(f"\n⚠️ Scan incomplet ({len(temp_cache)} joueurs). On garde l'ancien cache.")
+                print(f"✅ [LNH LIVE] SUCCÈS : {len(PLAYERS_CACHE)} joueurs chargés.")
             
         except Exception as e:
-            print(f"\n❌ Erreur générale : {e}")
+            print(f"❌ Erreur générale : {e}")
         
         time.sleep(14400)
 
