@@ -157,69 +157,75 @@ def auto_compute_predictions_task():
     global GLOBAL_PREDICTIONS_CACHE
     while True:
         try:
-            print("⏳ [CRON] Début du pré-calcul des prédictions IA (Arrière-plan)...")
+            print("⏳ [CRON] Début du pré-calcul des prédictions IA...")
+            print(f"🔍 [DEBUG] Joueurs en cache : {len(PLAYERS_CACHE)}")
             matches_data = get_upcoming_matches()
+            
             if matches_data["status"] == "error" or not matches_data["matches"]: 
+                print("⚠️ [CRON] Aucun match détecté pour le calcul.")
                 time.sleep(3600)
                 continue
                 
             all_predictions = []
-            playing_teams = [m["home_team"] for m in matches_data["matches"]] + [m["away_team"] for m in matches_data["matches"]]
+            # On identifie uniquement les équipes sur la glace aujourd'hui
+            playing_teams = set([m["home_team"] for m in matches_data["matches"]] + [m["away_team"] for m in matches_data["matches"]])
             active_players = [p for p in PLAYERS_CACHE if p.get('team') in playing_teams and p.get('position') != 'G']
             
             if not active_players:
-                time.sleep(60) # Attendre que l'annuaire se charge
+                print("⚠️ [CRON] Annuaire vide ou aucun joueur actif trouvé.")
+                time.sleep(60)
                 continue
-                
-            player_ids = ",".join([str(p['id']) for p in active_players])
-            query = f"SELECT p.player_id, p.goals, p.assists, p.points, p.shots, p.toi, g.game_date, g.home_team, g.away_team FROM player_game_stats p JOIN games g ON p.game_id = g.game_id WHERE g.game_type = 2 AND p.player_id IN ({player_ids})"
-            df_all = pd.read_sql(query, engine)
-            df_all['game_date'] = pd.to_datetime(df_all['game_date'])
-            df_all = df_all.sort_values('game_date', ascending=False)
             
+            print(f"📡 [CRON] Analyse de {len(active_players)} joueurs concernés par les matchs du jour...")
+            
+            # On pré-charge les infos de matchs pour gagner du temps
             match_dict = {}
             for m in matches_data["matches"]:
                 match_dict[m["home_team"]] = {"is_home": 1, "opp": m["away_team"], "id": m["game_id"], "date": m["date"]}
                 match_dict[m["away_team"]] = {"is_home": 0, "opp": m["home_team"], "id": m["game_id"], "date": m["date"]}
-            
+
             for player in active_players:
                 try:
-                    df_player = df_all[df_all['player_id'] == player['id']].head(5)
-                    if df_player.empty: continue
-                    m_info = match_dict[player['team']]
-                    l5_h = [{"date": r['game_date'].strftime('%d/%m'), "match": f"{r['home_team']} vs {r['away_team']}", "goals": int(r['goals']), "assists": int(r['assists']), "points": int(r['points']), "shots": int(r['shots']) if int(r['shots'])>0 else (int(r['goals'])*4+int(r['assists'])*2+2), "toi": str(r.get('toi', '00:00'))} for _, r in df_player.iterrows()][::-1]
+                    # Requête ultra-ciblée par joueur pour éviter de saturer la RAM
+                    query = f"SELECT goals, assists, points, shots, toi, g.game_date FROM player_game_stats p JOIN games g ON p.game_id = g.game_id WHERE p.player_id = {player['id']} AND g.game_type = 2 ORDER BY g.game_date DESC LIMIT 5"
+                    df_player = pd.read_sql(query, engine)
                     
+                    if df_player.empty: continue
+                    
+                    m_info = match_dict[player['team']]
+                    l5_h = [{"date": r['game_date'].strftime('%d/%m'), "goals": int(r['goals']), "assists": int(r['assists']), "points": int(r['points'])} for _, r in df_player.iterrows()]
+                    
+                    # Logique de calcul Simplifiée pour la rapidité
                     def pt(x):
                         try: return int(str(x).split(':')[0]) + int(str(x).split(':')[1])/60.0
-                        except: return 0.0
-                    toi_avg = df_player['toi'].apply(pt).mean()
+                        except: return 15.0
                     
-                    dr = np.clip((pd.to_datetime(m_info["date"].split('T')[0]) - df_player.iloc[0]['game_date']).days, 0, 10)
+                    toi_avg = df_player['toi'].apply(pt).mean()
+                    dr = np.clip((pd.to_datetime(m_info["date"].split('T')[0]) - pd.to_datetime(df_player.iloc[0]['game_date'])).days, 0, 10)
+                    
+                    # Construction du DataFrame pour XGBoost
                     ai_in = pd.DataFrame([{'is_home': m_info['is_home'], 'shots_avg_L5': df_player['shots'].mean(), 'goals_avg_L5': df_player['goals'].mean(), 'points_avg_L5': df_player['points'].mean(), 'toi_avg_L5': toi_avg, 'days_rest': dr, 'position_D': 1 if player['position'] == 'D' else 0, 'position_L': 1 if player['position'] == 'L' else 0, 'position_R': 1 if player['position'] == 'R' else 0}])
                     for c in features_list: 
                         if c not in ai_in.columns: ai_in[c] = 0
                     
                     all_predictions.append({
                         "id": player['id'],
-                        "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{player['id']}.png",
-                        "name": player['name'], "team": player['team'], "match_id": m_info["id"], "match_date": m_info["date"], 
-                        "is_home": m_info['is_home'], "position": player['position'], 
+                        "name": player['name'], "team": player['team'], "match_id": m_info["id"], 
                         "prob_goal": float(model_goal.predict_proba(ai_in[features_list])[0][1] * 100), 
                         "prob_assist": float(model_assist.predict_proba(ai_in[features_list])[0][1] * 100), 
                         "prob_point": float(model_point.predict_proba(ai_in[features_list])[0][1] * 100), 
-                        "toi_avg": float(toi_avg),
-                        "last_5_games": l5_h
+                        "last_5_games": l5_h[::-1]
                     })
-                except: continue
+                except Exception as inner_e:
+                    continue
                 
             GLOBAL_PREDICTIONS_CACHE = all_predictions
-            print(f"✅ [CRON] Pré-calcul terminé : {len(all_predictions)} joueurs en cache !")
+            print(f"✅ [CRON] Pré-calcul terminé : {len(all_predictions)} pronostics prêts !")
             
         except Exception as e:
-            print(f"❌ [CRON] Erreur de pré-calcul : {e}")
+            print(f"❌ [CRON] Erreur fatale : {e}")
             
-        # Refaire le calcul toutes les 4 heures
-        time.sleep(14400)
+        time.sleep(7200) # Calcul toutes les 2 heures
 
 def init_players_task():
     global PLAYERS_CACHE
@@ -279,10 +285,20 @@ def auto_update_database_task():
         time.sleep(7200)
 
 @app.on_event("startup")
-def startup_event():
-    threading.Thread(target=init_players_task, daemon=True).start()
+async def startup_event():
+    # 1. On lance d'abord le scan des joueurs et la mise à jour DB
+    threading.Thread(target=auto_sync_rosters, daemon=True).start()
     threading.Thread(target=auto_update_database_task, daemon=True).start()
-    threading.Thread(target=auto_compute_predictions_task, daemon=True).start()
+    
+    # 2. On attend que l'annuaire soit plein avant de lancer l'IA
+    def wait_for_players_and_start_ia():
+        print("⏳ [SYSTÈME] Attente du chargement des joueurs (800+)...")
+        while len(PLAYERS_CACHE) < 500:
+            time.sleep(5)
+        print(f"🚀 [SYSTÈME] {len(PLAYERS_CACHE)} joueurs détectés. Lancement du Cron IA...")
+        auto_compute_predictions_task()
+
+    threading.Thread(target=wait_for_players_and_start_ia, daemon=True).start()
 
 
 # ==========================================
