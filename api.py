@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -15,92 +15,138 @@ import math
 import threading
 import random
 import sqlite3
-from pydantic import BaseModel
+import string
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
+# --- SCHÉMAS DE DONNÉES ---
 class Bet(BaseModel):
     date: str
     category: str
     description: str
     odds: float
     stake: float
-    status: str # "PENDING", "WON", "LOST"
-    
+    status: str 
+
+class LaboRequest(BaseModel):
+    players: List[str]
+
 app = FastAPI(title="HOCKAI Oracle Engine")
 
-# Configuration de sécurité pour autoriser ton site Vercel et ton futur domaine
-origins = [
-    "https://hockai.vercel.app",
-    "https://www.hockai.com",
-    "https://hockai.com",
-    "http://localhost:3000", # Pour tes tests locaux si besoin
-]
-
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    CORSMiddleware, 
+    allow_origins=["*"], 
+    allow_methods=["*"], 
+    allow_headers=["*"]
 )
 
-print("🧠 Initialisation du Moteur HOCKAI (Version Complète & Avancée)...")
+# --- CONFIGURATION BREVO ---
+BREVO_API_KEY = "xsmtpsib-e053eab47c59d49b2d336d0520ef7d6df9990ae7f97edef417f7ddebadb41238-Taa57nbVZYtUET9d"
+brevo_config = sib_api_v3_sdk.Configuration()
+brevo_config.api_key['api-key'] = BREVO_API_KEY
 
-# Connexion à la base de données
+print("🧠 Initialisation du Moteur HOCKAI (Version Intégrée)...")
+
+# Connexion DB
 MOT_DE_PASSE = "Jo23071993"
 engine = create_engine(f"postgresql://postgres:{MOT_DE_PASSE}@localhost:5432/nhl_oracle")
 
-# Chargement des modèles IA
-model_goal = joblib.load('ai_model_goal.pkl')
-model_assist = joblib.load('ai_model_assist.pkl')
-model_point = joblib.load('ai_model_point.pkl')
-features_list = joblib.load('model_features.pkl')
-model_team = joblib.load('ai_model_team_winner.pkl')
-features_team = joblib.load('team_model_features.pkl')
+# Chargement des modèles
+try:
+    model_goal = joblib.load('ai_model_goal.pkl')
+    model_assist = joblib.load('ai_model_assist.pkl')
+    model_point = joblib.load('ai_model_point.pkl')
+    features_list = joblib.load('model_features.pkl')
+    model_team = joblib.load('ai_model_team_winner.pkl')
+    features_team = joblib.load('team_model_features.pkl')
+except:
+    print("⚠️ Fichiers modèles .pkl introuvables sur le PC (Normal s'ils sont déjà sur le serveur)")
 
 GLOBAL_PREDICTIONS_CACHE = []
+LIVE_PLAYER_TEAMS = {}
+PLAYERS_CACHE = []
+TEAM_ABBREVS = ["ANA", "BOS", "BUF", "CAR", "CBJ", "CGY", "CHI", "COL", "DAL", "DET", "EDM", "FLA", "LAK", "MIN", "MTL", "NJD", "NSH", "NYI", "NYR", "OTT", "PHI", "PIT", "SEA", "SJS", "STL", "TBL", "TOR", "UTA", "VAN", "VGK", "WPG", "WSH"]
+
+# --- ROUTE INSCRIPTION (BREVO) ---
+@app.post("/api/signup")
+async def signup(request: Request):
+    try:
+        data = await request.json()
+        email_user = data.get("email")
+        if not email_user: return {"status": "error", "message": "Email manquant"}
+
+        temp_pass = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(brevo_config))
+        
+        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": email_user}],
+            sender={"name": "HOCKAI", "email": "j.turcan@hotmail.fr"},
+            subject="Tes accès HOCKAI Oracle",
+            html_content=f"<html><body><h1>Bienvenue dans l'Arène</h1><p>Ton mot de passe : <b>{temp_pass}</b></p></body></html>"
+        )
+        api_instance.send_transp_email(send_smtp_email)
+        print(f"✅ Email envoyé à {email_user}")
+        return {"status": "success"}
+    except Exception as e:
+        print(f"❌ Erreur Brevo: {e}")
+        return {"status": "error", "message": str(e)}
+
 # ==========================================
 # 🔄 TRAVAILLEUR DE L'OMBRE : SYNC DES TRANSFERTS (LIVE NHL)
 # ==========================================
-# ==========================================
-# 🔄 TRAVAILLEUR DE L'OMBRE : SYNC DES TRANSFERTS (LIVE NHL)
-# ==========================================
+
 LIVE_PLAYER_TEAMS = {}
 
 def auto_sync_rosters():
+    """
+    Tourne en arrière-plan pour mettre à jour les équipes des joueurs
+    en cas de transferts (trades), blessures ou rappels AHL.
+    """
     global LIVE_PLAYER_TEAMS, PLAYERS_CACHE
     while True:
         try:
-            # MESSAGE MODIFIÉ POUR VÉRIFICATION
-            print("🚀 [MODE TANK] Scan intégral des 32 rosters NHL en cours...")
-            new_players_cache = []
+            print("🔄 [LNH LIVE] Détection des transferts et mise à jour des effectifs...")
             
-            for team in TEAM_ABBREVS:
-                # Utilisation de l'API Roster qui est la plus complète
-                r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current", timeout=10)
-                if r_res.status_code == 200:
-                    data = r_res.json()
-                    # On ramasse TOUT le monde
-                    for category in ["forwards", "defensemen", "goalies"]:
-                        for p in data.get(category, []):
-                            p_id = p.get('id')
-                            name = f"{p['firstName']['default']} {p['lastName']['default']}"
-                            new_players_cache.append({
-                                "id": p_id, "name": name, "team": team, 
-                                "position": p.get('positionCode', 'N/A'),
-                                "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{p_id}.png"
-                            })
-            
-            if new_players_cache:
-                # Suppression des doublons
-                unique_dict = {v['id']: v for v in new_players_cache}
-                PLAYERS_CACHE = list(unique_dict.values())
-                print(f"✅ [SUCCÈS] L'Oracle connaît enfin {len(PLAYERS_CACHE)} joueurs NHL !")
+            # 1. Récupération des 32 équipes
+            res = requests.get("https://api-web.nhle.com/v1/standings/now")
+            if res.status_code == 200:
+                teams = [t["teamAbbrev"]["default"] for t in res.json().get("standings", [])]
+                
+                new_roster = {}
+                new_players_cache = [] # 🌉 LE PONT EST ICI
+                
+                # 2. On scanne le vestiaire de chaque équipe
+                for team in teams:
+                    r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current")
+                    if r_res.status_code == 200:
+                        data = r_res.json()
+                        for category in ["forwards", "defensemen", "goalies"]:
+                            for p in data.get(category, []):
+                                name = f"{p['firstName']['default']} {p['lastName']['default']}".strip()
+                                new_roster[name.lower()] = team
+                                
+                                # On met à jour l'annuaire global de l'application
+                                new_players_cache.append({
+                                    "id": p.get('id'), 
+                                    "name": name,
+                                    "team": team, 
+                                    "position": p.get('positionCode', 'N/A'),
+                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{p.get('id')}.png"
+                                })
+                
+                LIVE_PLAYER_TEAMS = new_roster
+                
+                # Validation du pont : On écrase l'ancien annuaire avec le nouveau, 100% à jour !
+                if new_players_cache:
+                    PLAYERS_CACHE = new_players_cache 
+                    print(f"✅ [LNH LIVE] Pont activé ! L'IA utilise les effectifs en temps réel ({len(PLAYERS_CACHE)} joueurs).")
         
         except Exception as e:
-            print(f"⚠️ [ERREUR] Échec du scan : {e}")
+            print(f"⚠️ [ERREUR LNH LIVE] Impossible de synchroniser : {e}")
         
-        time.sleep(7200)
-        
+        # 3. Le robot s'endort et revérifiera dans 1 heure (Mise à jour rapide des absents/blessés)
+        time.sleep(3600)
+
 # On lance le travailleur de l'ombre au démarrage du serveur
 threading.Thread(target=auto_sync_rosters, daemon=True).start()
 PLAYERS_CACHE = []
