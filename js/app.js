@@ -2005,11 +2005,11 @@ document.getElementById('form-signup').addEventListener('submit', async (e) => {
     e.preventDefault(); // Empêche la page de se recharger
     const email = document.getElementById('signup-email').value;
 
-    const response = await fetch('/backend/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email })
-    });
+    const response = await fetch('/backend/api/signup', { 
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: emailValue })
+});
 
     const result = await response.json();
     if (result.status === 'success') {
