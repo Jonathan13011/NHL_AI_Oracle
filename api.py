@@ -158,74 +158,93 @@ def auto_compute_predictions_task():
     while True:
         try:
             print("⏳ [CRON] Début du pré-calcul des prédictions IA...")
-            print(f"🔍 [DEBUG] Joueurs en cache : {len(PLAYERS_CACHE)}")
             matches_data = get_upcoming_matches()
             
-            if matches_data["status"] == "error" or not matches_data["matches"]: 
-                print("⚠️ [CRON] Aucun match détecté pour le calcul.")
-                time.sleep(3600)
+            if matches_data["status"] == "error" or not matches_data.get("matches"): 
+                print("⚠️ [CRON] Aucun match détecté.")
+                time.sleep(60)
                 continue
                 
             all_predictions = []
-            # On identifie uniquement les équipes sur la glace aujourd'hui
             playing_teams = set([m["home_team"] for m in matches_data["matches"]] + [m["away_team"] for m in matches_data["matches"]])
-            active_players = [p for p in PLAYERS_CACHE if p.get('team') in playing_teams and p.get('position') != 'G']
             
-            if not active_players:
-                print("⚠️ [CRON] Annuaire vide ou aucun joueur actif trouvé.")
-                time.sleep(60)
-                continue
+            # On prend TOUS les joueurs des équipes qui jouent
+            active_players = [p for p in PLAYERS_CACHE if p.get('team') in playing_teams]
             
-            print(f"📡 [CRON] Analyse de {len(active_players)} joueurs concernés par les matchs du jour...")
-            
-            # On pré-charge les infos de matchs pour gagner du temps
+            print(f"📡 [CRON] Analyse de {len(active_players)} joueurs pour les matchs du jour...")
+
+            # Dictionnaire pour lier équipe -> infos match
             match_dict = {}
             for m in matches_data["matches"]:
-                match_dict[m["home_team"]] = {"is_home": 1, "opp": m["away_team"], "id": m["game_id"], "date": m["date"]}
-                match_dict[m["away_team"]] = {"is_home": 0, "opp": m["home_team"], "id": m["game_id"], "date": m["date"]}
+                match_dict[m["home_team"]] = {"is_home": 1, "opp": m["away_team"], "id": m["game_id"], "date": m.get("date")}
+                match_dict[m["away_team"]] = {"is_home": 0, "opp": m["home_team"], "id": m["game_id"], "date": m.get("date")}
 
+            found_count = 0
             for player in active_players:
                 try:
-                    # Requête ultra-ciblée par joueur pour éviter de saturer la RAM
-                    query = f"SELECT goals, assists, points, shots, toi, g.game_date FROM player_game_stats p JOIN games g ON p.game_id = g.game_id WHERE p.player_id = {player['id']} AND g.game_type = 2 ORDER BY g.game_date DESC LIMIT 5"
+                    pid = player.get('id')
+                    # On cherche les stats sans être trop restrictif sur le game_type au début
+                    query = f"SELECT goals, assists, points, shots, toi, game_id FROM player_game_stats WHERE player_id = {pid} ORDER BY game_id DESC LIMIT 5"
                     df_player = pd.read_sql(query, engine)
                     
-                    if df_player.empty: continue
+                    if df_player.empty or len(df_player) < 1:
+                        continue # Pas de stats pour ce joueur, on passe au suivant
                     
-                    m_info = match_dict[player['team']]
-                    l5_h = [{"date": r['game_date'].strftime('%d/%m'), "goals": int(r['goals']), "assists": int(r['assists']), "points": int(r['points'])} for _, r in df_player.iterrows()]
-                    
-                    # Logique de calcul Simplifiée pour la rapidité
-                    def pt(x):
-                        try: return int(str(x).split(':')[0]) + int(str(x).split(':')[1])/60.0
-                        except: return 15.0
-                    
-                    toi_avg = df_player['toi'].apply(pt).mean()
-                    dr = np.clip((pd.to_datetime(m_info["date"].split('T')[0]) - pd.to_datetime(df_player.iloc[0]['game_date'])).days, 0, 10)
-                    
-                    # Construction du DataFrame pour XGBoost
-                    ai_in = pd.DataFrame([{'is_home': m_info['is_home'], 'shots_avg_L5': df_player['shots'].mean(), 'goals_avg_L5': df_player['goals'].mean(), 'points_avg_L5': df_player['points'].mean(), 'toi_avg_L5': toi_avg, 'days_rest': dr, 'position_D': 1 if player['position'] == 'D' else 0, 'position_L': 1 if player['position'] == 'L' else 0, 'position_R': 1 if player['position'] == 'R' else 0}])
-                    for c in features_list: 
-                        if c not in ai_in.columns: ai_in[c] = 0
-                    
+                    found_count += 1
+                    m_info = match_dict.get(player['team'])
+                    if not m_info: continue
+
+                    # Calcul simple des moyennes L5
+                    l5_stats = {
+                        'shots_avg': df_player['shots'].mean(),
+                        'goals_avg': df_player['goals'].mean(),
+                        'points_avg': df_player['points'].mean()
+                    }
+
+                    # Préparation des données pour le modèle
+                    # On s'assure que toutes les colonnes attendues par XGBoost sont là
+                    input_data = pd.DataFrame([{
+                        'is_home': m_info['is_home'],
+                        'shots_avg_L5': l5_stats['shots_avg'],
+                        'goals_avg_L5': l5_stats['goals_avg'],
+                        'points_avg_L5': l5_stats['points_avg'],
+                        'toi_avg_L5': 15.0, # Valeur par défaut pour éviter les erreurs de split TOI
+                        'days_rest': 2.0,
+                        'position_D': 1 if player.get('position') == 'D' else 0,
+                        'position_L': 1 if player.get('position') == 'L' else 0,
+                        'position_R': 1 if player.get('position') == 'R' else 0
+                    }])
+
+                    # Ajout des colonnes manquantes pour XGBoost
+                    for col in features_list:
+                        if col not in input_data.columns:
+                            input_data[col] = 0
+
+                    # Calcul des probabilités
+                    p_goal = float(model_goal.predict_proba(input_data[features_list])[0][1] * 100)
+                    p_assist = float(model_assist.predict_proba(input_data[features_list])[0][1] * 100)
+                    p_point = float(model_point.predict_proba(input_data[features_list])[0][1] * 100)
+
                     all_predictions.append({
-                        "id": player['id'],
-                        "name": player['name'], "team": player['team'], "match_id": m_info["id"], 
-                        "prob_goal": float(model_goal.predict_proba(ai_in[features_list])[0][1] * 100), 
-                        "prob_assist": float(model_assist.predict_proba(ai_in[features_list])[0][1] * 100), 
-                        "prob_point": float(model_point.predict_proba(ai_in[features_list])[0][1] * 100), 
-                        "last_5_games": l5_h[::-1]
+                        "id": pid,
+                        "name": player['name'],
+                        "team": player['team'],
+                        "match_id": m_info["id"],
+                        "prob_goal": round(p_goal, 1),
+                        "prob_assist": round(p_assist, 1),
+                        "prob_point": round(p_point, 1),
+                        "last_5_games": [] # Optionnel: remplir avec df_player si besoin
                     })
-                except Exception as inner_e:
+                except Exception as e:
                     continue
-                
+
             GLOBAL_PREDICTIONS_CACHE = all_predictions
-            print(f"✅ [CRON] Pré-calcul terminé : {len(all_predictions)} pronostics prêts !")
+            print(f"✅ [CRON] Pré-calcul terminé : {len(all_predictions)} pronostics prêts (Basé sur {found_count} joueurs avec stats) !")
             
         except Exception as e:
-            print(f"❌ [CRON] Erreur fatale : {e}")
-            
-        time.sleep(7200) # Calcul toutes les 2 heures
+            print(f"❌ [CRON] Erreur : {e}")
+        
+        time.sleep(3600)
 
 def init_players_task():
     global PLAYERS_CACHE
