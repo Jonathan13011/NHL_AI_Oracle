@@ -99,52 +99,50 @@ LIVE_PLAYER_TEAMS = {}
 
 def auto_sync_rosters():
     global LIVE_PLAYER_TEAMS, PLAYERS_CACHE
-    print("🔄 [LNH LIVE] Lancement du scan complet des 32 équipes...")
+    print("🚀 [LNH LIVE] DÉMARRAGE DU SCAN TOTAL (32 ÉQUIPES)...")
     while True:
         try:
-            new_roster = {}
-            new_players_cache = []
-            # On boucle sur les 32 abréviations officielles
-            for team in TEAM_ABBREVS:
+            temp_roster = {}
+            temp_cache = []
+            
+            for i, team in enumerate(TEAM_ABBREVS):
+                print(f"📡 Scan {i+1}/32 : {team}...", end="\r")
                 try:
-                    r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current", timeout=10)
+                    # On augmente le timeout et on force le User-Agent
+                    headers = {"User-Agent": "Mozilla/5.0"}
+                    r_res = requests.get(f"https://api-web.nhle.com/v1/roster/{team}/current", headers=headers, timeout=15)
+                    
                     if r_res.status_code == 200:
                         data = r_res.json()
-                        # On récupère Attaquants, Défenseurs et Gardiens
                         for category in ["forwards", "defensemen", "goalies"]:
                             for p in data.get(category, []):
-                                first_name = p.get('firstName', {}).get('default', '')
-                                last_name = p.get('lastName', {}).get('default', '')
-                                name = f"{first_name} {last_name}".strip()
-                                player_id = p.get('id')
+                                f_name = p.get('firstName', {}).get('default', '')
+                                l_name = p.get('lastName', {}).get('default', '')
+                                name = f"{f_name} {last_name}".strip() if 'last_name' not in locals() else f"{f_name} {l_name}".strip()
+                                pid = p.get('id')
                                 
-                                # Remplissage du dictionnaire de correspondance nom -> équipe
-                                new_roster[name.lower()] = team
-                                
-                                # Remplissage du cache détaillé pour le front-end
-                                new_players_cache.append({
-                                    "id": player_id,
-                                    "name": name,
-                                    "team": team,
+                                temp_roster[name.lower()] = team
+                                temp_cache.append({
+                                    "id": pid, "name": name, "team": team,
                                     "position": p.get('positionCode', 'N/A'),
-                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{player_id}.png"
+                                    "headshot": f"https://assets.nhle.com/mugs/nhl/latest/{pid}.png"
                                 })
-                    # Petite pause pour ne pas se faire bannir par l'API NHL
-                    time.sleep(0.5)
+                    # Pause pour éviter le blocage IP
+                    time.sleep(0.3) 
                 except Exception as e:
-                    print(f"⚠️ Erreur sur l'équipe {team}: {e}")
+                    print(f"\n⚠️ Erreur sur {team}: {e}")
                     continue
             
-            # Une fois le scan fini, on met à jour les variables globales d'un coup
-            if new_players_cache:
-                LIVE_PLAYER_TEAMS = new_roster
-                PLAYERS_CACHE = new_players_cache
-                print(f"✅ [LNH LIVE] Scan terminé : {len(PLAYERS_CACHE)} joueurs chargés.")
+            if len(temp_cache) > 500:
+                LIVE_PLAYER_TEAMS = temp_roster
+                PLAYERS_CACHE = temp_cache
+                print(f"\n✅ [LNH LIVE] SUCCÈS : {len(PLAYERS_CACHE)} joueurs chargés dans le cerveau.")
+            else:
+                print(f"\n⚠️ Scan incomplet ({len(temp_cache)} joueurs). On garde l'ancien cache.")
             
         except Exception as e:
-            print(f"❌ Erreur générale Sync Rosters: {e}")
+            print(f"\n❌ Erreur générale : {e}")
         
-        # On recommence toutes les 4 heures pour les transferts/blessures
         time.sleep(14400)
 
 # On lance le travailleur de l'ombre au démarrage du serveur
