@@ -330,55 +330,58 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             </div>
 
             <div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all">
-                <div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner">
+                <div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 flex items-center gap-2 z-10 shadow-inner">
                     <div class="text-right hidden sm:block">
-                        <div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div>
-                        <div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div>
+                        <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest">Score IA</div>
+                        <div class="text-[9px] ${gradeObj.color} font-bold max-w-[100px] leading-tight truncate">${gradeObj.text}</div>
                     </div>
-                    <div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div>
+                    <div class="text-2xl md:text-3xl font-black ${gradeObj.color}">${gradeObj.letter}</div>
                 </div>
-                <div class="pt-10 md:pt-4 pr-16 md:pr-48">
+                
+                <div class="pt-16 md:pt-4 flex overflow-x-auto snap-x custom-scrollbar gap-4 pb-4 items-stretch">
         `;
 
         Object.keys(grouped).forEach(matchStr => {
             html += `
-                <div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative">
+                <div class="bg-gray-900/40 border border-gray-800 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative min-w-[85vw] md:min-w-0 md:flex-1 snap-center shrink-0 flex flex-col">
                     <div class="absolute left-0 top-0 w-1 h-full bg-gray-700"></div>
-                    <div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4">
-                        <i class="fas fa-hockey-puck text-ice"></i> MATCH : <span class="text-white">${matchStr}</span>
+                    <div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4 shrink-0">
+                        <i class="fas fa-hockey-puck text-ice"></i> <span class="text-white truncate">${matchStr}</span>
                     </div>
-                    <div class="p-3 flex flex-col gap-2">
+                    <div class="p-3 flex flex-col gap-3 overflow-y-auto flex-1">
             `;
 
             grouped[matchStr].forEach(p => {
-                let pType = p._ticketRole; // ⚡ AFFICHAGE DU VRAI RÔLE CALCULÉ
+                let pType = p._ticketRole; 
                 let probTextCol = p._ticketProb >= 50 ? 'text-green-400 drop-shadow-[0_0_5px_#4ADE80]' : (p._ticketProb >= 40 ? 'text-ice' : 'text-gray-400');
                 let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
-                let targetBadgeHtml = p.has_target_badge ? `<div class="bg-blood/20 border border-blood text-blood px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-1 w-max shadow-[0_0_8px_rgba(255,51,51,0.4)]"><i class="fas fa-crosshairs animate-ping"></i> Cible Gardien Faible</div>` : '';
+                let targetBadgeHtml = p.has_target_badge ? `<div class="bg-blood/20 border border-blood text-blood px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-2 w-max shadow-[0_0_8px_rgba(255,51,51,0.4)]"><i class="fas fa-crosshairs animate-ping"></i> Gardien Faible</div>` : '';
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
+                // NOUVEAU DESIGN DE LA CARTE : Adapté au mobile (on empile proprement)
                 html += `
-                    <div class="flex items-center justify-between bg-gray-950/80 p-3 rounded-lg border border-gray-800/80 hover:border-blood transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
-                        <div class="flex items-center gap-3">
-                            <img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-700 bg-gray-900 group-hover:scale-110 transition object-cover">
-                            <div>
-                                <div class="font-black text-white text-sm md:text-base uppercase tracking-widest leading-none flex items-center flex-wrap gap-2">
-                                    ${p.name} 
-                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-800 hover:bg-green-500 hover:text-black border border-gray-600 hover:border-green-500 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] transition-all shadow-lg flex items-center gap-1 z-50" title="Scouting">
-                                        <i class="fas fa-chart-line"></i> <span class="hidden md:inline">Scouting</span>
+                    <div class="flex flex-col bg-gray-950/80 p-3 rounded-lg border border-gray-800/80 hover:border-blood transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                        <div class="flex items-start gap-3 w-full">
+                            <img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-10 h-10 rounded-full border border-gray-700 bg-gray-900 shrink-0 object-cover">
+                            <div class="min-w-0 flex-1">
+                                <div class="font-black text-white text-xs sm:text-sm uppercase tracking-widest truncate">${p.name}</div>
+                                <div class="text-[9px] text-gray-500 font-bold tracking-widest mt-0.5 truncate"><span class="text-ice">${p.team}</span> • ${p.position}</div>
+                                
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-800 hover:bg-green-500 hover:text-black border border-gray-600 text-gray-400 px-2 py-1 rounded text-[8px] transition-all shadow-lg flex items-center gap-1">
+                                        <i class="fas fa-chart-line"></i> Scout
                                     </button>
-                                    
-                                    <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-800 hover:bg-blood hover:text-white border border-gray-600 hover:border-blood text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] transition-all shadow-lg flex items-center gap-1 z-50" title="Bannir ce joueur (Blessure / Incertain)">
-                                        <i class="fas fa-ban"></i> <span class="hidden md:inline">Bannir</span>
+                                    <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-800 hover:bg-blood hover:text-white border border-gray-600 text-gray-400 px-2 py-1 rounded text-[8px] transition-all shadow-lg flex items-center gap-1">
+                                        <i class="fas fa-ban"></i> Bannir
                                     </button>
                                 </div>
-                                <div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest mt-1"><span class="text-ice">${p.team}</span> • ${p.position}</div>
                                 ${targetBadgeHtml}
                             </div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-[8px] md:text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">${pType}</div>
-                            <div class="font-black text-lg md:text-xl ${probTextCol}">${p._ticketProb.toFixed(1)}% <span class="text-gray-400 text-sm ml-1 font-bold">(@${itemOdds.toFixed(2)})</span></div>
+                        
+                        <div class="flex justify-between items-end border-t border-gray-800 pt-2 mt-2 w-full">
+                            <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest">${pType}</div>
+                            <div class="font-black text-sm sm:text-base ${probTextCol}">${p._ticketProb.toFixed(1)}% <span class="text-gray-400 text-xs ml-1 font-bold">(@${itemOdds.toFixed(2)})</span></div>
                         </div>
                     </div>
                 `;
