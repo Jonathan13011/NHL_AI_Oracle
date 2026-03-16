@@ -2003,46 +2003,53 @@ window.handleAuthSubmit = function (e) {
     }, 1500);
 };
 
-// On attend que l'utilisateur clique sur le bouton d'inscription
-document.getElementById('form-signup').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Empêche la page de se recharger
-    const email = document.getElementById('signup-email').value;
+// =========================================================================
+// 🚀 GESTION DE L'INSCRIPTION (SÉCURISÉE)
+// =========================================================================
+const signupForm = document.getElementById('form-signup');
 
-    const response = await fetch('/backend/api/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailValue })
+// On vérifie si le formulaire existe sur la page avant d'ajouter l'écouteur
+if (signupForm) {
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Empêche le rechargement de la page
+
+        const emailInput = document.getElementById('signup-email');
+        if (!emailInput) return;
+
+        const email = emailInput.value;
+        const btn = e.target.querySelector('button');
+        const originalText = btn.innerText;
+
+        // État de chargement
+        btn.innerText = "EXPÉDITION...";
+        btn.disabled = true;
+
+        try {
+            // On utilise le chemin Vercel pour éviter les problèmes de sécurité (CORS)
+            const response = await fetch('/backend/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
+
+            const result = await response.json();
+
+            if (result.status === 'success') {
+                alert("Génial ! Ton mot de passe est en route vers ton email. 📧");
+                emailInput.value = ""; // On vide le champ
+            } else {
+                alert("Mince, ça n'a pas marché : " + result.message);
+            }
+        } catch (err) {
+            console.error("Erreur Inscription:", err);
+            alert("❌ Impossible de joindre le serveur HOCKAI.");
+        } finally {
+            // On remet le bouton dans son état normal
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     });
-
-    const result = await response.json();
-    if (result.status === 'success') {
-        alert("Génial ! Ton mot de passe est en route vers ton email.");
-    } else {
-        alert("Mince, ça n'a pas marché : " + result.message);
-    }
-});
-
-// GESTION DE L'INSCRIPTION
-document.getElementById('form-signup').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('signup-email').value;
-    const btn = e.target.querySelector('button');
-    btn.innerText = "EXPÉDITION...";
-
-    try {
-        const response = await fetch('http://178.104.60.150:8000/api/signup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email })
-        });
-        const res = await response.json();
-        if (res.status === 'success') alert("✅ Mot de passe envoyé !");
-    } catch (err) {
-        alert("❌ Erreur de connexion au serveur.");
-    } finally {
-        btn.innerText = "DEMANDER MES ACCÈS";
-    }
-});
+}
 
 function updatePerformanceLists() {
     // globalPredictionsPool est déjà défini en haut de ton fichier app.js
@@ -2088,3 +2095,20 @@ function updatePerformanceLists() {
         `).join('');
     }
 }
+// ==========================================
+// FERMETURE AUTOMATIQUE DU MENU SUR MOBILE
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    // On cible tous les boutons et liens dans le menu de navigation
+    const navItems = document.querySelectorAll('#sidebar nav button, #sidebar nav a, #sidebar nav div');
+    
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            // Si on est sur un petit écran (mobile) et que le menu est ouvert
+            if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                window.toggleSidebar(); // On déclenche ta fonction de fermeture
+            }
+        });
+    });
+});
