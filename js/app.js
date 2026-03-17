@@ -224,14 +224,17 @@ function applyMasterFilter() {
     if (activeTabId === 'tab-props') showAll('.props-card-dom');
 }
 
-function showFullScreenLoader(title, description, withTimer = false) {
-    document.getElementById('loader-title').innerText = title; document.getElementById('loader-desc').innerText = description; const timerEl = document.getElementById('scan-timer'); document.getElementById('global-scanning-screen').classList.remove('hidden');
-    clearInterval(scanInterval);
-    if (withTimer) { timerEl.classList.remove('hidden'); let timeLeft = 12; timerEl.innerText = `Temps estimé : ${timeLeft}s`; scanInterval = setInterval(() => { timeLeft--; if (timeLeft > 0) timerEl.innerText = `Temps estimé : ${timeLeft}s`; else timerEl.innerText = "Finalisation..."; }, 1000); } else { timerEl.classList.add('hidden'); }
-}
-function hideFullScreenLoader() { clearInterval(scanInterval); document.getElementById('global-scanning-screen').classList.add('hidden'); }
-function switchTab(tabId, btnElement) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active')); document.getElementById(tabId).classList.add('active'); btnElement.classList.add('active'); if (tabId === 'tab-filtres' && !hasScannedGlobal) window.silentGlobalScan(); else applyMasterFilter(); }
-function toggleL5Detail(elementId) { const el = document.getElementById(elementId); el.classList.toggle('hidden'); event.stopPropagation(); }
+// Remplace tes fonctions vers la ligne 228 de app.js par celles-ci :
+window.showFullScreenLoader = function (title, desc) {
+    // On ignore 'title' et 'desc' car on utilise maintenant une image fixe
+    const screen = document.getElementById('analysis-screen');
+    if (screen) screen.classList.remove('hidden');
+};
+
+window.hideFullScreenLoader = function () {
+    const screen = document.getElementById('analysis-screen');
+    if (screen) screen.classList.add('hidden');
+};
 
 // =========================================================
 // CODE DE GÉNÉRATION DES CARTES (VOTRE VERSION PARFAITE + SYNC SILENCIEUSE)
