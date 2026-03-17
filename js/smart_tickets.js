@@ -4,7 +4,7 @@
 window.activePlayersToday = null;
 window.selectedTicketMatches = new Set();
 window.ticketCacheMemory = "";
-window.globalMatchContexts = {}; 
+window.globalMatchContexts = {};
 window.currentTicketPlayers = [];
 window.bannedZappingPlayers = new Set();
 window.lastTicketConfig = { type: null, total: null, matchStr: null, risk: null };
@@ -27,7 +27,7 @@ window.updateTicketMatchSelector = function () {
     let container = document.getElementById('ticket-match-selector');
     if (!container) return;
     container.innerHTML = '';
-    
+
     let now = new Date();
     let activeMatches = (window.fetchedMatchesPool || []).filter(m => {
         if (m.state === 'FINAL' || m.state === 'OFF') return false;
@@ -77,6 +77,7 @@ window.deselectAllTicketMatches = function () {
 
 // 3. LE GÉNÉRATEUR IA ULTIME (Tickets Classiques)
 window.generateSmartTicket = async function (type, title, isZapping = false) {
+    window.showAnalysis();
     let container = document.getElementById('ticket-display');
     if (!container) return;
 
@@ -160,7 +161,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
         pool.forEach(p => {
             let prob = 0;
             let assignedRole = "Pronostic";
-            let mixteSortScore = 0; 
+            let mixteSortScore = 0;
 
             if (type === 'goal') { prob = p.prob_goal; assignedRole = 'Buteur'; }
             else if (type === 'assist') { prob = p.prob_assist; assignedRole = 'Passeur'; }
@@ -226,7 +227,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
 
         pool.sort((a, b) => b._ticketScore - a._ticketScore);
 
-        let selected = []; 
+        let selected = [];
         let matchCounts = {};
         let matchRoles = {}; // ⚡ NOUVEAU : Traqueur de rôles (Buteur, Passeur) par Match
 
@@ -235,14 +236,14 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             if (prev.length > 0) {
                 let pillar = prev[0];
                 for (let i = 1; i < prev.length; i++) window.bannedZappingPlayers.add(prev[i].id);
-                selected = [pillar]; 
+                selected = [pillar];
                 matchCounts[pillar._matchStr] = 1;
                 matchRoles[pillar._matchStr] = new Set([pillar._ticketRole]);
 
                 for (let p of pool) {
                     if (selected.length >= total) break;
                     if (selected.some(k => k.id === p.id)) continue;
-                    if (window.bannedZappingPlayers.has(p.id)) continue; 
+                    if (window.bannedZappingPlayers.has(p.id)) continue;
                     let m = p._matchStr;
                     if (!matchCounts[m]) matchCounts[m] = 0;
                     if (!matchRoles[m]) matchRoles[m] = new Set();
@@ -250,9 +251,9 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                     // ⚡ RÈGLE D'OR MIXTE : Interdit de choisir 2 fois le même rôle dans le même match !
                     if (type === 'mixte' && matchRoles[m].has(p._ticketRole)) continue;
 
-                    if (matchCounts[m] < maxPerMatch) { 
-                        selected.push(p); 
-                        matchCounts[m]++; 
+                    if (matchCounts[m] < maxPerMatch) {
+                        selected.push(p);
+                        matchCounts[m]++;
                         matchRoles[m].add(p._ticketRole);
                     }
                 }
@@ -271,9 +272,9 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 // ⚡ RÈGLE D'OR MIXTE : Interdit de choisir 2 fois le même rôle dans le même match !
                 if (type === 'mixte' && matchRoles[m].has(p._ticketRole)) continue;
 
-                if (matchCounts[m] < maxPerMatch) { 
-                    selected.push(p); 
-                    matchCounts[m]++; 
+                if (matchCounts[m] < maxPerMatch) {
+                    selected.push(p);
+                    matchCounts[m]++;
                     matchRoles[m].add(p._ticketRole);
                 }
             }
@@ -286,9 +287,9 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 if (selected.some(k => k.id === p.id)) continue;
                 if (window.bannedZappingPlayers.has(p.id)) continue;
                 let m = p._matchStr;
-                if (matchCounts[m] < maxPerMatch) { 
-                    selected.push(p); 
-                    matchCounts[m]++; 
+                if (matchCounts[m] < maxPerMatch) {
+                    selected.push(p);
+                    matchCounts[m]++;
                 }
             }
         }
@@ -352,7 +353,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             `;
 
             grouped[matchStr].forEach(p => {
-                let pType = p._ticketRole; 
+                let pType = p._ticketRole;
                 let probTextCol = p._ticketProb >= 50 ? 'text-green-400 drop-shadow-[0_0_5px_#4ADE80]' : (p._ticketProb >= 40 ? 'text-ice' : 'text-gray-400');
                 let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
                 let targetBadgeHtml = p.has_target_badge ? `<div class="bg-blood/20 border border-blood text-blood px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-2 w-max shadow-[0_0_8px_rgba(255,51,51,0.4)]"><i class="fas fa-crosshairs animate-ping"></i> Gardien Faible</div>` : '';
@@ -417,7 +418,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 </div>
             </div> `;
 
-        setTimeout(() => { container.innerHTML = html; window.renderBlacklistZone(); }, delay);
+        setTimeout(() => { container.innerHTML = html; window.hideAnalysis(); window.renderBlacklistZone(); }, delay);
     } catch (err) { console.error("Erreur IA:", err); container.innerHTML = `<div class="text-blood font-bold text-center py-10">Erreur de génération.</div>`; }
 };
 
@@ -426,7 +427,7 @@ window.banPlayerFromTickets = function (id, name, team) {
     if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
     if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
     window.userBannedPlayers.add(String(id)); window.bannedPlayersDetails[String(id)] = { name, team };
-    
+
     // CORRECTION : On relance l'IA normalement (false) pour remplacer le blessé, sans zapper tout le ticket !
     window.generateSmartTicket(window.lastTicketConfig.type, window.lastTicketConfig.title || 'Ticket IA', false);
 };
@@ -536,6 +537,7 @@ window.jumpToPlayerScouting = function (playerName) {
 
 // 7. ALGORITHMES SPÉCIAUX (Palier, SGP, Rescue, Couverture)
 window.generatePalier200 = function () {
+    window.showAnalysis();
     let container = document.getElementById('ticket-display');
     if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) { container.innerHTML = `<div class="bg-gray-900 text-yellow-500 p-6 rounded-xl text-center font-black">Mémoire IA vide.</div>`; return; }
     let btn = document.querySelector('button[onclick="generatePalier200()"]'); let originalHtml = btn ? btn.innerHTML : "Palier 2.00";
@@ -582,14 +584,15 @@ window.generatePalier200 = function () {
         });
         html += `</div><div class="ticket-actions mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_20px_rgba(0,0,0,0.5)]"><div class="flex flex-col items-center md:items-start w-full md:w-auto text-center md:text-left"><div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Cote Totale</div><div class="text-3xl font-black text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">@${currentOdds.toFixed(2)}</div></div><div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto"><button onclick="window.exportSmartTicketImage()" class="w-full sm:w-auto bg-gray-800 hover:bg-gray-700 text-white px-5 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition shadow-lg border border-gray-600 flex items-center justify-center gap-2"><i class="fas fa-camera text-lg"></i> Exporter</button><div class="flex items-center gap-2 bg-black border border-gray-700 p-1.5 rounded-lg w-full sm:w-auto"><input type="number" id="quick-stake-input" placeholder="Mise (€)" value="10" class="w-24 bg-gray-900 border border-gray-800 text-white text-xs font-bold text-center rounded px-2 py-2.5 outline-none focus:border-money shadow-inner"><button onclick="window.addBetToBankroll('MONTANTE', 'Palier @2.00', ${currentOdds.toFixed(2)}, document.getElementById('quick-stake-input').value || 10)" class="w-full sm:w-auto bg-money/20 hover:bg-money text-money hover:text-black border border-money px-5 py-2.5 rounded text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2"><i class="fas fa-save text-lg"></i> Encaisser</button></div></div></div></div>`;
         container.innerHTML = html;
+        window.hideAnalysis();
     }, 800);
 };
 
-window.generateSameGameParlay = function() {
+window.generateSameGameParlay = function () {
     let container = document.getElementById('ticket-display');
     if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) { alert("L'Oracle doit d'abord se connecter. Veuillez patienter."); return; }
     let btn = document.querySelector('button[onclick="generateSameGameParlay()"]'); let originalHtml = btn ? btn.innerHTML : "Duos Dynamiques";
-    if(btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin text-2xl text-purple-400 drop-shadow-[0_0_10px_#C084FC]"></i><span class="text-white">Recherche de corrélations...</span>`;
+    if (btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin text-2xl text-purple-400 drop-shadow-[0_0_10px_#C084FC]"></i><span class="text-white">Recherche de corrélations...</span>`;
 
     setTimeout(() => {
         let teamsMap = {};
@@ -608,14 +611,14 @@ window.generateSameGameParlay = function() {
         let bestDuos = [];
         for (let team in teamsMap) {
             let roster = teamsMap[team];
-            let topGoalscorer = roster.sort((a,b) => (b.prob_goal || 0) - (a.prob_goal || 0))[0];
+            let topGoalscorer = roster.sort((a, b) => (b.prob_goal || 0) - (a.prob_goal || 0))[0];
             let eligibleAssisters = roster.filter(p => p.id !== topGoalscorer.id);
-            let topAssister = eligibleAssisters.sort((a,b) => (b.prob_assist || 0) - (a.prob_assist || 0))[0];
+            let topAssister = eligibleAssisters.sort((a, b) => (b.prob_assist || 0) - (a.prob_assist || 0))[0];
 
             if (topGoalscorer && topAssister && topGoalscorer.prob_goal >= 35 && topAssister.prob_assist >= 40) {
                 let score = topGoalscorer.prob_goal + topAssister.prob_assist;
-                let duoOdds = (topGoalscorer.odds || Math.max(1.10, 0.93 / (topGoalscorer.prob_goal/100))) * (topAssister.odds || Math.max(1.10, 0.93 / (topAssister.prob_assist/100)));
-                let correlationBoost = duoOdds * 0.85; 
+                let duoOdds = (topGoalscorer.odds || Math.max(1.10, 0.93 / (topGoalscorer.prob_goal / 100))) * (topAssister.odds || Math.max(1.10, 0.93 / (topAssister.prob_assist / 100)));
+                let correlationBoost = duoOdds * 0.85;
 
                 let gPlayer = { ...topGoalscorer, best_prop_type: 'prob_goal', best_prop_val: topGoalscorer.prob_goal, _ticketProb: topGoalscorer.prob_goal, _itemOdds: topGoalscorer.odds || 2.00, archetype_badge: '🎯 LA GÂCHETTE' };
                 let aPlayer = { ...topAssister, best_prop_type: 'prob_assist', best_prop_val: topAssister.prob_assist, _ticketProb: topAssister.prob_assist, _itemOdds: topAssister.odds || 2.00, archetype_badge: '🏒 LE CHEF D\'ORCHESTRE' };
@@ -627,10 +630,10 @@ window.generateSameGameParlay = function() {
             }
         }
 
-        if(btn) btn.innerHTML = originalHtml;
+        if (btn) btn.innerHTML = originalHtml;
         if (bestDuos.length === 0) { container.innerHTML = `<div class="bg-gray-900 border border-purple-500/50 text-purple-400 p-6 rounded-xl text-center font-black uppercase tracking-widest text-xs shadow-inner"><i class="fas fa-heart-broken text-2xl mb-2 block"></i>Aucune forte corrélation (SGP) détectée ce soir.</div>`; return; }
 
-        bestDuos.sort((a,b) => b.score - a.score); let finalTicket = bestDuos[0].duo; let currentOdds = bestDuos[0].odds; let finalMatchStr = bestDuos[0].matchStr;
+        bestDuos.sort((a, b) => b.score - a.score); let finalTicket = bestDuos[0].duo; let currentOdds = bestDuos[0].odds; let finalMatchStr = bestDuos[0].matchStr;
         let gradeObj = { letter: 'S', color: 'text-purple-400', border: 'border-purple-500', glow: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]', text: "🔥 CORRÉLATION MAXIMALE : Duo SGP." };
 
         let html = `<div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 rounded-xl mb-4 shadow-inner relative z-20" id="ticket-export-zone-header"><span class="text-purple-400 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2"><i class="fas fa-handshake"></i> SAME-GAME PARLAY (CORRÉLATION)</span><button onclick="generateSameGameParlay()" class="bg-gray-900 hover:bg-white hover:text-black text-[10px] md:text-xs px-4 py-2 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2"><i class="fas fa-sync-alt text-purple-400"></i> Relancer</button></div><div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all"><div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner"><div class="text-right hidden sm:block"><div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div><div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div></div><div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div></div><div class="pt-10 md:pt-4 pr-16 md:pr-48"><div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-purple-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-purple-400"></i> MATCH : <span class="text-white">${finalMatchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
@@ -644,7 +647,7 @@ window.generateSameGameParlay = function() {
     }, 800);
 };
 
-window.generateCoverTicket = function() {
+window.generateCoverTicket = function () {
     let container = document.getElementById('ticket-display');
     window.scrollTo({ top: container.offsetTop - 100, behavior: 'smooth' });
     container.innerHTML = `<div class="text-center py-10 bg-gray-900 border border-gray-600 border-dashed rounded-xl shadow-inner"><i class="fas fa-shield-alt text-4xl text-gray-500 mb-4 animate-pulse"></i><div class="text-white font-black uppercase tracking-widest text-sm">Calcul de la Couverture...</div><div class="text-[10px] text-gray-400 uppercase mt-2 font-bold">L'IA cherche les 2 joueurs les plus sûrs de la ligue (@1.40).</div></div>`;
@@ -662,7 +665,7 @@ window.generateCoverTicket = function() {
         for (let p of candidates) {
             if (usedTeams.has(p.team)) continue;
             let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p.best_prop_val / 100));
-            if(itemOdds < 1.12) continue; 
+            if (itemOdds < 1.12) continue;
             p._itemOdds = itemOdds;
             let exactMatch = (window.fetchedMatchesPool || []).find(m => (m.home_team === p.team || m.away_team === p.team) && m.state !== 'FINAL' && m.state !== 'OFF');
             p._matchStr = exactMatch ? `${exactMatch.home_team} vs ${exactMatch.away_team}` : `Match de ${p.team}`;
@@ -674,7 +677,7 @@ window.generateCoverTicket = function() {
 
         let gradeObj = { letter: 'A', color: 'text-gray-300', border: 'border-gray-500', glow: 'shadow-[0_0_20px_rgba(156,163,175,0.6)]', text: "🛡️ COUVERTURE : Sécurité maximale." };
         let html = `<div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 rounded-xl mb-4 shadow-inner relative z-20" id="ticket-export-zone-header"><span class="text-gray-300 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2"><i class="fas fa-shield-alt"></i> TICKET DE COUVERTURE (HEDGING)</span><button onclick="generateCoverTicket()" class="bg-gray-900 hover:bg-white hover:text-black text-[10px] md:text-xs px-4 py-2 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2"><i class="fas fa-sync-alt text-gray-400"></i> Relancer</button></div><div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all"><div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner"><div class="text-right hidden sm:block"><div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div><div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div></div><div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div></div><div class="pt-10 md:pt-4 pr-16 md:pr-48">`;
-        let grouped = {}; coverTicket.forEach(p => { if(!grouped[p._matchStr]) grouped[p._matchStr] = []; grouped[p._matchStr].push(p); });
+        let grouped = {}; coverTicket.forEach(p => { if (!grouped[p._matchStr]) grouped[p._matchStr] = []; grouped[p._matchStr].push(p); });
         Object.keys(grouped).forEach(matchStr => {
             html += `<div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-gray-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-gray-400"></i> MATCH : <span class="text-white">${matchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
             grouped[matchStr].forEach(p => {

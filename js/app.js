@@ -1,4 +1,27 @@
 const API_BASE = "/backend";
+// --- GESTION DES ÉCRANS DE CHARGEMENT HOCKAI ---
+
+// 1. Affichage automatique de "Bienvenue" pendant 2 secondes à l'ouverture du site
+window.addEventListener('load', () => {
+    const welcome = document.getElementById('welcome-screen');
+    if(welcome) {
+        welcome.classList.remove('hidden');
+        setTimeout(() => {
+            welcome.classList.add('hidden');
+        }, 2000);
+    }
+});
+
+// 2. Fonctions pour afficher/cacher l'écran d'analyse (à appeler dans tes autres fichiers)
+window.showAnalysis = () => {
+    const screen = document.getElementById('analysis-screen');
+    if(screen) screen.classList.remove('hidden');
+};
+
+window.hideAnalysis = () => {
+    const screen = document.getElementById('analysis-screen');
+    if(screen) screen.classList.add('hidden');
+};
 let currentMatchPredictions = []; let globalPredictionsPool = []; let fetchedMatchesPool = []; let currentModalData = null;
 let hasScannedGlobal = false; let usedPlayersForTickets = new Set();
 let myChart = null; let playerChart = null; let psModalChart = null; let mcChart = null;
@@ -1988,19 +2011,30 @@ window.togglePasswordVisibility = function () {
 };
 
 window.handleAuthSubmit = function (e) {
-    e.preventDefault(); // Empêche le rechargement de la page
-
+    e.preventDefault();
     let btn = document.getElementById('auth-submit-btn');
     let originalHtml = btn.innerHTML;
-    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> <span>Chiffrement en cours...</span>`;
+    
+    // On affiche l'état de chargement sur le bouton
+    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> <span>Authentification...</span>`;
 
-    // Simulation d'une requête serveur sécurisée (On connectera ça au Python plus tard)
+    // Simulation de la réponse du serveur
     setTimeout(() => {
-        btn.innerHTML = originalHtml;
-        let errorMsg = document.getElementById('auth-error-msg');
-        errorMsg.classList.remove('hidden');
-        errorMsg.innerHTML = `<i class="fas fa-cogs mr-1"></i> Connexion Backend (Python) requise pour la mise en production.`;
-    }, 1500);
+        // 1. On cache la fenêtre de connexion
+        window.closeAuthModal();
+        
+        // 2. On affiche l'image de BIENVENUE
+        const welcome = document.getElementById('welcome-screen');
+        welcome.classList.remove('hidden');
+
+        // 3. Après 2 secondes, on cache l'image et on libère l'accès
+        setTimeout(() => {
+            welcome.classList.add('hidden');
+            btn.innerHTML = originalHtml;
+            // Optionnel : débloquer les fonctionnalités ici
+        }, 2000);
+        
+    }, 1000);
 };
 
 // =========================================================================
