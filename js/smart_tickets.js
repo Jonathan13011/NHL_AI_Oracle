@@ -77,6 +77,7 @@ window.deselectAllTicketMatches = function () {
 
 // 3. LE GÉNÉRATEUR IA ULTIME (Tickets Classiques)
 window.generateSmartTicket = async function (type, title, isZapping = false) {
+    window.showFullScreenLoader();
     window.showAnalysis();
     let container = document.getElementById('ticket-display');
     if (!container) return;
@@ -418,7 +419,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 </div>
             </div> `;
 
-        setTimeout(() => { container.innerHTML = html; window.hideAnalysis(); window.renderBlacklistZone(); }, delay);
+        setTimeout(() => { container.innerHTML = html; window.hideAnalysis(); // 👈 Ajoute ça ici
+    window.hideFullScreenLoader(); window.renderBlacklistZone(); }, delay);
     } catch (err) { console.error("Erreur IA:", err); container.innerHTML = `<div class="text-blood font-bold text-center py-10">Erreur de génération.</div>`; }
 };
 
@@ -584,7 +586,9 @@ window.generatePalier200 = function () {
         });
         html += `</div><div class="ticket-actions mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_20px_rgba(0,0,0,0.5)]"><div class="flex flex-col items-center md:items-start w-full md:w-auto text-center md:text-left"><div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Cote Totale</div><div class="text-3xl font-black text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]">@${currentOdds.toFixed(2)}</div></div><div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto"><button onclick="window.exportSmartTicketImage()" class="w-full sm:w-auto bg-gray-800 hover:bg-gray-700 text-white px-5 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition shadow-lg border border-gray-600 flex items-center justify-center gap-2"><i class="fas fa-camera text-lg"></i> Exporter</button><div class="flex items-center gap-2 bg-black border border-gray-700 p-1.5 rounded-lg w-full sm:w-auto"><input type="number" id="quick-stake-input" placeholder="Mise (€)" value="10" class="w-24 bg-gray-900 border border-gray-800 text-white text-xs font-bold text-center rounded px-2 py-2.5 outline-none focus:border-money shadow-inner"><button onclick="window.addBetToBankroll('MONTANTE', 'Palier @2.00', ${currentOdds.toFixed(2)}, document.getElementById('quick-stake-input').value || 10)" class="w-full sm:w-auto bg-money/20 hover:bg-money text-money hover:text-black border border-money px-5 py-2.5 rounded text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2"><i class="fas fa-save text-lg"></i> Encaisser</button></div></div></div></div>`;
         container.innerHTML = html;
-        window.hideAnalysis();
+        window.hideAnalysis(); // 👈 Ajoute ça ici
+window.hideFullScreenLoader();
+
     }, 800);
 };
 

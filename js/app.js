@@ -224,15 +224,13 @@ function applyMasterFilter() {
     if (activeTabId === 'tab-props') showAll('.props-card-dom');
 }
 
-// Remplace tes fonctions vers la ligne 228 de app.js par celles-ci :
-window.showFullScreenLoader = function (title, desc) {
-    // On ignore 'title' et 'desc' car on utilise maintenant une image fixe
-    const screen = document.getElementById('analysis-screen');
+window.showFullScreenLoader = function () {
+    let screen = document.getElementById('analysis-screen');
     if (screen) screen.classList.remove('hidden');
 };
 
 window.hideFullScreenLoader = function () {
-    const screen = document.getElementById('analysis-screen');
+    let screen = document.getElementById('analysis-screen');
     if (screen) screen.classList.add('hidden');
 };
 
