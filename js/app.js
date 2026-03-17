@@ -1,4 +1,37 @@
 const API_BASE = "/backend";
+// --- FONCTION DE CHANGEMENT D'ONGLET (BLINDÉE) ---
+window.switchTab = function(tabId, btnElement) {
+    // 1. Cacher tous les contenus
+    document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('active');
+    });
+    
+    // 2. Retirer l'état actif de tous les boutons du menu
+    document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // 3. Afficher l'onglet demandé
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+        targetTab.classList.add('active');
+    }
+    
+    // 4. Activer le bouton cliqué
+    if (btnElement) {
+        btnElement.classList.add('active');
+    }
+
+    // Fermeture automatique du menu sur mobile après clic
+    if (window.innerWidth < 768) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
+            toggleSidebar();
+        }
+    }
+};
 // --- GESTION DES ÉCRANS DE CHARGEMENT HOCKAI ---
 
 // 1. Affichage automatique de "Bienvenue" pendant 2 secondes à l'ouverture du site
