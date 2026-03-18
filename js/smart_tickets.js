@@ -77,23 +77,24 @@ window.deselectAllTicketMatches = function () {
 
 // 3. LE GÉNÉRATEUR IA ULTIME (Tickets Classiques)
 window.generateSmartTicket = async function (type, title, isZapping = false) {
+    // 1. ON FORCE LE CHANGEMENT D'ÉCRAN IMMEDIATEMENT AU CLIC !
+    window.goToTicketStep(3);
+    
     window.showFullScreenLoader();
     window.showAnalysis();
     let container = document.getElementById('ticket-display');
     if (!container) return;
 
+    // 2. Vérification des matchs sélectionnés
     if (!window.selectedTicketMatches || window.selectedTicketMatches.size === 0) {
-        container.innerHTML = `<div class="text-gray-500 font-bold text-center py-10"><i class="fas fa-hand-pointer text-2xl mb-2 text-yellow-500"></i><br>Sélectionnez au moins un match dans la liste ci-dessus pour lancer l'IA.</div>`;
+        container.innerHTML = `<div class="text-gray-500 font-bold text-center py-10 bg-gray-900 border border-gray-700 rounded-xl shadow-inner mt-4"><i class="fas fa-hand-pointer text-3xl mb-4 text-yellow-500 animate-bounce"></i><br>Retournez à l'étape 1 et sélectionnez au moins un match pour lancer l'IA.</div>`;
         window.hideFullScreenLoader();
         window.hideAnalysis();
         return;
     }
-
-    // --- NOUVEAU : On force le passage à l'étape 3 avant de calculer ---
-    window.goToTicketStep(3);
-    // ------------------------------------------------------------------
-
+   
     let currentSelectionStr = Array.from(window.selectedTicketMatches).sort().join('|');
+    // ... reste de ta fonction
     let risk = document.getElementById('ticket-risk-profile').value;
     let total = parseInt(document.getElementById('slider-st-total').value);
     let maxPerMatch = parseInt(document.getElementById('slider-st-max').value);
