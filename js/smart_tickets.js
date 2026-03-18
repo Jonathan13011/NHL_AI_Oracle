@@ -386,11 +386,12 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
                 let targetBadgeHtml = p.has_target_badge ? `<span class="bg-blood/20 text-blood border border-blood/50 px-1.5 py-0.5 rounded text-[8px] uppercase font-black ml-2 inline-flex items-center gap-1 shadow-[0_0_10px_rgba(255,51,51,0.3)]"><i class="fas fa-crosshairs animate-pulse"></i> Cible</span>` : '';
                 
-                // 1. CORRECTION IMAGE : On utilise le dossier /ext/ de la NHL
-                let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
+// 1. CORRECTION IMAGE : URL officielle NHL directe et blindée
+                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
                 
-                // 2. CORRECTION UNDEFINED : On s'assure de filtrer correctement
-                let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
+                // 2. CORRECTION UNDEFINED : Nettoyage absolu de la donnée
+                let posCheck = String(p.position).toLowerCase().trim();
+                let positionStr = (!p.position || posCheck === 'undefined' || posCheck === 'null' || posCheck === '') ? '' : ` • ${p.position}`;
                 
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
@@ -640,11 +641,12 @@ window.generatePalier200 = async function () {
                 let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
                 let targetBadgeHtml = p.has_target_badge ? `<span class="bg-blood/20 text-blood border border-blood/50 px-1.5 py-0.5 rounded text-[8px] uppercase font-black ml-2 inline-flex items-center gap-1 shadow-[0_0_10px_rgba(255,51,51,0.3)]"><i class="fas fa-crosshairs animate-pulse"></i> Cible</span>` : '';
                 
-                // 1. CORRECTION IMAGE : On utilise le dossier /ext/ de la NHL
-                let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
+// 1. CORRECTION IMAGE : URL officielle NHL directe et blindée
+                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
                 
-                // 2. CORRECTION UNDEFINED : On s'assure de filtrer correctement
-                let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
+                // 2. CORRECTION UNDEFINED : Nettoyage absolu de la donnée
+                let posCheck = String(p.position).toLowerCase().trim();
+                let positionStr = (!p.position || posCheck === 'undefined' || posCheck === 'null' || posCheck === '') ? '' : ` • ${p.position}`;
                 
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
@@ -750,8 +752,12 @@ window.generateSameGameParlay = async function () {
         let html = `<div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 rounded-xl mb-4 shadow-inner relative z-20" id="ticket-export-zone-header"><span class="text-purple-400 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2"><i class="fas fa-handshake"></i> SAME-GAME PARLAY (CORRÉLATION)</span><button onclick="generateSameGameParlay()" class="bg-gray-900 hover:bg-white hover:text-black text-[10px] md:text-xs px-4 py-2 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2"><i class="fas fa-sync-alt text-purple-400"></i> Relancer</button></div><div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all"><div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner"><div class="text-right hidden sm:block"><div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div><div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div></div><div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div></div><div class="pt-10 md:pt-4 pr-16 md:pr-48"><div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-purple-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-purple-400"></i> MATCH : <span class="text-white">${finalMatchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
         finalTicket.forEach(p => {
             let pType = p.best_prop_type === 'prob_goal' ? 'But' : (p.best_prop_type === 'prob_assist' ? 'Passe' : 'Point');
-            let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
-            let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
+            // 1. CORRECTION IMAGE : URL officielle NHL directe et blindée
+                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
+                
+                // 2. CORRECTION UNDEFINED : Nettoyage absolu de la donnée
+                let posCheck = String(p.position).toLowerCase().trim();
+                let positionStr = (!p.position || posCheck === 'undefined' || posCheck === 'null' || posCheck === '') ? '' : ` • ${p.position}`;
             let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
             
             html += `
