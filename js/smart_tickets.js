@@ -488,33 +488,95 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
     }
 }; // <-- C'EST ICI QUE LA FONCTION SE FERME PROPREMENT
 
-// 4. MOTEUR D'INFIRMERIE & BANNISSEMENT
+// 4. MOTEUR D'INFIRMERIE & BANNISSEMENT (Avec Mémoire Locale)
+
+// ⚡ 1. Initialisation : On récupère la mémoire du navigateur au démarrage
+window.userBannedPlayers = new Set(JSON.parse(localStorage.getItem('hockai_banned_ids')) || []);
+window.bannedPlayersDetails = JSON.parse(localStorage.getItem('hockai_banned_details')) || {};
+
 window.banPlayerFromTickets = function (id, name, team) {
     if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
     if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
-    window.userBannedPlayers.add(String(id)); window.bannedPlayersDetails[String(id)] = { name, team };
+    
+    // Ajout à la liste
+    window.userBannedPlayers.add(String(id)); 
+    window.bannedPlayersDetails[String(id)] = { name, team };
 
-    // CORRECTION : On relance l'IA normalement (false) pour remplacer le blessé, sans zapper tout le ticket !
+    // ⚡ Sauvegarde instantanée dans le navigateur
+    localStorage.setItem('hockai_banned_ids', JSON.stringify(Array.from(window.userBannedPlayers)));
+    localStorage.setItem('hockai_banned_details', JSON.stringify(window.bannedPlayersDetails));
+
+    // Relance l'IA pour remplacer le blessé
     window.generateSmartTicket(window.lastTicketConfig.type, window.lastTicketConfig.title || 'Ticket IA', false);
 };
+
 window.unbanPlayerFromTickets = function (id) {
-    if (window.userBannedPlayers) window.userBannedPlayers.delete(String(id));
+    if (window.userBannedPlayers) {
+        // Retrait de la liste
+        window.userBannedPlayers.delete(String(id));
+        delete window.bannedPlayersDetails[String(id)];
+        
+        // ⚡ Mise à jour de la mémoire du navigateur
+        localStorage.setItem('hockai_banned_ids', JSON.stringify(Array.from(window.userBannedPlayers)));
+        localStorage.setItem('hockai_banned_details', JSON.stringify(window.bannedPlayersDetails));
+    }
     window.renderBlacklistZone();
 };
+
 window.renderBlacklistZone = function () {
     let container = document.getElementById('blacklist-zone');
     if (!container) {
         let td = document.getElementById('ticket-display');
-        container = document.createElement('div'); container.id = 'blacklist-zone'; container.className = 'mt-6 max-w-7xl mx-auto px-2 fade-in';
+        if (!td) return; // Sécurité si la page n'est pas encore chargée
+        container = document.createElement('div'); 
+        container.id = 'blacklist-zone'; 
+        container.className = 'mt-6 max-w-7xl mx-auto px-2 fade-in';
         td.parentNode.insertBefore(container, td.nextSibling);
     }
-    if (!window.userBannedPlayers || window.userBannedPlayers.size === 0) { container.innerHTML = ''; return; }
-    let html = `<div class="bg-gray-900 border border-blood/50 p-4 rounded-xl shadow-lg"><h4 class="text-blood font-black uppercase tracking-widest text-xs mb-3 flex items-center"><i class="fas fa-ambulance mr-2"></i> Infirmerie Manuelle</h4><div class="flex flex-wrap gap-2">`;
+    
+    if (!window.userBannedPlayers || window.userBannedPlayers.size === 0) { 
+        container.innerHTML = ''; 
+        return; 
+    }
+    
+    let html = `
+        <div class="bg-gray-900 border border-blood/50 p-4 rounded-xl shadow-lg">
+            <div class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                <h4 class="text-blood font-black uppercase tracking-widest text-xs flex items-center">
+                    <i class="fas fa-ambulance mr-2"></i> Infirmerie Manuelle
+                </h4>
+                <button onclick="window.clearAllBannedPlayers()" class="text-gray-500 hover:text-blood text-[9px] uppercase font-black tracking-widest transition flex items-center gap-1">
+                    <i class="fas fa-trash-alt"></i> Vider
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+    `;
+    
     window.userBannedPlayers.forEach(id => {
-        let info = window.bannedPlayersDetails[id];
-        html += `<div class="bg-black border border-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-3 text-xs shadow-inner"><div><span class="text-white font-bold">${info.name}</span><span class="text-gray-500 text-[9px] uppercase ml-1">${info.team}</span></div><button onclick="window.unbanPlayerFromTickets('${id}')" class="text-green-500 hover:text-green-400 bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center transition shadow-lg"><i class="fas fa-undo text-[10px]"></i></button></div>`;
+        let info = window.bannedPlayersDetails[id] || { name: "Inconnu", team: "---" };
+        html += `
+            <div class="bg-black border border-gray-700 px-3 py-1.5 rounded-lg flex items-center gap-3 text-xs shadow-inner">
+                <div>
+                    <span class="text-white font-bold">${info.name}</span>
+                    <span class="text-gray-500 text-[9px] uppercase ml-1">${info.team}</span>
+                </div>
+                <button onclick="window.unbanPlayerFromTickets('${id}')" class="text-green-500 hover:text-green-400 bg-gray-800 rounded-full w-5 h-5 flex items-center justify-center transition shadow-lg" title="Réintégrer le joueur">
+                    <i class="fas fa-undo text-[10px]"></i>
+                </button>
+            </div>`;
     });
     container.innerHTML = html + `</div></div>`;
+};
+
+// ⚡ 2. NOUVEAU : Fonction utilitaire pour vider toute l'infirmerie d'un coup
+window.clearAllBannedPlayers = function() {
+    if(confirm("Voulez-vous vraiment vider toute l'infirmerie ?")) {
+        window.userBannedPlayers.clear();
+        window.bannedPlayersDetails = {};
+        localStorage.removeItem('hockai_banned_ids');
+        localStorage.removeItem('hockai_banned_details');
+        window.renderBlacklistZone();
+    }
 };
 
 // 5. MOTEUR D'EXPORTATION PHOTO
