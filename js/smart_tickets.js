@@ -591,37 +591,82 @@ window.clearAllBannedPlayers = function() {
     }
 };
 
-// 5. MOTEUR D'EXPORTATION PHOTO
+// 5. MOTEUR D'EXPORTATION PHOTO (Compatibilité iOS/PC & Logo Sommet)
 window.exportSmartTicketImage = async function () {
     if (typeof html2canvas === 'undefined') { alert("Module photo en cours de chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
-    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Préparation...", false);
+    
+    // On lance le loader, on n'affiche pas la barre de progression car c'est rapide
+    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Préparation du ticket HD...", false);
 
+    // On cache temporairement les boutons d'action s'ils existent
     let actionDiv = ticketContainer.querySelector('.ticket-actions'); if (actionDiv) actionDiv.style.display = 'none';
+    
+    // On ajoute un watermark discret en bas à droite
     let watermark = document.createElement('div');
-    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px;">⚡ GÉNÉRÉ PAR L\'IA HOCKAI</span>';
+    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px; text-shadow: 0 0 5px #000;">GÉNÉRÉ PAR L\'IA HOCKAI</span>';
     watermark.style.position = 'absolute'; watermark.style.bottom = '15px'; watermark.style.right = '20px'; watermark.style.zIndex = '50'; watermark.id = 'temp-watermark';
     ticketContainer.appendChild(watermark);
 
+    // On récupère les sources originales des portraits des joueurs
     let images = ticketContainer.querySelectorAll('img'); let originalSrcs = [];
     for (let i = 0; i < images.length; i++) {
         let img = images[i]; originalSrcs[i] = img.src;
+        // Si c'est une image externe, on tente de la passer en Base64 via proxy pour CORS
         if (img.src.startsWith('http') && img.src.includes('nhle.com')) {
             try { let res = await fetch(API_BASE + '/proxy-image-base64?url=' + encodeURIComponent(img.src)); let data = await res.json(); if (data.base64) img.src = data.base64; } catch (e) { }
         }
     }
+    // Petit délai pour laisser les images se mettre à jour
     await new Promise(r => setTimeout(r, 500));
 
+    // Lancement de la capture photo
     html2canvas(ticketContainer, {
-        backgroundColor: '#0a0f1a', scale: 2, useCORS: true, logging: false,
-        onclone: function (doc) { let el = doc.getElementById('ticket-export-zone'); if (el) { el.style.width = '800px'; el.style.maxWidth = '800px'; el.classList.remove('mx-auto'); } }
+        backgroundColor: '#0a0f1a', // Couleur de fond HockAI
+        scale: 2, // Double résolution pour le partage
+        useCORS: true, logging: false,
+        onclone: function (doc) { 
+            // C'est ici que l'on manipule la version "clonée" qui va devenir l'image
+            let el = doc.getElementById('ticket-export-zone'); 
+            if (el) { 
+                // On force une largeur propre pour l'exportation
+                el.style.width = '800px'; el.style.maxWidth = '800px'; el.classList.remove('mx-auto');
+                
+                // ⚡⚡ NOUVEAU : AJOUT DU LOGO HOCKAI AU SOMMET DE L'EXPORT ⚡⚡
+                let headerLogo = doc.createElement('div');
+                headerLogo.style.width = '100%';
+                headerLogo.style.textAlign = 'center';
+                headerLogo.style.marginBottom = '30px'; // Espace sous le logo avant l'en-tête
+                headerLogo.style.paddingTop = '10px';
+                // Assure-toi que le chemin vers ton logo est correct
+                headerLogo.innerHTML = `<img src="assets/logo_hockAI.png" style="height: 60px; max-height: 60px; width: auto; display: inline-block; filter: drop-shadow(0 0 10px rgba(0,229,255,0.3));">`;
+                
+                // On insère le logo tout en haut de l'élément cloné
+                el.prepend(headerLogo);
+            } 
+        }
     }).then(canvas => {
+        // Restauration des images originales et ménage
         images.forEach((img, i) => img.src = originalSrcs[i]); if (actionDiv) actionDiv.style.display = ''; let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
-        let link = document.createElement('a'); link.download = 'HOCKAI_Smart_Ticket.png'; link.href = canvas.toDataURL('image/png'); link.click();
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Détection iOS pour le modal ou téléchargement PC
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        
+        if (isIOS || (isMacSafari && navigator.maxTouchPoints > 1)) {
+            window.showIOSExportModal(imgData); // Affiche le modal iOS (reçue au message précédent)
+        } else {
+            let link = document.createElement('a'); link.download = 'HOCKAI_Smart_Ticket.png'; link.href = imgData; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+        
         if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
     }).catch(e => {
+        // En cas d'erreur, on restaure tout
         images.forEach((img, i) => img.src = originalSrcs[i]); if (actionDiv) actionDiv.style.display = ''; let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
         if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
+        console.error("Erreur html2canvas:", e);
     });
 };
 
