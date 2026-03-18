@@ -2180,3 +2180,60 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+
+// =========================================================================
+// HOCKAI | Système de Tunnel de Navigation (Step-by-Step) pour les Tickets
+// =========================================================================
+window.goToTicketStep = function(step) {
+    console.log(`[HOCKAI] Navigation vers l'étape ${step}...`);
+
+    // 1. Sécurité : Vérifier qu'un match est sélectionné avant de passer à l'étape 2
+    if (step === 2 && (!window.selectedTicketMatches || window.selectedTicketMatches.size === 0)) {
+        alert("🛡️ Sécurité HOCKAI : Veuillez sélectionner au moins un match dans la configuration avant de continuer.");
+        return;
+    }
+
+    // 2. Gestion de l'affichage des sections
+    // On cache tout d'abord
+    const step1 = document.getElementById('ticket-step-1');
+    const step2 = document.getElementById('ticket-step-2');
+    const step3 = document.getElementById('ticket-step-3');
+
+    if (!step1 || !step2 || !step3) {
+        console.error("Erreur critique : Conteneurs d'étapes introuvables dans le HTML.");
+        return;
+    }
+
+    step1.classList.add('hidden');
+    step1.classList.remove('flex');
+    step2.classList.add('hidden');
+    step2.classList.remove('flex');
+    step3.classList.add('hidden');
+    step3.classList.remove('flex');
+    
+    // On affiche l'étape demandée
+    const activeStep = document.getElementById(`ticket-step-${step}`);
+    activeStep.classList.remove('hidden');
+    activeStep.classList.add('flex');
+
+    // 3. Mise à jour visuelle des points de progression
+    // Définition des états (Actif/Neon vs Inactif/Gris)
+    const dotActive = 'w-3 h-3 rounded-full bg-blood shadow-[0_0_10px_#ff3333] transition-all duration-300';
+    const dotInactive = 'w-3 h-3 rounded-full bg-gray-800 shadow-none transition-all duration-300';
+
+    const dot1 = document.getElementById('step-dot-1');
+    const dot2 = document.getElementById('step-dot-2');
+    const dot3 = document.getElementById('step-dot-3');
+
+    if (dot1 && dot2 && dot3) {
+        dot1.className = (step >= 1) ? dotActive : dotInactive;
+        dot2.className = (step >= 2) ? dotActive : dotInactive;
+        dot3.className = (step >= 3) ? dotActive : dotInactive;
+    }
+
+    // 4. Remonter en haut de page en douceur sur mobile pour un confort parfait
+    if(window.innerWidth < 1024) {
+        const tabContainer = document.getElementById('tab-tickets');
+        if (tabContainer) tabContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+};
