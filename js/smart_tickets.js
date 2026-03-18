@@ -384,24 +384,47 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 let pType = p._ticketRole;
                 let probTextCol = p._ticketProb >= 50 ? 'text-green-400' : (p._ticketProb >= 40 ? 'text-ice' : 'text-gray-400');
                 let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
-                let targetBadgeHtml = p.has_target_badge ? `<span class="bg-blood/20 text-blood border border-blood/50 px-2 py-0.5 rounded text-[8px] uppercase font-black ml-2 inline-flex items-center gap-1 shadow-[0_0_10px_rgba(255,51,51,0.3)]"><i class="fas fa-crosshairs animate-pulse"></i> Cible</span>` : '';
+                let targetBadgeHtml = p.has_target_badge ? `<span class="bg-blood/20 text-blood border border-blood/50 px-1.5 py-0.5 rounded text-[8px] uppercase font-black ml-2 inline-flex items-center gap-1 shadow-[0_0_10px_rgba(255,51,51,0.3)]"><i class="fas fa-crosshairs animate-pulse"></i> Cible</span>` : '';
                 
-                // NOUVEAU DESIGN ROW MOBILE : Sleek, Compact, Lisible
+                // 1. CORRECTION IMAGE : On utilise le dossier /ext/ de la NHL
+                let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
+                
+                // 2. CORRECTION UNDEFINED : On s'assure de filtrer correctement
+                let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
+                
+                let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
+
+                // 3. DESIGN DE LA CARTE (Avec Position corrigée et Boutons)
                 html += `
-                    <div class="flex items-center justify-between bg-gray-950 p-3 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer" onclick="openSmartTicketModal('${encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27")}')">
+                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
                         
-                        <div class="flex items-center gap-3 overflow-hidden flex-1">
-                            <img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-700 bg-gray-900 flex-shrink-0 object-cover">
-                            <div class="flex flex-col min-w-0">
-                                <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate">${p.name}</div>
-                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5">${p.team} • ${p.position} ${targetBadgeHtml}</div>
+                        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+                            <div class="relative flex-shrink-0">
+                                <div class="absolute inset-0 bg-ice/20 rounded-full blur group-hover:bg-ice/40 transition"></div>
+                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-ice bg-gray-900 object-cover z-10 transition">
+                            </div>
+                            
+                            <div class="flex flex-col min-w-0 justify-center">
+                                <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate group-hover:text-ice transition">${p.name}</div>
+                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5 flex items-center">
+                                    ${p.team}${positionStr} ${targetBadgeHtml}
+                                </div>
+                                
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                        <i class="fas fa-search"></i> Scout
+                                    </button>
+                                    <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                        <i class="fas fa-ban"></i> Bannir
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <div class="flex flex-col items-end flex-shrink-0 ml-3">
-                            <div class="text-[9px] text-gray-500 uppercase font-black tracking-widest mb-0.5">${pType}</div>
-                            <div class="font-black text-sm md:text-base ${probTextCol}">${p._ticketProb.toFixed(1)}%</div>
-                            <div class="text-[9px] text-gray-400 font-bold mt-0.5">@${itemOdds.toFixed(2)}</div>
+                            <div class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">${pType}</div>
+                            <div class="font-black text-base md:text-xl ${probTextCol} drop-shadow-[0_0_8px_currentColor]">${p._ticketProb.toFixed(1)}%</div>
+                            <div class="text-[10px] text-gray-400 font-bold mt-0.5">@${itemOdds.toFixed(2)}</div>
                         </div>
                     </div>
                 `;
@@ -612,34 +635,53 @@ window.generatePalier200 = async function () {
         Object.keys(grouped).forEach(matchStr => {
             html += `<div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-yellow-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-ice"></i> MATCH : <span class="text-white">${matchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
             grouped[matchStr].forEach(p => {
-                let pType = p.best_prop_type === 'prob_goal' ? 'But' : (p.best_prop_type === 'prob_assist' ? 'Passe' : 'Point');
-                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
-                let positionStr = (p.position && p.position !== 'undefined') ? ` • ${p.position}` : '';
-                let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
+                let pType = p._ticketRole;
+                let probTextCol = p._ticketProb >= 50 ? 'text-green-400' : (p._ticketProb >= 40 ? 'text-ice' : 'text-gray-400');
+                let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
+                let targetBadgeHtml = p.has_target_badge ? `<span class="bg-blood/20 text-blood border border-blood/50 px-1.5 py-0.5 rounded text-[8px] uppercase font-black ml-2 inline-flex items-center gap-1 shadow-[0_0_10px_rgba(255,51,51,0.3)]"><i class="fas fa-crosshairs animate-pulse"></i> Cible</span>` : '';
                 
+                // 1. CORRECTION IMAGE : On utilise le dossier /ext/ de la NHL
+                let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
+                
+                // 2. CORRECTION UNDEFINED : On s'assure de filtrer correctement
+                let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
+                
+                let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
+
+                // 3. DESIGN DE LA CARTE (Avec Position corrigée et Boutons)
                 html += `
-                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-yellow-500 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                        
                         <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
                             <div class="relative flex-shrink-0">
-                                <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur group-hover:bg-yellow-500/40 transition"></div>
-                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-yellow-500 bg-gray-900 object-cover z-10 transition">
+                                <div class="absolute inset-0 bg-ice/20 rounded-full blur group-hover:bg-ice/40 transition"></div>
+                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-ice bg-gray-900 object-cover z-10 transition">
                             </div>
+                            
                             <div class="flex flex-col min-w-0 justify-center">
-                                <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate group-hover:text-yellow-500 transition">${p.name}</div>
-                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5">${p.team}${positionStr}</div>
+                                <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate group-hover:text-ice transition">${p.name}</div>
+                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5 flex items-center">
+                                    ${p.team}${positionStr} ${targetBadgeHtml}
+                                </div>
+                                
                                 <div class="flex gap-2 mt-2">
-                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
                                         <i class="fas fa-search"></i> Scout
+                                    </button>
+                                    <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                        <i class="fas fa-ban"></i> Bannir
                                     </button>
                                 </div>
                             </div>
                         </div>
+
                         <div class="flex flex-col items-end flex-shrink-0 ml-3">
-                            <div class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">Over 0.5 ${pType}</div>
-                            <div class="font-black text-base md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80]">${p._ticketProb.toFixed(1)}%</div>
-                            <div class="text-[10px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                            <div class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">${pType}</div>
+                            <div class="font-black text-base md:text-xl ${probTextCol} drop-shadow-[0_0_8px_currentColor]">${p._ticketProb.toFixed(1)}%</div>
+                            <div class="text-[10px] text-gray-400 font-bold mt-0.5">@${itemOdds.toFixed(2)}</div>
                         </div>
-                    </div>`;
+                    </div>
+                `;
             });
             html += `</div></div>`;
         });
@@ -708,8 +750,8 @@ window.generateSameGameParlay = async function () {
         let html = `<div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 rounded-xl mb-4 shadow-inner relative z-20" id="ticket-export-zone-header"><span class="text-purple-400 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2"><i class="fas fa-handshake"></i> SAME-GAME PARLAY (CORRÉLATION)</span><button onclick="generateSameGameParlay()" class="bg-gray-900 hover:bg-white hover:text-black text-[10px] md:text-xs px-4 py-2 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2"><i class="fas fa-sync-alt text-purple-400"></i> Relancer</button></div><div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all"><div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner"><div class="text-right hidden sm:block"><div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div><div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div></div><div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div></div><div class="pt-10 md:pt-4 pr-16 md:pr-48"><div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-purple-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-purple-400"></i> MATCH : <span class="text-white">${finalMatchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
         finalTicket.forEach(p => {
             let pType = p.best_prop_type === 'prob_goal' ? 'But' : (p.best_prop_type === 'prob_assist' ? 'Passe' : 'Point');
-            let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
-            let positionStr = (p.position && p.position !== 'undefined') ? ` • ${p.position}` : '';
+            let imgUrl = p.headshot || (p.id ? `https://assets.nhle.com/mugs/nhl/latest/ext/${p.id}.png` : 'assets/logo_hockAI.png');
+            let positionStr = (p.position && String(p.position) !== 'undefined' && p.position !== 'null') ? ` • ${p.position}` : '';
             let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
             
             html += `
