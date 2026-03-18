@@ -24,7 +24,17 @@ window.loadTeamPredictions = async function (mode) {
             const data = await res.json();
             window.fetchedMatchesPool = data.matches || [];
         }
-        if (window.fetchedMatchesPool.length === 0) {
+        
+        // ⚡ FILTRE TEMPOREL AJUSTÉ : On garde les matchs des 10 jours à venir
+        let now = new Date();
+        let activeMatches = window.fetchedMatchesPool.filter(match => {
+            if (['FINAL', 'OFF'].includes(match.state)) return false;
+            let mDate = new Date(match.date);
+            let hoursDiff = (mDate - now) / (1000 * 60 * 60);
+            return hoursDiff >= -10 && hoursDiff <= 240; // Fenêtre élargie à 10 jours
+        });
+
+        if (activeMatches.length === 0) {
             container.innerHTML = '<div class="col-span-full text-center text-gray-500 font-bold italic py-10">Aucun match programmé aujourd\'hui.</div>';
             if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
             return;
@@ -32,8 +42,8 @@ window.loadTeamPredictions = async function (mode) {
         
         container.innerHTML = '';
 
-        // ⚡ NOUVEAU : Double requête en parallèle (Probabilités + Contexte Tactique)
-        const fetchPromises = window.fetchedMatchesPool.map(async (match) => {
+        // ⚡ Double requête en parallèle (sur la liste activeMatches)
+        const fetchPromises = activeMatches.map(async (match) => {
             const d = new Date(match.date);
             const dateStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             const matchDateOnly = d.toISOString().split('T')[0];
