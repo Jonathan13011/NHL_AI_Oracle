@@ -596,78 +596,111 @@ window.exportSmartTicketImage = async function () {
     if (typeof html2canvas === 'undefined') { alert("Module photo en cours de chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
     
-    // On lance le loader, on n'affiche pas la barre de progression car c'est rapide
-    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Préparation du ticket HD...", false);
+    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Création de la version HD...", false);
 
-    // On cache temporairement les boutons d'action s'ils existent
-    let actionDiv = ticketContainer.querySelector('.ticket-actions'); if (actionDiv) actionDiv.style.display = 'none';
+    // 1. Cacher les boutons
+    let actionDiv = ticketContainer.querySelector('.ticket-actions'); 
+    if (actionDiv) actionDiv.style.display = 'none';
     
-    // On ajoute un watermark discret en bas à droite
+    // 2. Ajouter Watermark
     let watermark = document.createElement('div');
-    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px; text-shadow: 0 0 5px #000;">GÉNÉRÉ PAR L\'IA HOCKAI</span>';
-    watermark.style.position = 'absolute'; watermark.style.bottom = '15px'; watermark.style.right = '20px'; watermark.style.zIndex = '50'; watermark.id = 'temp-watermark';
+    watermark.id = 'temp-watermark';
+    watermark.style.position = 'absolute'; watermark.style.bottom = '15px'; watermark.style.right = '20px'; watermark.style.zIndex = '50';
+    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px;">⚡ GÉNÉRÉ PAR L\'IA HOCKAI</span>';
     ticketContainer.appendChild(watermark);
 
-    // On récupère les sources originales des portraits des joueurs
+    // 3. ⚡ Ajouter le Logo en Haut (directement dans le DOM, c'est 100% sûr pour iOS)
+    let tempLogo = document.createElement('div');
+    tempLogo.id = 'temp-header-logo';
+    tempLogo.style.width = '100%';
+    tempLogo.style.textAlign = 'center';
+    tempLogo.style.marginBottom = '20px';
+    tempLogo.innerHTML = '<img src="assets/logo_hockAI.png" style="height:55px; display:inline-block; filter: drop-shadow(0 0 10px rgba(0,229,255,0.3));">';
+    ticketContainer.prepend(tempLogo);
+
+    // 4. Gestion des images externes (CORS)
     let images = ticketContainer.querySelectorAll('img'); let originalSrcs = [];
     for (let i = 0; i < images.length; i++) {
         let img = images[i]; originalSrcs[i] = img.src;
-        // Si c'est une image externe, on tente de la passer en Base64 via proxy pour CORS
         if (img.src.startsWith('http') && img.src.includes('nhle.com')) {
             try { let res = await fetch(API_BASE + '/proxy-image-base64?url=' + encodeURIComponent(img.src)); let data = await res.json(); if (data.base64) img.src = data.base64; } catch (e) { }
         }
     }
-    // Petit délai pour laisser les images se mettre à jour
-    await new Promise(r => setTimeout(r, 500));
+    
+    // Laisser le temps au navigateur de bien afficher le logo avant de "flasher"
+    await new Promise(r => setTimeout(r, 800));
 
-    // Lancement de la capture photo
-    html2canvas(ticketContainer, {
-        backgroundColor: '#0a0f1a', // Couleur de fond HockAI
-        scale: 2, // Double résolution pour le partage
-        useCORS: true, logging: false,
-        onclone: function (doc) { 
-            // C'est ici que l'on manipule la version "clonée" qui va devenir l'image
-            let el = doc.getElementById('ticket-export-zone'); 
-            if (el) { 
-                // On force une largeur propre pour l'exportation
-                el.style.width = '800px'; el.style.maxWidth = '800px'; el.classList.remove('mx-auto');
-                
-                // ⚡⚡ NOUVEAU : AJOUT DU LOGO HOCKAI AU SOMMET DE L'EXPORT ⚡⚡
-                let headerLogo = doc.createElement('div');
-                headerLogo.style.width = '100%';
-                headerLogo.style.textAlign = 'center';
-                headerLogo.style.marginBottom = '30px'; // Espace sous le logo avant l'en-tête
-                headerLogo.style.paddingTop = '10px';
-                // Assure-toi que le chemin vers ton logo est correct
-                headerLogo.innerHTML = `<img src="assets/logo_hockAI.png" style="height: 60px; max-height: 60px; width: auto; display: inline-block; filter: drop-shadow(0 0 10px rgba(0,229,255,0.3));">`;
-                
-                // On insère le logo tout en haut de l'élément cloné
-                el.prepend(headerLogo);
-            } 
-        }
-    }).then(canvas => {
-        // Restauration des images originales et ménage
-        images.forEach((img, i) => img.src = originalSrcs[i]); if (actionDiv) actionDiv.style.display = ''; let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
-        
+    try {
+        // ⚡ ASTUCE iOS : On réduit légèrement l'échelle sur mobile pour éviter le crash mémoire de Safari
+        let scaleValue = (window.innerWidth < 768) ? 1.5 : 2;
+
+        const canvas = await html2canvas(ticketContainer, {
+            backgroundColor: '#0a0f1a',
+            scale: scaleValue,
+            useCORS: true,
+            logging: false,
+            onclone: function(doc) {
+                let el = doc.getElementById('ticket-export-zone');
+                if (el) {
+                    el.style.width = '800px';
+                    el.style.maxWidth = '800px';
+                    el.classList.remove('mx-auto');
+                }
+            }
+        });
+
         const imgData = canvas.toDataURL('image/png');
-        
-        // Détection iOS pour le modal ou téléchargement PC
+
+        // Détection propre de l'iPhone/iPad
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-        
+
         if (isIOS || (isMacSafari && navigator.maxTouchPoints > 1)) {
-            window.showIOSExportModal(imgData); // Affiche le modal iOS (reçue au message précédent)
+            // SOLUTION iPHONE : On ouvre un modal par-dessus
+            let modal = document.getElementById('ios-export-modal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'ios-export-modal';
+                modal.className = 'fixed inset-0 bg-black/95 z-[9999] hidden flex-col items-center justify-center p-4 backdrop-blur-md';
+                document.body.appendChild(modal);
+            }
+            modal.innerHTML = `
+                <div class="w-full max-w-md flex flex-col items-center max-h-screen py-4 overflow-y-auto no-scrollbar">
+                    <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 w-full text-center shadow-lg mb-4 shrink-0 mt-8">
+                        <h3 class="text-white font-black uppercase tracking-widest text-sm mb-2"><i class="fas fa-mobile-alt text-ice mr-2"></i> Sauvegarde iOS</h3>
+                        <p class="text-gray-400 text-xs font-bold leading-relaxed"><strong>Maintenez votre doigt appuyé</strong> sur l'image ci-dessous puis choisissez <strong>"Enregistrer dans Photos"</strong>.</p>
+                    </div>
+                    <div class="relative w-full rounded-xl overflow-hidden border-2 border-ice shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
+                        <img src="${imgData}" class="w-full h-auto object-contain block">
+                    </div>
+                    <button onclick="document.getElementById('ios-export-modal').classList.add('hidden');" class="mt-6 mb-8 bg-gray-800 hover:bg-red-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all shadow-lg flex items-center gap-2 shrink-0">
+                        <i class="fas fa-times"></i> Fermer
+                    </button>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         } else {
-            let link = document.createElement('a'); link.download = 'HOCKAI_Smart_Ticket.png'; link.href = imgData; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            // SOLUTION PC / ANDROID : Téléchargement direct classique
+            let link = document.createElement('a'); 
+            link.download = 'HOCKAI_Smart_Ticket.png'; 
+            link.href = imgData; 
+            document.body.appendChild(link); 
+            link.click(); 
+            document.body.removeChild(link);
         }
-        
+
+    } catch (e) {
+        console.error("Erreur capture html2canvas:", e);
+        alert("Erreur lors de la création de l'image. Le navigateur a bloqué le processus.");
+    } finally {
+        // ⚡ SÉCURITÉ : Nettoyage quoiqu'il arrive, le chargement s'arrêtera toujours !
+        images.forEach((img, i) => img.src = originalSrcs[i]);
+        if (actionDiv) actionDiv.style.display = '';
+        let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
+        let tl = document.getElementById('temp-header-logo'); if (tl) tl.remove();
         if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
-    }).catch(e => {
-        // En cas d'erreur, on restaure tout
-        images.forEach((img, i) => img.src = originalSrcs[i]); if (actionDiv) actionDiv.style.display = ''; let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
-        if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
-        console.error("Erreur html2canvas:", e);
-    });
+    }
 };
 
 // 6. MODALS ET UTILITAIRES DE TICKETS
