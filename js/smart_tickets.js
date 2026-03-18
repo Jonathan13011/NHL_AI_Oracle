@@ -614,10 +614,10 @@ window.exportSmartTicketImage = async function () {
     if (typeof html2canvas === 'undefined') { alert("Module en chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
     
-    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Création des cartes Quantum-Data...", false);
+    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Création de la carte Premium...", false);
 
     try {
-        // 1. Extraction chirurgicale des données du ticket actuel
+        // 1. Extraction des données
         let playersData = [];
         let ticketCards = ticketContainer.querySelectorAll('[onclick^="openSmartTicketModal"]');
         
@@ -627,9 +627,6 @@ window.exportSmartTicketImage = async function () {
             if (match && match[1]) {
                 try {
                     let p = JSON.parse(decodeURIComponent(match[1]));
-                    // Extraction de la cote depuis l'interface car elle n'est pas dans le JSON
-                    let oddsMatch = card.innerText.match(/@([0-9.]+)/);
-                    p.odds = oddsMatch ? oddsMatch[1] : "1.90";
                     playersData.push(p);
                 } catch (e) {}
             }
@@ -637,7 +634,7 @@ window.exportSmartTicketImage = async function () {
 
         if (playersData.length === 0) throw new Error("Aucun joueur détecté.");
 
-        // 2. Conversion Base64 de toutes les images pour contourner la sécurité d'Apple (CORS)
+        // 2. Conversion Base64 des portraits
         for (let i = 0; i < playersData.length; i++) {
             let p = playersData[i];
             let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
@@ -648,16 +645,25 @@ window.exportSmartTicketImage = async function () {
             } catch (e) { p.base64Img = 'assets/logo_hockAI.png'; }
         }
 
-        // 3. Construction de la Maquette "Quantum-Data" Off-Screen (Hors écran)
+        // 3. Construction du MASTERPIECE (Off-Screen)
         let exportHtml = `
-        <div id="quantum-export-container" class="bg-[#0a0f1a] p-10 flex flex-col gap-8" style="width: 600px; position: fixed; top: -9999px; left: 0; z-index: -100; font-family: 'Montserrat', sans-serif;">
+        <div id="quantum-export-container" class="bg-[#05080f] flex flex-col relative overflow-hidden" style="width: 650px; position: fixed; top: -9999px; left: 0; z-index: -100; font-family: 'Montserrat', sans-serif;">
             
-            <div class="text-center mb-2 mt-4 relative">
-                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.3)_0%,_transparent_70%)] blur-2xl"></div>
-                <img src="assets/logo_hockAI.png" style="height: 80px; margin: 0 auto; filter: drop-shadow(0 0 15px rgba(0,229,255,0.8)); display: block; position: relative; z-index: 10;">
-                <h1 class="text-white font-black text-3xl tracking-[0.2em] uppercase mt-6 drop-shadow-lg relative z-10">PRONOSTICS PREMIUM</h1>
-                <div class="text-[#00e5ff] font-bold tracking-[0.3em] text-sm mt-2 relative z-10">INTELLIGENCE ARTIFICIELLE</div>
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+                <div class="text-[#00e5ff] opacity-[0.03] font-black text-[140px] transform -rotate-45 tracking-[0.2em] whitespace-nowrap select-none">HOCKAI.FR HOCKAI.FR</div>
             </div>
+
+            <div class="relative w-full pt-10 pb-8 px-6 bg-gradient-to-b from-[#00e5ff]/10 to-transparent border-b-2 border-[#00e5ff]/40 z-10 flex flex-col items-center">
+                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.3)_0%,_transparent_60%)] blur-2xl"></div>
+                <img src="assets/logo_hockAI.png" style="height: 110px; filter: drop-shadow(0 0 25px rgba(0,229,255,1));" class="relative z-20 mb-4">
+                <h1 class="text-white font-black text-4xl tracking-[0.25em] uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] relative z-20 text-center">TICKET INTELLIGENT</h1>
+                
+                <div class="mt-5 px-8 py-2 bg-[#0a0f1a] border-2 border-[#00e5ff] rounded-full shadow-[0_0_20px_rgba(0,229,255,0.6)] relative z-20">
+                    <span class="text-[#00e5ff] font-black tracking-[0.4em] text-xl drop-shadow-[0_0_8px_#00e5ff]">WWW.HOCKAI.FR</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-6 px-8 py-8 relative z-10">
         `;
 
         playersData.forEach(p => {
@@ -669,85 +675,73 @@ window.exportSmartTicketImage = async function () {
             let ctxHtml = '';
             if (p.ctx_reasons && p.ctx_reasons.length > 0) {
                 ctxHtml = `
-                <div class="px-8 pb-5 relative z-20">
-                    <div class="text-center text-[10px] text-gray-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-3">
-                        <div class="h-px bg-[#475569] w-12"></div> Context Reasons <div class="h-px bg-[#475569] w-12"></div>
+                <div class="px-6 pb-4 relative z-20 border-t border-[#475569]/30 pt-4 bg-black/40">
+                    <div class="text-[11px] text-[#00e5ff] font-black uppercase tracking-[0.2em] mb-2 flex items-center gap-2">
+                        <i class="fas fa-microchip"></i> Analyse IA
                     </div>
-                    <ul class="text-sm text-[#e2e8f0] space-y-2 font-bold leading-relaxed list-none m-0 p-0 text-left">
+                    <ul class="text-[13px] text-gray-300 space-y-1.5 font-bold leading-snug list-none m-0 p-0 text-left">
                         ${p.ctx_reasons.join('')}
                     </ul>
                 </div>`;
             }
 
-            // LE DESIGN DE L'EXEMPLE 2 (Quantum-Data Stat Card)
             exportHtml += `
-            <div class="relative bg-gradient-to-b from-[#0f172a] to-[#030712] border-[3px] border-[#94a3b8] rounded-[2rem] overflow-hidden shadow-[0_0_40px_rgba(0,229,255,0.15)]">
+            <div class="relative bg-gradient-to-r from-[#0f172a] to-[#05080f] border-2 border-[#475569] rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)]">
                 
-                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent"></div>
+                <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-[#00e5ff] via-[#3b82f6] to-[#00e5ff] shadow-[0_0_15px_#00e5ff]"></div>
                 
-                <div class="bg-gradient-to-b from-[#475569] to-[#1e293b] p-3 text-center border-b-[3px] border-[#94a3b8] relative z-10">
-                    <span class="text-white font-black uppercase tracking-[0.2em] text-lg drop-shadow-md">HOCKAI Smart Ticket</span>
-                </div>
-                
-                <div class="absolute top-[44px] left-1/2 transform -translate-x-1/2 w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rounded-full border-2 border-yellow-100 shadow-[0_0_20px_#eab308] flex items-center justify-center z-30">
-                    <span class="text-[#451a03] font-black text-lg tracking-widest drop-shadow-sm">IA</span>
-                </div>
+                <div class="relative p-5 flex items-center gap-6 z-20">
+                    
+                    <div class="relative z-30 shrink-0 ml-2">
+                        <img src="${p.base64Img}" crossorigin="anonymous" class="w-28 h-28 rounded-full border-[3px] border-[#00e5ff] bg-[#0a0f1a] object-cover shadow-[0_0_20px_rgba(0,229,255,0.5)]">
+                        <div class="absolute -bottom-1 -right-1 w-8 h-8 bg-gradient-to-br from-yellow-300 to-yellow-600 rounded-full border-2 border-black shadow-[0_0_10px_#eab308] flex items-center justify-center">
+                            <span class="text-black font-black text-[10px] tracking-widest">IA</span>
+                        </div>
+                    </div>
 
-                <div class="relative pt-16 pb-6 flex justify-center bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.25)_0%,_transparent_70%)] overflow-hidden">
-                    <div class="absolute inset-0" style="background-image: linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px); background-size: 20px 20px;"></div>
-                    <img src="${p.base64Img}" crossorigin="anonymous" class="w-40 h-40 rounded-full border-4 border-[#00e5ff] bg-[#0a0f1a] object-cover shadow-[0_0_30px_#00e5ff] relative z-20">
+                    <div class="relative z-30 flex flex-col text-left w-full justify-center">
+                        <div class="text-lg font-bold text-gray-300 uppercase tracking-widest leading-none">${displayFirst}</div>
+                        <div class="text-3xl font-black text-white uppercase tracking-widest mt-1 drop-shadow-md leading-none">${lastName}</div>
+                        <div class="text-xs text-gray-500 font-black uppercase tracking-[0.3em] mt-2 mb-3">${p.team}</div>
+
+                        <div class="inline-block bg-[#00e5ff]/10 border border-[#00e5ff]/50 rounded-lg py-2 px-4 w-max shadow-inner">
+                            <span class="text-[#00e5ff] font-black text-xl uppercase tracking-[0.1em] drop-shadow-[0_0_5px_rgba(0,229,255,0.8)]">${p.type} : ${p.prob.toFixed(1)}%</span>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="text-center px-6 pb-2 relative z-20">
-                    <div class="text-3xl font-black text-white uppercase tracking-widest">${displayFirst}</div>
-                    <div class="text-4xl font-black text-white uppercase tracking-widest mt-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">${lastName}</div>
-                    <div class="text-sm text-gray-400 font-bold uppercase tracking-[0.3em] mt-3">${p.team} / ${p.type}</div>
-                </div>
-                
-                <div class="bg-gradient-to-r from-transparent via-[#00e5ff]/20 to-transparent border-y border-[#00e5ff]/40 py-5 text-center my-5 relative z-20 flex justify-center items-center gap-4">
-                    <span class="text-[#00e5ff] font-black text-3xl uppercase tracking-widest drop-shadow-[0_0_12px_#00e5ff]">${p.type} : ${p.prob.toFixed(1)}%</span>
-                    <span class="text-white text-2xl font-black opacity-80">|</span>
-                    <span class="text-white font-black text-3xl drop-shadow-md">@${p.odds}</span>
-                </div>
-                
                 ${ctxHtml}
-                
-                <div class="text-center pb-6 pt-3 relative z-20 border-t border-[#475569]/30 bg-black/40">
-                    <span class="text-yellow-500 font-black text-xs uppercase tracking-[0.3em] drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">GÉNÉRÉ PAR L'IA HOCKAI</span>
-                </div>
             </div>
             `;
         });
 
         exportHtml += `
-            <div class="text-center mt-6 pt-6 border-t border-gray-800">
-                <p class="text-gray-400 text-sm font-bold uppercase tracking-[0.2em]">Scanner d'anomalies disponible sur <span class="text-[#00e5ff] font-black drop-shadow-[0_0_5px_#00e5ff]">www.hockai.fr</span></p>
+            </div>
+            
+            <div class="relative w-full mt-2 pt-8 pb-10 bg-gradient-to-t from-[#00e5ff]/15 to-transparent border-t-2 border-[#00e5ff]/30 z-10 text-center">
+                <p class="text-gray-300 text-base font-bold uppercase tracking-[0.2em] mb-2">Générez vos propres pronostics sur</p>
+                <p class="text-[#00e5ff] text-4xl font-black uppercase tracking-[0.3em] drop-shadow-[0_0_20px_#00e5ff]">HOCKAI.FR</p>
             </div>
         </div>`;
 
-        // 4. Injection dans le DOM invisible
+        // 4. Injection, Capture et Nettoyage
         let wrapper = document.createElement('div');
         wrapper.innerHTML = exportHtml;
         document.body.appendChild(wrapper.firstElementChild);
         let exportContainer = document.getElementById('quantum-export-container');
 
-        await new Promise(r => setTimeout(r, 800)); // Laisse le temps au CSS et aux polices de charger
+        await new Promise(r => setTimeout(r, 800));
 
-        // 5. La Photographie Haute Définition
         const canvas = await html2canvas(exportContainer, {
             backgroundColor: '#05080f',
-            scale: 2, // Toujours x2 pour une qualité optimale (600px * 2 = 1200px de large, parfait pour réseaux sociaux)
+            scale: 2, 
             useCORS: true,
             logging: false
         });
 
         const imgData = canvas.toDataURL('image/png');
         window.currentExportImgData = imgData;
-
-        // 6. Nettoyage du container caché
         exportContainer.remove();
 
-        // 7. Affichage / Sauvegarde
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
@@ -767,7 +761,7 @@ window.exportSmartTicketImage = async function () {
                         </button>
                         <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed border-t border-gray-800 pt-3">Ou maintenez votre doigt appuyé sur l'image ci-dessous.</p>
                     </div>
-                    <div class="relative w-full rounded-xl overflow-hidden border-2 border-[#94a3b8] shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
+                    <div class="relative w-full rounded-xl overflow-hidden border-2 border-[#00e5ff] shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
                         <img src="${imgData}" class="w-full h-auto object-contain block" style="-webkit-touch-callout: default; -webkit-user-select: none; user-select: none; pointer-events: auto;">
                     </div>
                     <button onclick="document.getElementById('ios-export-modal').classList.add('hidden');" class="mt-6 mb-8 bg-gray-800 hover:bg-red-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all shadow-lg flex items-center gap-2 shrink-0">
