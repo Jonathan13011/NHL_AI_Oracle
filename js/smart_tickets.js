@@ -398,38 +398,44 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
                 html += `
-                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
                         
-                        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                            <div class="relative flex-shrink-0">
-                                <div class="absolute inset-0 bg-ice/20 rounded-full blur group-hover:bg-ice/40 transition"></div>
-                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-ice bg-gray-900 object-cover z-10 transition">
+                        <div class="flex justify-between items-center w-full gap-2">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <div class="relative shrink-0">
+                                    <div class="absolute inset-0 bg-ice/20 rounded-full blur group-hover:bg-ice/40 transition"></div>
+                                    <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-ice bg-gray-900 object-cover z-10 transition">
+                                </div>
+                                <div class="flex flex-col min-w-0 justify-center">
+                                    <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-ice transition leading-none">${lastName}</div>
+                                    ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] capitalize tracking-wider truncate mt-1">${displayFirst}</div>` : ''}
+                                    <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-1">
+                                        ${p.team}${positionStr}
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="flex flex-col min-w-0 justify-center">
-                                <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-ice transition leading-none">${lastName}</div>
-                                ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] md:text-xs capitalize tracking-wider truncate mt-0.5">${displayFirst}</div>` : ''}
-                                
-                                <div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest truncate mt-1 flex items-center">
-                                    ${p.team}${positionStr} ${targetBadgeHtml}
-                                </div>
-                                
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1 shrink-0">
-                                        <i class="fas fa-search"></i> Scout
-                                    </button>
-                                    <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1 shrink-0">
-                                        <i class="fas fa-ban"></i> Bannir
-                                    </button>
-                                </div>
+                            <div class="flex flex-col items-end shrink-0 pl-3 border-l border-gray-800">
+                                <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700">${pType}</div>
+                                <div class="font-black text-lg md:text-xl ${probTextCol} drop-shadow-[0_0_8px_currentColor] my-0.5">${p._ticketProb.toFixed(1)}%</div>
+                                <div class="text-[9px] text-gray-400 font-bold mt-0.5">@${itemOdds.toFixed(2)}</div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col items-end flex-shrink-0 ml-2">
-                            <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 md:px-2 py-0.5 rounded border border-gray-800">${pType}</div>
-                            <div class="font-black text-base md:text-xl ${probTextCol} drop-shadow-[0_0_8px_currentColor]">${p._ticketProb.toFixed(1)}%</div>
-                            <div class="text-[9px] md:text-[10px] text-gray-400 font-bold mt-0.5">@${itemOdds.toFixed(2)}</div>
+                        <div class="flex justify-between items-center w-full pt-2.5 border-t border-gray-800/60">
+                            <div class="flex items-center">
+                                ${targetBadgeHtml}
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-search"></i> Scout
+                                </button>
+                                <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-ban"></i> Bannir
+                                </button>
+                            </div>
                         </div>
+
                     </div>
                 `;
             });
@@ -680,34 +686,37 @@ window.generatePalier200 = async function () {
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
 
                 html += `
-                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-yellow-500 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-yellow-500 transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
                         
-                        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                            <div class="relative flex-shrink-0">
-                                <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur group-hover:bg-yellow-500/40 transition"></div>
-                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-yellow-500 bg-gray-900 object-cover z-10 transition">
+                        <div class="flex justify-between items-center w-full gap-2">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <div class="relative shrink-0">
+                                    <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur group-hover:bg-yellow-500/40 transition"></div>
+                                    <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-yellow-500 bg-gray-900 object-cover z-10 transition">
+                                </div>
+                                <div class="flex flex-col min-w-0 justify-center">
+                                    <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-yellow-500 transition leading-none">${lastName}</div>
+                                    ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] capitalize tracking-wider truncate mt-1">${displayFirst}</div>` : ''}
+                                    <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-1">
+                                        ${p.team}${positionStr}
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="flex flex-col min-w-0 justify-center">
-                                <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-yellow-500 transition leading-none">${lastName}</div>
-                                ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] md:text-xs capitalize tracking-wider truncate mt-0.5">${displayFirst}</div>` : ''}
-                                
-                                <div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest truncate mt-1 flex items-center">
-                                    ${p.team}${positionStr}
-                                </div>
-                                
-                                <div class="flex gap-2 mt-2">
-                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1 shrink-0">
-                                        <i class="fas fa-search"></i> Scout
-                                    </button>
-                                </div>
+                            <div class="flex flex-col items-end shrink-0 pl-3 border-l border-gray-800">
+                                <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700">Over 0.5 ${pType}</div>
+                                <div class="font-black text-lg md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80] my-0.5">${p._ticketProb.toFixed(1)}%</div>
+                                <div class="text-[9px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col items-end flex-shrink-0 ml-2">
-                            <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 md:px-2 py-0.5 rounded border border-gray-800">Over 0.5 ${pType}</div>
-                            <div class="font-black text-base md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80]">${p._ticketProb.toFixed(1)}%</div>
-                            <div class="text-[9px] md:text-[10px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                        <div class="flex justify-between items-center w-full pt-2.5 border-t border-gray-800/60">
+                            <div></div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-search"></i> Scout
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -819,34 +828,43 @@ window.generateSameGameParlay = async function () {
             let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
             
             html += `
-                <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-purple-500 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
-                    <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
-                        <div class="relative flex-shrink-0">
-                            <div class="absolute inset-0 bg-purple-500/20 rounded-full blur group-hover:bg-purple-500/40 transition"></div>
-                            <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-purple-500 bg-gray-900 object-cover z-10 transition">
-                        </div>
-                        <div class="flex flex-col min-w-0 justify-center">
-                            <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-purple-400 transition leading-none">${lastName}</div>
-                            ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] md:text-xs capitalize tracking-wider truncate mt-0.5">${displayFirst}</div>` : ''}
-                            
-                            <div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest truncate mt-1 flex items-center">
-                                ${p.team}${positionStr}
+                <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-purple-500 transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
+                    
+                    <div class="flex justify-between items-center w-full gap-2">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <div class="relative shrink-0">
+                                <div class="absolute inset-0 bg-purple-500/20 rounded-full blur group-hover:bg-purple-500/40 transition"></div>
+                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-purple-500 bg-gray-900 object-cover z-10 transition">
                             </div>
-                            <div class="bg-purple-900/40 border border-purple-500 text-purple-300 px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-2 w-max shadow-[0_0_8px_rgba(168,85,247,0.4)]">${p.archetype_badge}</div>
-                            
-                            <div class="flex gap-2 mt-2">
-                                <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1 shrink-0">
-                                    <i class="fas fa-search"></i> Scout
-                                </button>
+                            <div class="flex flex-col min-w-0 justify-center">
+                                <div class="font-black text-white text-sm md:text-base uppercase tracking-widest truncate group-hover:text-purple-400 transition leading-none">${lastName}</div>
+                                ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] capitalize tracking-wider truncate mt-1">${displayFirst}</div>` : ''}
+                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-1">
+                                    ${p.team}${positionStr}
+                                </div>
                             </div>
                         </div>
+                        
+                        <div class="flex flex-col items-end shrink-0 pl-3 border-l border-gray-800">
+                            <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700">Over 0.5 ${pType}</div>
+                            <div class="font-black text-lg md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80] my-0.5">${p._ticketProb.toFixed(1)}%</div>
+                            <div class="text-[9px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                        </div>
                     </div>
-                    <div class="flex flex-col items-end flex-shrink-0 ml-2">
-                        <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 md:px-2 py-0.5 rounded border border-gray-800">Over 0.5 ${pType}</div>
-                        <div class="font-black text-base md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80]">${p._ticketProb.toFixed(1)}%</div>
-                        <div class="text-[9px] md:text-[10px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+
+                    <div class="flex justify-between items-center w-full pt-2.5 border-t border-gray-800/60">
+                        <div class="flex items-center">
+                            <div class="bg-purple-900/40 border border-purple-500 text-purple-300 px-2 py-1 rounded text-[8px] uppercase font-black tracking-widest text-center shadow-[0_0_8px_rgba(168,85,247,0.4)]">${p.archetype_badge}</div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                <i class="fas fa-search"></i> Scout
+                            </button>
+                        </div>
                     </div>
-                </div>`;
+
+                </div>
+            `;
         });
         html += `</div></div></div>`;
         container.innerHTML = html;
