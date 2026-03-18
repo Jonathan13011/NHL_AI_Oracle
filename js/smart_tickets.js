@@ -84,6 +84,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
 
     if (window.selectedTicketMatches.size === 0) {
         container.innerHTML = `<div class="text-gray-500 font-bold text-center py-10"><i class="fas fa-hand-pointer text-2xl mb-2 text-yellow-500"></i><br>Sélectionnez au moins un match dans la liste ci-dessus pour lancer l'IA.</div>`;
+        window.hideFullScreenLoader(); // Sécurité
+        window.hideAnalysis();
         return;
     }
 
@@ -99,14 +101,30 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
         isZapping = false;
     }
 
-    let isCached = (window.ticketCacheMemory === currentSelectionStr && currentSelectionStr !== "");
-    let delay = 50;
+    // --- NOUVEAU LOADER STEP-BY-STEP ---
+    container.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20 animate-fade-in">
+            <div class="w-32 h-1 bg-gray-800 rounded-full overflow-hidden mb-8">
+                <div class="w-full h-full bg-blood animate-pulse"></div>
+            </div>
+            <div class="text-blood font-black text-[10px] md:text-xs uppercase tracking-[0.3em] mb-4">Moteur Quantique en Action</div>
+            <div class="text-gray-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest" id="loader-step text-center">Initialisation des serveurs...</div>
+        </div>
+    `;
 
-    if (!isCached && !isZapping) {
-        container.innerHTML = `<div class="text-center py-10"><i class="fas fa-microchip text-blood text-3xl drop-shadow-[0_0_15px_rgba(255,51,51,0.8)] animate-spin-slow"></i><div class="text-xs text-gray-400 uppercase tracking-widest mt-4 font-bold">Analyse Intégrale en cours...</div><div class="text-[9px] text-gray-500 mt-1">L'IA télécharge l'état des gardiens et la fatigue des équipes.</div></div>`;
-    }
+    const steps = ["Calcul des probabilités de Poisson...", "Scan des gardiens partants...", "Analyse des duels PP vs PK...", "Optimisation du combiné..."];
+    let stepIdx = 0;
+    const stepInterval = setInterval(() => {
+        const el = document.getElementById('loader-step');
+        if (el && steps[stepIdx]) {
+            el.innerText = steps[stepIdx++];
+        } else {
+            clearInterval(stepInterval);
+        }
+    }, 400);
 
     try {
+        // La suite de ton code (fetch, calculs, etc.) reste identique
         if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) {
             let res = await fetch(`${API_BASE}/predict_all`);
             let data = await res.json();
@@ -419,10 +437,13 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 </div>
             </div> `;
 
-        setTimeout(() => { container.innerHTML = html; window.hideAnalysis(); // 👈 Ajoute ça ici
-    window.hideFullScreenLoader(); window.renderBlacklistZone(); }, delay);
-    } catch (err) { console.error("Erreur IA:", err); container.innerHTML = `<div class="text-blood font-bold text-center py-10">Erreur de génération.</div>`; }
-};
+        setTimeout(() => { 
+            if (typeof stepInterval !== 'undefined') clearInterval(stepInterval); // On arrête l'animation de texte
+            container.innerHTML = html; 
+            window.hideAnalysis();
+            window.hideFullScreenLoader(); 
+            window.renderBlacklistZone(); 
+        }, 800); // On laisse un petit délai de 800ms pour que l'utilisateur voie au moins 2 étapes (plus pro)
 
 // 4. MOTEUR D'INFIRMERIE & BANNISSEMENT
 window.banPlayerFromTickets = function (id, name, team) {
