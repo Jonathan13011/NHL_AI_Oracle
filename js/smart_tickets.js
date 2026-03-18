@@ -592,6 +592,37 @@ window.clearAllBannedPlayers = function() {
 };
 
 // 5. MOTEUR D'EXPORTATION PHOTO (Compatibilité iOS/PC & Logo Sommet)
+
+// ⚡ NOUVELLE FONCTION GLOBALE POUR LE BOUTON DE TÉLÉCHARGEMENT iOS
+window.downloadFromIOSModal = async function() {
+    if (!window.currentExportImgData) return;
+    
+    try {
+        // On convertit l'image Base64 en vrai fichier pour le système iOS
+        const res = await fetch(window.currentExportImgData);
+        const blob = await res.blob();
+        const file = new File([blob], "HOCKAI_Smart_Ticket.png", { type: "image/png" });
+
+        // Appel au menu de partage natif d'Apple (Share Sheet)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: 'Ticket IA HOCKAI',
+            });
+        } else {
+            // Plan B si l'API de partage échoue
+            let link = document.createElement('a'); 
+            link.download = 'HOCKAI_Smart_Ticket.png'; 
+            link.href = window.currentExportImgData; 
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    } catch (e) {
+        console.error("Erreur lors de la sauvegarde iOS :", e);
+    }
+};
+
 window.exportSmartTicketImage = async function () {
     if (typeof html2canvas === 'undefined') { alert("Module photo en cours de chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
@@ -606,10 +637,10 @@ window.exportSmartTicketImage = async function () {
     let watermark = document.createElement('div');
     watermark.id = 'temp-watermark';
     watermark.style.position = 'absolute'; watermark.style.bottom = '15px'; watermark.style.right = '20px'; watermark.style.zIndex = '50';
-    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px;">⚡ GÉNÉRÉ PAR L\'IA HOCKAI</span>';
+    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px; text-shadow: 0 0 5px #000;">⚡ GÉNÉRÉ PAR L\'IA HOCKAI</span>';
     ticketContainer.appendChild(watermark);
 
-    // 3. ⚡ Ajouter le Logo en Haut (directement dans le DOM, c'est 100% sûr pour iOS)
+    // 3. Ajouter le Logo en Haut
     let tempLogo = document.createElement('div');
     tempLogo.id = 'temp-header-logo';
     tempLogo.style.width = '100%';
@@ -627,11 +658,9 @@ window.exportSmartTicketImage = async function () {
         }
     }
     
-    // Laisser le temps au navigateur de bien afficher le logo avant de "flasher"
     await new Promise(r => setTimeout(r, 800));
 
     try {
-        // ⚡ ASTUCE iOS : On réduit légèrement l'échelle sur mobile pour éviter le crash mémoire de Safari
         let scaleValue = (window.innerWidth < 768) ? 1.5 : 2;
 
         const canvas = await html2canvas(ticketContainer, {
@@ -650,13 +679,16 @@ window.exportSmartTicketImage = async function () {
         });
 
         const imgData = canvas.toDataURL('image/png');
+        
+        // On stocke l'image en mémoire pour le bouton iOS
+        window.currentExportImgData = imgData;
 
         // Détection propre de l'iPhone/iPad
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
         if (isIOS || (isMacSafari && navigator.maxTouchPoints > 1)) {
-            // SOLUTION iPHONE : On ouvre un modal par-dessus
+            // SOLUTION iPHONE : Modal avec bouton de sauvegarde
             let modal = document.getElementById('ios-export-modal');
             if (!modal) {
                 modal = document.createElement('div');
@@ -664,15 +696,24 @@ window.exportSmartTicketImage = async function () {
                 modal.className = 'fixed inset-0 bg-black/95 z-[9999] hidden flex-col items-center justify-center p-4 backdrop-blur-md';
                 document.body.appendChild(modal);
             }
+            
+            // ⚡ NOUVEAU DESIGN MODAL iOS AVEC BOUTON
             modal.innerHTML = `
                 <div class="w-full max-w-md flex flex-col items-center max-h-screen py-4 overflow-y-auto no-scrollbar">
-                    <div class="bg-gray-900 border border-gray-700 rounded-xl p-4 w-full text-center shadow-lg mb-4 shrink-0 mt-8">
-                        <h3 class="text-white font-black uppercase tracking-widest text-sm mb-2"><i class="fas fa-mobile-alt text-ice mr-2"></i> Sauvegarde iOS</h3>
-                        <p class="text-gray-400 text-xs font-bold leading-relaxed"><strong>Maintenez votre doigt appuyé</strong> sur l'image ci-dessous puis choisissez <strong>"Enregistrer dans Photos"</strong>.</p>
+                    <div class="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full text-center shadow-lg mb-4 shrink-0 mt-8">
+                        <h3 class="text-white font-black uppercase tracking-widest text-sm mb-3"><i class="fas fa-mobile-alt text-ice mr-2"></i> Exporter le Ticket</h3>
+                        
+                        <button onclick="window.downloadFromIOSModal()" class="w-full bg-ice hover:bg-cyan-400 text-black font-black uppercase tracking-widest text-xs px-4 py-3.5 rounded-lg transition-all shadow-[0_0_15px_rgba(0,229,255,0.4)] flex items-center justify-center gap-2 mb-3 active:scale-95">
+                            <i class="fas fa-download text-lg"></i> Enregistrer l'image
+                        </button>
+                        
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed border-t border-gray-800 pt-3">Ou maintenez votre doigt appuyé sur l'image ci-dessous pour utiliser le menu classique.</p>
                     </div>
+                    
                     <div class="relative w-full rounded-xl overflow-hidden border-2 border-ice shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
-                        <img src="${imgData}" class="w-full h-auto object-contain block">
+                        <img src="${imgData}" class="w-full h-auto object-contain block" style="-webkit-touch-callout: default; -webkit-user-select: none; user-select: none; pointer-events: auto;">
                     </div>
+                    
                     <button onclick="document.getElementById('ios-export-modal').classList.add('hidden');" class="mt-6 mb-8 bg-gray-800 hover:bg-red-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all shadow-lg flex items-center gap-2 shrink-0">
                         <i class="fas fa-times"></i> Fermer
                     </button>
@@ -692,9 +733,8 @@ window.exportSmartTicketImage = async function () {
 
     } catch (e) {
         console.error("Erreur capture html2canvas:", e);
-        alert("Erreur lors de la création de l'image. Le navigateur a bloqué le processus.");
+        alert("Erreur lors de la création de l'image.");
     } finally {
-        // ⚡ SÉCURITÉ : Nettoyage quoiqu'il arrive, le chargement s'arrêtera toujours !
         images.forEach((img, i) => img.src = originalSrcs[i]);
         if (actionDiv) actionDiv.style.display = '';
         let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
