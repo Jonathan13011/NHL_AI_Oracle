@@ -422,49 +422,99 @@
                     </button>
                 </div>
 
-                <div id="ticket-step-2" class="w-full hidden flex-col gap-4 transition-all duration-300">
-                    <button onclick="window.goToTicketStep(1)"
-                        class="text-gray-400 hover:text-white text-[10px] font-black uppercase tracking-widest flex items-center gap-2 mb-2 w-fit bg-gray-900 px-3 py-2 rounded-lg border border-gray-800">
-                        <i class="fas fa-arrow-left"></i> Retour aux réglages
-                    </button>
+                <div id="ticket-step-2" class="w-full hidden flex-col gap-6 transition-all duration-300">
 
-                    <h3 class="text-white font-black uppercase text-xs mb-2 border-b border-gray-800 pb-2"><i
-                            class="fas fa-robot text-purple-400 mr-2"></i> 2. Type de Pronostic</h3>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button onclick="generateSmartTicket('goal', 'Buteurs')"
-                            class="ticket-algo-btn border-blood text-blood hover:bg-blood/10">
-                            <i class="fas fa-bullseye text-xl mb-1"></i> Buteurs
-                        </button>
-                        <button onclick="generateSmartTicket('assist', 'Passeurs')"
-                            class="ticket-algo-btn border-white text-white hover:bg-white/10">
-                            <i class="fas fa-hands-helping text-xl mb-1"></i> Passeurs
-                        </button>
-                        <button onclick="generateSmartTicket('point', 'Pointeurs')"
-                            class="ticket-algo-btn border-ice text-ice hover:bg-ice/10">
-                            <i class="fas fa-star text-xl mb-1"></i> Pointeurs
-                        </button>
-                        <button onclick="generateSmartTicket('mixte', 'Mixte IA')"
-                            class="ticket-algo-btn border-yellow-500 text-yellow-500 hover:bg-yellow-500/10">
-                            <i class="fas fa-random text-xl mb-1"></i> Mixte IA
-                        </button>
-                        <button onclick="window.generateSmartTicket('point', 'SNIPER DU JOUR')"
-                            class="ticket-algo-btn border-green-500 text-green-500 hover:bg-green-500/10">
-                            <i class="fas fa-crosshairs text-xl mb-1"></i> Le Sniper
-                        </button>
-                        <button onclick="window.generatePalier200()"
-                            class="ticket-algo-btn border-orange-500 text-orange-500 hover:bg-orange-500/10">
-                            <i class="fas fa-stairs text-xl mb-1"></i> Le Palier
-                        </button>
-                        <button onclick="window.generateSameGameParlay()"
-                            class="ticket-algo-btn border-purple-500 text-purple-400 hover:bg-purple-500/10">
-                            <i class="fas fa-handshake text-xl mb-1"></i> Les Duos
-                        </button>
-                        <button onclick="window.openOverUnderModule()"
-                            class="ticket-algo-btn border-gray-400 text-gray-300 hover:bg-gray-700">
-                            <i class="fas fa-balance-scale text-xl mb-1"></i> Over/Under
+                    <div
+                        class="flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-950 p-4 rounded-2xl border border-gray-800 shadow-inner">
+                        <h3 class="text-white font-black uppercase text-xs tracking-widest flex items-center gap-3">
+                            <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse shadow-[0_0_10px_#a855f7]">
+                            </div>
+                            2. Sélectionner la Catégorie
+                        </h3>
+                        <button onclick="window.goToTicketStep(1)"
+                            class="text-gray-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-gray-900 px-4 py-2.5 rounded-lg border border-gray-700 transition active:scale-95">
+                            <i class="fas fa-arrow-left text-purple-400"></i> Retour aux réglages
                         </button>
                     </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                        <button onclick="generateSmartTicket('goal', 'Buteurs')" class="ticket-algo-card goal group">
+                            <div
+                                class="algo-icon-circle border-blood/20 group-hover:border-blood group-hover:bg-blood/10">
+                                <i class="fas fa-bullseye text-blood text-xl"></i>
+                            </div>
+                            <div class="algo-title">Buteurs</div>
+                            <div class="algo-desc">Value sur les marqueurs</div>
+                        </button>
+
+                        <button onclick="generateSmartTicket('assist', 'Passeurs')"
+                            class="ticket-algo-card assist group">
+                            <div
+                                class="algo-icon-circle border-white/10 group-hover:border-white group-hover:bg-white/10">
+                                <i class="fas fa-hands-helping text-white text-xl"></i>
+                            </div>
+                            <div class="algo-title">Passeurs</div>
+                            <div class="algo-desc">Analyse des assistants</div>
+                        </button>
+
+                        <button onclick="generateSmartTicket('point', 'Pointeurs')"
+                            class="ticket-algo-card point group">
+                            <div class="algo-icon-circle border-ice/20 group-hover:border-ice group-hover:bg-ice/10">
+                                <i class="fas fa-star text-ice text-xl"></i>
+                            </div>
+                            <div class="algo-title">Pointeurs</div>
+                            <div class="algo-desc">Probabilité G + A</div>
+                        </button>
+
+                        <button onclick="generateSmartTicket('mixte', 'Mixte IA')" class="ticket-algo-card mixte group">
+                            <div
+                                class="algo-icon-circle border-yellow-500/20 group-hover:border-yellow-500 group-hover:bg-yellow-500/10">
+                                <i class="fas fa-random text-yellow-500 text-xl"></i>
+                            </div>
+                            <div class="algo-title text-yellow-500">Mixte IA</div>
+                            <div class="algo-desc">Combinaison Optimale</div>
+                        </button>
+
+                        <button onclick="window.generateSmartTicket('point', 'SNIPER DU JOUR')"
+                            class="ticket-algo-card sniper group">
+                            <div
+                                class="algo-icon-circle border-green-500/20 group-hover:border-green-500 group-hover:bg-green-500/10">
+                                <i class="fas fa-crosshairs text-green-500 text-xl"></i>
+                            </div>
+                            <div class="algo-title text-green-500">Le Sniper</div>
+                            <div class="algo-desc">Top 1 de l'IA (Pointeur)</div>
+                        </button>
+
+                        <button onclick="window.generatePalier200()" class="ticket-algo-card palier group">
+                            <div
+                                class="algo-icon-circle border-orange-500/20 group-hover:border-orange-500 group-hover:bg-orange-500/10">
+                                <i class="fas fa-stairs text-orange-500 text-xl"></i>
+                            </div>
+                            <div class="algo-title text-orange-500">Le Palier</div>
+                            <div class="algo-desc">Cote globale @1.80+</div>
+                        </button>
+
+                        <button onclick="window.generateSameGameParlay()" class="ticket-algo-card duos group">
+                            <div
+                                class="algo-icon-circle border-purple-500/20 group-hover:border-purple-500 group-hover:bg-purple-500/10">
+                                <i class="fas fa-handshake text-purple-400 text-xl"></i>
+                            </div>
+                            <div class="algo-title text-purple-400">Les Duos</div>
+                            <div class="algo-desc">Same Game Parlay (SGP)</div>
+                        </button>
+
+                        <button onclick="window.openOverUnderModule()" class="ticket-algo-card overunder group">
+                            <div
+                                class="algo-icon-circle border-gray-400/20 group-hover:border-gray-400 group-hover:bg-gray-700">
+                                <i class="fas fa-balance-scale text-gray-300 text-xl"></i>
+                            </div>
+                            <div class="algo-title text-gray-300">Over/Under</div>
+                            <div class="algo-desc">Analyse des totaux</div>
+                        </button>
+
+                    </div>
+
                 </div>
 
                 <div id="ticket-step-3" class="w-full hidden flex-col gap-4 transition-all duration-300">
