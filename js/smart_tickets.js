@@ -102,8 +102,11 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
         window.currentTicketPlayers = [];
         window.bannedZappingPlayers = new Set();
         window.lockedTicketPlayers.clear(); // On vide les cadenas !
-        window.lastTicketConfig = { type, title, total, matchStr: currentSelectionStr, risk };
+        window.lastTicketConfig = { type, title, total, matchStr: currentSelectionStr, risk, strategy: zapStrategy };
         isZapping = false;
+    } else {
+        // ⚡ NOUVEAU : Si on zappe, on met à jour la mémoire avec la stratégie en cours
+        window.lastTicketConfig.strategy = zapStrategy;
     }
 
     container.innerHTML = `
@@ -498,16 +501,25 @@ window.banPlayerFromTickets = function (id, name, team) {
     if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
     if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
     
-    // Ajout à la liste
+    // Ajout à la liste noire et sauvegarde dans le téléphone
     window.userBannedPlayers.add(String(id)); 
     window.bannedPlayersDetails[String(id)] = { name, team };
 
-    // ⚡ Sauvegarde instantanée dans le navigateur
     localStorage.setItem('hockai_banned_ids', JSON.stringify(Array.from(window.userBannedPlayers)));
     localStorage.setItem('hockai_banned_details', JSON.stringify(window.bannedPlayersDetails));
 
-    // Relance l'IA pour remplacer le blessé
-    window.generateSmartTicket(window.lastTicketConfig.type, window.lastTicketConfig.title || 'Ticket IA', false);
+    // ⚡ ASTUCE CHIRURGICALE : On verrouille automatiquement tous les AUTRES joueurs du ticket !
+    if (window.currentTicketPlayers && window.currentTicketPlayers.length > 0) {
+        window.currentTicketPlayers.forEach(p => {
+            if (String(p.id) !== String(id)) {
+                window.lockedTicketPlayers.add(String(p.id));
+            }
+        });
+    }
+
+    // On relance l'IA en mode "Zapping" (true) pour conserver les joueurs verrouillés, avec la dernière stratégie
+    let currentStrategy = window.lastTicketConfig.strategy || 'standard';
+    window.generateSmartTicket(window.lastTicketConfig.type, window.lastTicketConfig.title || 'Ticket IA', true, currentStrategy);
 };
 
 window.unbanPlayerFromTickets = function (id) {
