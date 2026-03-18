@@ -7,6 +7,7 @@ window.ticketCacheMemory = "";
 window.globalMatchContexts = {};
 window.currentTicketPlayers = [];
 window.bannedZappingPlayers = new Set();
+window.lockedTicketPlayers = new Set(); // ⚡ NOUVEAU : Mémoire des Cadenas
 window.lastTicketConfig = { type: null, total: null, matchStr: null, risk: null };
 window.usedPlayersForTickets = new Set();
 
@@ -76,16 +77,14 @@ window.deselectAllTicketMatches = function () {
 };
 
 // 3. LE GÉNÉRATEUR IA ULTIME (Tickets Classiques)
-window.generateSmartTicket = async function (type, title, isZapping = false) {
-    // 1. ON FORCE LE CHANGEMENT D'ÉCRAN IMMEDIATEMENT AU CLIC !
+// ⚡ NOUVEAU : Ajout du paramètre zapStrategy
+window.generateSmartTicket = async function (type, title, isZapping = false, zapStrategy = 'standard') {
     window.goToTicketStep(3);
-
     window.showFullScreenLoader();
     window.showAnalysis();
     let container = document.getElementById('ticket-display');
     if (!container) return;
 
-    // 2. Vérification des matchs sélectionnés
     if (!window.selectedTicketMatches || window.selectedTicketMatches.size === 0) {
         container.innerHTML = `<div class="text-gray-500 font-bold text-center py-10 bg-gray-900 border border-gray-700 rounded-xl shadow-inner mt-4"><i class="fas fa-hand-pointer text-3xl mb-4 text-yellow-500 animate-bounce"></i><br>Retournez à l'étape 1 et sélectionnez au moins un match pour lancer l'IA.</div>`;
         window.hideFullScreenLoader();
@@ -94,42 +93,38 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
     }
 
     let currentSelectionStr = Array.from(window.selectedTicketMatches).sort().join('|');
-    // ... reste de ta fonction
     let risk = document.getElementById('ticket-risk-profile').value;
     let total = parseInt(document.getElementById('slider-st-total').value);
     let maxPerMatch = parseInt(document.getElementById('slider-st-max').value);
 
+    // ⚡ RESET DES MÉMOIRES SI NOUVEAU TICKET
     if (!isZapping || window.lastTicketConfig.type !== type || window.lastTicketConfig.total !== total || window.lastTicketConfig.matchStr !== currentSelectionStr || window.lastTicketConfig.risk !== risk) {
         window.currentTicketPlayers = [];
         window.bannedZappingPlayers = new Set();
+        window.lockedTicketPlayers.clear(); // On vide les cadenas !
         window.lastTicketConfig = { type, title, total, matchStr: currentSelectionStr, risk };
         isZapping = false;
     }
 
-    // --- NOUVEAU LOADER STEP-BY-STEP ---
     container.innerHTML = `
         <div class="flex flex-col items-center justify-center py-20 animate-fade-in">
             <div class="w-32 h-1 bg-gray-800 rounded-full overflow-hidden mb-8">
                 <div class="w-full h-full bg-blood animate-pulse"></div>
             </div>
             <div class="text-blood font-black text-[10px] md:text-xs uppercase tracking-[0.3em] mb-4">Moteur Quantique en Action</div>
-            <div class="text-gray-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest" id="loader-step text-center">Initialisation des serveurs...</div>
+            <div class="text-gray-500 text-[9px] md:text-[10px] font-bold uppercase tracking-widest" id="loader-step text-center">Initialisation de la stratégie ${zapStrategy.toUpperCase()}...</div>
         </div>
     `;
 
-    const steps = ["Calcul des probabilités de Poisson...", "Scan des gardiens partants...", "Analyse des duels PP vs PK...", "Optimisation du combiné..."];
+    const steps = ["Calcul des probabilités de Poisson...", "Application de la Stratégie Tactique...", "Analyse des duels PP vs PK...", "Optimisation du combiné..."];
     let stepIdx = 0;
     const stepInterval = setInterval(() => {
         const el = document.getElementById('loader-step');
-        if (el && steps[stepIdx]) {
-            el.innerText = steps[stepIdx++];
-        } else {
-            clearInterval(stepInterval);
-        }
+        if (el && steps[stepIdx]) el.innerText = steps[stepIdx++];
+        else clearInterval(stepInterval);
     }, 400);
 
     try {
-        // La suite de ton code (fetch, calculs, etc.) reste identique
         if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) {
             let res = await fetch(`${API_BASE}/predict_all`);
             let data = await res.json();
@@ -164,13 +159,12 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
         window.ticketCacheMemory = currentSelectionStr;
 
         if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
-        if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
 
         let pool = window.globalPredictionsPool.filter(p => {
             if (p.position === 'G') return false;
             if (window.activePlayersToday && window.activePlayersToday.size > 0 && !window.activePlayersToday.has(Number(p.id))) return false;
-            if (window.bannedZappingPlayers.has(p.id)) return false;
-            if (window.userBannedPlayers.has(String(p.id))) return false;
+            if (window.bannedZappingPlayers.has(p.id)) return false; // Exclut les zappés
+            if (window.userBannedPlayers.has(String(p.id))) return false; // Exclut l'infirmerie
 
             if (window.selectedTicketMatches.size > 0) {
                 let isTeamInSelectedMatch = false;
@@ -182,70 +176,63 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             return true;
         });
 
-        pool.forEach(p => {
-            let prob = 0;
-            let assignedRole = "Pronostic";
-            let mixteSortScore = 0;
+        // ⚡ NOUVEAU : Récupération des équipes déjà verrouillées pour la stratégie Hedge
+        let lockedTeams = new Set();
+        if (isZapping && zapStrategy === 'hedge') {
+            window.currentTicketPlayers.forEach(p => {
+                if (window.lockedTicketPlayers.has(String(p.id))) lockedTeams.add(p.team);
+            });
+        }
 
+        pool.forEach(p => {
+            let prob = 0; let assignedRole = "Pronostic"; let mixteSortScore = 0;
             if (type === 'goal') { prob = p.prob_goal; assignedRole = 'Buteur'; }
             else if (type === 'assist') { prob = p.prob_assist; assignedRole = 'Passeur'; }
             else if (type === 'point') { prob = p.prob_point; assignedRole = 'Pointeur'; }
             else if (type === 'mixte') {
-                // ⚡ SOLUTION RADICALE : On interdit le rôle "Pointeur". Un Mixte, c'est un Buteur ET un Passeur.
-                // On abaisse énormément le seuil mathématique des Buteurs pour qu'ils remontent tout en haut de la liste face aux Passeurs.
-                let scoreButeur = (p.prob_goal || 0) / 30.0;  // Un buteur à 30% vaudra le score maximal (1.0)
-                let scorePasseur = (p.prob_assist || 0) / 48.0; // Un passeur à 48% vaudra le score maximal (1.0)
+                let scoreButeur = (p.prob_goal || 0) / 30.0;
+                let scorePasseur = (p.prob_assist || 0) / 48.0;
+                if (scoreButeur >= scorePasseur && (p.prob_goal || 0) >= 20) { prob = p.prob_goal; assignedRole = 'Buteur'; mixteSortScore = scoreButeur * 100; } 
+                else { prob = p.prob_assist; assignedRole = 'Passeur'; mixteSortScore = scorePasseur * 100; }
+            } else { prob = Math.max(p.prob_goal || 0, p.prob_assist || 0, p.prob_point || 0); }
 
-                // L'IA force le rôle où le joueur excelle le plus par rapport à la moyenne
-                if (scoreButeur >= scorePasseur && (p.prob_goal || 0) >= 20) {
-                    prob = p.prob_goal;
-                    assignedRole = 'Buteur';
-                    mixteSortScore = scoreButeur * 100;
-                } else {
-                    prob = p.prob_assist;
-                    assignedRole = 'Passeur';
-                    mixteSortScore = scorePasseur * 100;
-                }
-            } else {
-                prob = Math.max(p.prob_goal || 0, p.prob_assist || 0, p.prob_point || 0);
-            }
-
-            p._ticketProb = prob || 0;
-            p._ticketRole = assignedRole;
-
+            p._ticketProb = prob || 0; p._ticketRole = assignedRole;
             let exactMatch = (window.fetchedMatchesPool || []).find(m => (m.home_team === p.team || m.away_team === p.team) && m.state !== 'FINAL' && m.state !== 'OFF');
             p._matchStr = exactMatch ? `${exactMatch.home_team} vs ${exactMatch.away_team}` : `Match de ${p.team}`;
-
             p.ctx_boost = 0; p.ctx_reasons = []; p.has_target_badge = false;
 
             if (exactMatch && window.globalMatchContexts[p._matchStr]) {
                 let ctx = window.globalMatchContexts[p._matchStr];
                 let isHome = exactMatch.home_team === p.team;
                 let oppGoalie = isHome ? (ctx.goalies?.away_goalie) : (ctx.goalies?.home_goalie);
-                let ownTeamStats = isHome ? (ctx.teams?.home) : (ctx.teams?.away);
-                let oppTeamStats = isHome ? (ctx.teams?.away) : (ctx.teams?.home);
-
                 if (oppGoalie && oppGoalie.gsax !== undefined) {
                     if (oppGoalie.gsax < -1.0) { p.ctx_boost += 4; p.has_target_badge = true; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-crosshairs text-blood mt-1"></i> <span><b>Cible Facile :</b> Gardien adverse vulnérable.</span></li>`); }
                     else if (oppGoalie.gsax > 3.0) { p.ctx_boost -= 3; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-shield-alt text-red-500 mt-1"></i> <span><b>Mur Défensif :</b> Gardien adverse en feu. Danger.</span></li>`); }
                 }
-                if (oppTeamStats && oppTeamStats.b2b) { p.ctx_boost += 2.5; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-battery-empty text-green-400 mt-1"></i> <span><b>Fatigue :</b> L'adversaire est en B2B.</span></li>`); }
-                if (ownTeamStats && ownTeamStats.b2b) { p.ctx_boost -= 2.0; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-battery-quarter text-orange-500 mt-1"></i> <span><b>Usure :</b> Joueur en B2B.</span></li>`); }
             }
 
             p._ticketProb = Math.min(99.0, p._ticketProb + p.ctx_boost);
+            let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
 
-            if (type === 'mixte') {
-                p._ticketScore = mixteSortScore + (p.ctx_boost * 3); // L'IA utilise le score de normalisation pour trier !
-                if (risk === 'safe') p._ticketScore += (p.avg_toi || 15);
+            // ⚡⚡ LE COEUR DE L'INTELLIGENCE (ZAPPING STRATÉGIQUE) ⚡⚡
+            let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3) : p._ticketProb + p.ctx_boost;
+            
+            if (isZapping && zapStrategy === 'ev') {
+                // Stratégie VALUE : On favorise ceux qui ont une cote disproportionnée
+                p._ticketScore = (p._ticketProb / 100) * itemOdds * 100; 
             } else {
-                if (risk === 'safe') p._ticketScore = p._ticketProb + (p.avg_toi || 15);
-                else if (risk === 'poker') {
+                p._ticketScore = baseScore;
+                if (risk === 'safe') p._ticketScore += (p.avg_toi || 15);
+                if (risk === 'poker') {
                     let rShots = p.last_5_games ? p.last_5_games.reduce((s, g) => s + g.shots, 0) : 0;
                     let rGoals = p.last_5_games ? p.last_5_games.reduce((s, g) => s + g.goals, 0) : 0;
                     p._ticketScore = (rShots - (rGoals * 5)) * 2 + p.ctx_boost;
-                    if (p._ticketProb > 60) p._ticketScore -= 50;
-                } else { p._ticketScore = p._ticketProb; }
+                }
+            }
+
+            // Stratégie COUVERTURE : On pénalise lourdement les joueurs des équipes déjà ciblées
+            if (isZapping && zapStrategy === 'hedge' && lockedTeams.has(p.team)) {
+                p._ticketScore -= 50; 
             }
         });
 
@@ -253,33 +240,42 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
 
         let selected = [];
         let matchCounts = {};
-        let matchRoles = {}; // ⚡ NOUVEAU : Traqueur de rôles (Buteur, Passeur) par Match
+        let matchRoles = {}; 
 
+        // ⚡ NOUVEAU : LA LOGIQUE DES CADENAS
         if (isZapping && window.currentTicketPlayers.length > 0) {
-            let prev = window.currentTicketPlayers.filter(p => pool.some(v => v.id === p.id)).sort((a, b) => b._ticketScore - a._ticketScore);
-            if (prev.length > 0) {
-                let pillar = prev[0];
-                for (let i = 1; i < prev.length; i++) window.bannedZappingPlayers.add(prev[i].id);
-                selected = [pillar];
-                matchCounts[pillar._matchStr] = 1;
-                matchRoles[pillar._matchStr] = new Set([pillar._ticketRole]);
-
-                for (let p of pool) {
-                    if (selected.length >= total) break;
-                    if (selected.some(k => k.id === p.id)) continue;
-                    if (window.bannedZappingPlayers.has(p.id)) continue;
+            window.currentTicketPlayers.forEach(p => {
+                if (window.lockedTicketPlayers.has(String(p.id))) {
+                    // C'est un PILIER choisi par l'utilisateur, on le garde !
+                    selected.push(p);
                     let m = p._matchStr;
                     if (!matchCounts[m]) matchCounts[m] = 0;
                     if (!matchRoles[m]) matchRoles[m] = new Set();
+                    matchCounts[m]++;
+                    matchRoles[m].add(p._ticketRole);
+                } else {
+                    // Il n'est pas verrouillé, on le banni pour qu'un NOUVEAU joueur prenne sa place
+                    window.bannedZappingPlayers.add(p.id);
+                }
+            });
+        }
+        
+        // On complète le reste du ticket avec les nouveaux cerveaux
+        if (selected.length < total) {
+            for (let p of pool) {
+                if (selected.length >= total) break;
+                if (selected.some(k => k.id === p.id)) continue;
+                if (window.bannedZappingPlayers.has(p.id)) continue;
+                let m = p._matchStr;
+                if (!matchCounts[m]) matchCounts[m] = 0;
+                if (!matchRoles[m]) matchRoles[m] = new Set();
 
-                    // ⚡ RÈGLE D'OR MIXTE : Interdit de choisir 2 fois le même rôle dans le même match !
-                    if (type === 'mixte' && matchRoles[m].has(p._ticketRole)) continue;
+                if (type === 'mixte' && matchRoles[m].has(p._ticketRole)) continue;
 
-                    if (matchCounts[m] < maxPerMatch) {
-                        selected.push(p);
-                        matchCounts[m]++;
-                        matchRoles[m].add(p._ticketRole);
-                    }
+                if (matchCounts[m] < maxPerMatch) {
+                    selected.push(p);
+                    matchCounts[m]++;
+                    matchRoles[m].add(p._ticketRole);
                 }
             }
         }
@@ -352,8 +348,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 <span class="${riskColor} font-black uppercase tracking-[0.2em] text-[10px] md:text-sm flex items-center gap-2">
                     <i class="fas fa-ticket-alt"></i> <span class="truncate">${title}</span>
                 </span>
-                <button onclick="window.generateSmartTicket('${type}', '${title}', true)" class="bg-gray-900 hover:bg-white hover:text-black text-[9px] md:text-xs px-3 md:px-5 py-2 md:py-3 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2 group active:scale-95 shrink-0">
-                    <i class="fas fa-random text-blood group-hover:text-black"></i> Zapping
+                <button onclick="window.openZappingMenu('${type}', '${title}')" class="bg-gray-900 hover:bg-white hover:text-black text-[9px] md:text-xs px-3 md:px-5 py-2 md:py-3 rounded-lg font-black uppercase tracking-widest transition border border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.3)] flex items-center gap-2 group active:scale-95 shrink-0">
+                    <i class="fas fa-random text-purple-400 group-hover:text-black"></i> Menu Tactique
                 </button>
             </div>
 
@@ -389,7 +385,6 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                 let posCheck = String(p.position).toLowerCase().trim();
                 let positionStr = (!p.position || posCheck === 'undefined' || posCheck === 'null' || posCheck === '') ? '' : ` • ${p.position}`;
                 
-                // SÉPARATION NOM / PRÉNOM
                 let nameParts = p.name.split(' ');
                 let firstName = nameParts[0];
                 let lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
@@ -397,9 +392,13 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
 
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
-                // NOUVEAU DESIGN ROW HOCKAI ULRA-RESPONSIVE (Grille)
+                // ⚡ NOUVEAU : Logique d'affichage du cadenas (Garde l'état visuel lors des rechargements)
+                let isLocked = window.lockedTicketPlayers.has(String(p.id));
+                let lockClass = isLocked ? 'text-yellow-500 border-yellow-500/50 bg-yellow-500/10' : 'text-gray-500 border-gray-700 bg-gray-900 hover:text-yellow-400 hover:border-yellow-400';
+                let lockIcon = isLocked ? 'fa-lock' : 'fa-unlock';
+
                 html += `
-                    <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-ice/50 transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border ${isLocked ? 'border-yellow-500/50' : 'border-gray-800 hover:border-ice/50'} transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
                         
                         <div class="grid grid-cols-[1fr,auto] items-start gap-2 md:gap-3 w-full">
                             
@@ -413,8 +412,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                             
                             <div class="flex flex-col items-center gap-1 shrink-0 pl-1">
                                 <div class="relative shrink-0">
-                                    <div class="absolute inset-0 bg-ice/20 rounded-full blur group-hover:bg-ice/40 transition"></div>
-                                    <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-ice bg-gray-900 object-cover z-10 transition">
+                                    <div class="absolute inset-0 ${isLocked ? 'bg-yellow-500/20' : 'bg-ice/20'} rounded-full blur group-hover:bg-ice/40 transition"></div>
+                                    <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 ${isLocked ? 'border-yellow-500' : 'border-gray-700 group-hover:border-ice'} bg-gray-900 object-cover z-10 transition">
                                 </div>
                                 <div class="flex flex-col items-center mt-1 pt-1.5 border-t border-gray-800 w-full">
                                     <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700">${pType}</div>
@@ -424,13 +423,19 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
                             </div>
                         </div>
 
-                        <div class="flex justify-end items-center w-full pt-2.5 border-t border-gray-800/60 gap-2 shrink-0">
-                            <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="flex-1 sm:flex-none justify-center bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
-                                <i class="fas fa-search text-green-500 group-hover:text-current"></i> Scout
+                        <div class="flex justify-between items-center w-full pt-2.5 border-t border-gray-800/60 gap-2 shrink-0">
+                            <button id="lock-btn-${p.id}" onclick="event.stopPropagation(); window.togglePlayerLock('${p.id}')" class="${lockClass} px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1 shrink-0" title="Verrouiller ce joueur pour le prochain Zapping">
+                                <i class="fas ${lockIcon}"></i> Lock
                             </button>
-                            <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="flex-1 sm:flex-none justify-center bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
-                                <i class="fas fa-ban text-blood group-hover:text-current"></i> Bannir
-                            </button>
+                            
+                            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                                <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="flex-1 sm:flex-none justify-center bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-search text-green-500 group-hover:text-current"></i> Scout
+                                </button>
+                                <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="flex-1 sm:flex-none justify-center bg-gray-900 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-ban text-blood group-hover:text-current"></i> Bannir
+                                </button>
+                            </div>
                         </div>
 
                     </div>
@@ -954,3 +959,78 @@ window.generateCoverTicket = function () {
 // Initialisation au clic
 let ticketTabBtn = document.querySelector('button[onclick*="tab-tickets"]');
 if (ticketTabBtn) ticketTabBtn.addEventListener('click', () => { window.updateTicketMatchSelector(); });
+
+// ==========================================
+// 🎛️ MOTEUR ZAPPING TACTIQUE (LOCK & PIVOT)
+// ==========================================
+
+window.togglePlayerLock = function(id) {
+    let btn = document.getElementById('lock-btn-' + id);
+    let icon = btn.querySelector('i');
+    if (window.lockedTicketPlayers.has(String(id))) {
+        window.lockedTicketPlayers.delete(String(id));
+        btn.classList.remove('text-yellow-500', 'border-yellow-500/50', 'bg-yellow-500/10');
+        btn.classList.add('text-gray-500', 'border-gray-700', 'bg-gray-900');
+        icon.classList.remove('fa-lock');
+        icon.classList.add('fa-unlock');
+    } else {
+        window.lockedTicketPlayers.add(String(id));
+        btn.classList.remove('text-gray-500', 'border-gray-700', 'bg-gray-900');
+        btn.classList.add('text-yellow-500', 'border-yellow-500/50', 'bg-yellow-500/10');
+        icon.classList.remove('fa-unlock');
+        icon.classList.add('fa-lock');
+    }
+};
+
+window.openZappingMenu = function(type, title) {
+    let modal = document.getElementById('zapping-tactical-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'zapping-tactical-modal';
+        modal.className = 'fixed inset-0 bg-black/90 z-[2000] hidden flex-col items-center justify-end md:justify-center p-4 backdrop-blur-sm transition-all fade-in';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="bg-gray-950 border border-purple-500/50 rounded-2xl w-full max-w-md shadow-[0_0_40px_rgba(168,85,247,0.3)] overflow-hidden transform transition-all translate-y-0 relative pb-6">
+            <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900">
+                <h3 class="text-white font-black uppercase tracking-widest text-sm flex items-center gap-2"><i class="fas fa-random text-purple-400"></i> Zapping Tactique</h3>
+                <button onclick="document.getElementById('zapping-tactical-modal').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl transition"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 flex flex-col gap-3">
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-4">Les joueurs "cadenassés" seront conservés. Choisissez la stratégie pour les autres :</p>
+                
+                <button onclick="executeZapping('${type}', '${title}', 'standard')" class="bg-gray-900 hover:bg-gray-800 border border-gray-700 p-4 rounded-xl flex items-center gap-4 transition group text-left">
+                    <div class="bg-ice/20 p-3 rounded-full text-ice group-hover:scale-110 transition"><i class="fas fa-sync-alt text-xl"></i></div>
+                    <div>
+                        <div class="text-white font-black uppercase tracking-widest text-xs">Standard (Continuité)</div>
+                        <div class="text-gray-500 text-[10px] font-bold mt-1">Remplace par les meilleurs suivants.</div>
+                    </div>
+                </button>
+
+                <button onclick="executeZapping('${type}', '${title}', 'ev')" class="bg-gray-900 hover:bg-gray-800 border border-gray-700 p-4 rounded-xl flex items-center gap-4 transition group text-left">
+                    <div class="bg-money/20 p-3 rounded-full text-money group-hover:scale-110 transition"><i class="fas fa-search-dollar text-xl"></i></div>
+                    <div>
+                        <div class="text-white font-black uppercase tracking-widest text-xs">+EV (Chasseur de Value)</div>
+                        <div class="text-gray-500 text-[10px] font-bold mt-1">Ignore la sécurité, cherche les cotes mathématiquement aberrantes.</div>
+                    </div>
+                </button>
+
+                <button onclick="executeZapping('${type}', '${title}', 'hedge')" class="bg-gray-900 hover:bg-gray-800 border border-gray-700 p-4 rounded-xl flex items-center gap-4 transition group text-left">
+                    <div class="bg-blood/20 p-3 rounded-full text-blood group-hover:scale-110 transition"><i class="fas fa-shield-alt text-xl"></i></div>
+                    <div>
+                        <div class="text-white font-black uppercase tracking-widest text-xs">Couverture (Hedge)</div>
+                        <div class="text-gray-500 text-[10px] font-bold mt-1">Force l'IA à choisir des équipes différentes pour limiter le risque global.</div>
+                    </div>
+                </button>
+            </div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.executeZapping = function(type, title, strategy) {
+    document.getElementById('zapping-tactical-modal').classList.add('hidden');
+    window.generateSmartTicket(type, title, true, strategy);
+};
