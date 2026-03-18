@@ -591,129 +591,185 @@ window.clearAllBannedPlayers = function() {
     }
 };
 
-// 5. MOTEUR D'EXPORTATION PHOTO (Compatibilité iOS/PC & Logo Sommet)
+// ==========================================
+// 5. MOTEUR D'EXPORTATION PHOTO (QUANTUM-DATA CARD)
+// ==========================================
 
-// ⚡ NOUVELLE FONCTION GLOBALE POUR LE BOUTON DE TÉLÉCHARGEMENT iOS
 window.downloadFromIOSModal = async function() {
     if (!window.currentExportImgData) return;
-    
     try {
-        // On convertit l'image Base64 en vrai fichier pour le système iOS
         const res = await fetch(window.currentExportImgData);
         const blob = await res.blob();
-        const file = new File([blob], "HOCKAI_Smart_Ticket.png", { type: "image/png" });
+        const file = new File([blob], "HOCKAI_Quantum_Ticket.png", { type: "image/png" });
 
-        // Appel au menu de partage natif d'Apple (Share Sheet)
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: 'Ticket IA HOCKAI',
-            });
+            await navigator.share({ files: [file], title: 'Ticket IA HOCKAI' });
         } else {
-            // Plan B si l'API de partage échoue
-            let link = document.createElement('a'); 
-            link.download = 'HOCKAI_Smart_Ticket.png'; 
-            link.href = window.currentExportImgData; 
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            let link = document.createElement('a'); link.download = 'HOCKAI_Quantum_Ticket.png'; link.href = window.currentExportImgData; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
-    } catch (e) {
-        console.error("Erreur lors de la sauvegarde iOS :", e);
-    }
+    } catch (e) { console.error("Erreur de sauvegarde :", e); }
 };
 
 window.exportSmartTicketImage = async function () {
-    if (typeof html2canvas === 'undefined') { alert("Module photo en cours de chargement..."); return; }
+    if (typeof html2canvas === 'undefined') { alert("Module en chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
     
-    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Création de la version HD...", false);
-
-    // 1. Cacher les boutons
-    let actionDiv = ticketContainer.querySelector('.ticket-actions'); 
-    if (actionDiv) actionDiv.style.display = 'none';
-    
-    // 2. Ajouter Watermark
-    let watermark = document.createElement('div');
-    watermark.id = 'temp-watermark';
-    watermark.style.position = 'absolute'; watermark.style.bottom = '15px'; watermark.style.right = '20px'; watermark.style.zIndex = '50';
-    watermark.innerHTML = '<span style="color:#EAB308; font-weight:900; font-size:12px; letter-spacing: 2px; text-shadow: 0 0 5px #000;">⚡ GÉNÉRÉ PAR L\'IA HOCKAI</span>';
-    ticketContainer.appendChild(watermark);
-
-    // 3. Ajouter le Logo en Haut
-    let tempLogo = document.createElement('div');
-    tempLogo.id = 'temp-header-logo';
-    tempLogo.style.width = '100%';
-    tempLogo.style.textAlign = 'center';
-    tempLogo.style.marginBottom = '20px';
-    tempLogo.innerHTML = '<img src="assets/logo_hockAI.png" style="height:55px; display:inline-block; filter: drop-shadow(0 0 10px rgba(0,229,255,0.3));">';
-    ticketContainer.prepend(tempLogo);
-
-    // 4. Gestion des images externes (CORS)
-    let images = ticketContainer.querySelectorAll('img'); let originalSrcs = [];
-    for (let i = 0; i < images.length; i++) {
-        let img = images[i]; originalSrcs[i] = img.src;
-        if (img.src.startsWith('http') && img.src.includes('nhle.com')) {
-            try { let res = await fetch(API_BASE + '/proxy-image-base64?url=' + encodeURIComponent(img.src)); let data = await res.json(); if (data.base64) img.src = data.base64; } catch (e) { }
-        }
-    }
-    
-    await new Promise(r => setTimeout(r, 800));
+    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("Génération de l'image", "Création des cartes Quantum-Data...", false);
 
     try {
-        let scaleValue = (window.innerWidth < 768) ? 1.5 : 2;
-
-        const canvas = await html2canvas(ticketContainer, {
-            backgroundColor: '#0a0f1a',
-            scale: scaleValue,
-            useCORS: true,
-            logging: false,
-            onclone: function(doc) {
-                let el = doc.getElementById('ticket-export-zone');
-                if (el) {
-                    el.style.width = '800px';
-                    el.style.maxWidth = '800px';
-                    el.classList.remove('mx-auto');
-                }
+        // 1. Extraction chirurgicale des données du ticket actuel
+        let playersData = [];
+        let ticketCards = ticketContainer.querySelectorAll('[onclick^="openSmartTicketModal"]');
+        
+        ticketCards.forEach(card => {
+            let onclickAttr = card.getAttribute('onclick');
+            let match = onclickAttr.match(/openSmartTicketModal\('([^']+)'\)/);
+            if (match && match[1]) {
+                try {
+                    let p = JSON.parse(decodeURIComponent(match[1]));
+                    // Extraction de la cote depuis l'interface car elle n'est pas dans le JSON
+                    let oddsMatch = card.innerText.match(/@([0-9.]+)/);
+                    p.odds = oddsMatch ? oddsMatch[1] : "1.90";
+                    playersData.push(p);
+                } catch (e) {}
             }
         });
 
+        if (playersData.length === 0) throw new Error("Aucun joueur détecté.");
+
+        // 2. Conversion Base64 de toutes les images pour contourner la sécurité d'Apple (CORS)
+        for (let i = 0; i < playersData.length; i++) {
+            let p = playersData[i];
+            let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
+            try {
+                let res = await fetch(API_BASE + '/proxy-image-base64?url=' + encodeURIComponent(imgUrl));
+                let data = await res.json();
+                p.base64Img = data.base64 ? data.base64 : 'assets/logo_hockAI.png';
+            } catch (e) { p.base64Img = 'assets/logo_hockAI.png'; }
+        }
+
+        // 3. Construction de la Maquette "Quantum-Data" Off-Screen (Hors écran)
+        let exportHtml = `
+        <div id="quantum-export-container" class="bg-[#0a0f1a] p-10 flex flex-col gap-8" style="width: 600px; position: fixed; top: -9999px; left: 0; z-index: -100; font-family: 'Montserrat', sans-serif;">
+            
+            <div class="text-center mb-2 mt-4 relative">
+                <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.3)_0%,_transparent_70%)] blur-2xl"></div>
+                <img src="assets/logo_hockAI.png" style="height: 80px; margin: 0 auto; filter: drop-shadow(0 0 15px rgba(0,229,255,0.8)); display: block; position: relative; z-index: 10;">
+                <h1 class="text-white font-black text-3xl tracking-[0.2em] uppercase mt-6 drop-shadow-lg relative z-10">PRONOSTICS PREMIUM</h1>
+                <div class="text-[#00e5ff] font-bold tracking-[0.3em] text-sm mt-2 relative z-10">INTELLIGENCE ARTIFICIELLE</div>
+            </div>
+        `;
+
+        playersData.forEach(p => {
+            let nameParts = p.name.split(' ');
+            let firstName = nameParts[0];
+            let lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
+            let displayFirst = nameParts.length > 1 ? firstName : '';
+            
+            let ctxHtml = '';
+            if (p.ctx_reasons && p.ctx_reasons.length > 0) {
+                ctxHtml = `
+                <div class="px-8 pb-5 relative z-20">
+                    <div class="text-center text-[10px] text-gray-400 uppercase tracking-widest mb-4 flex items-center justify-center gap-3">
+                        <div class="h-px bg-[#475569] w-12"></div> Context Reasons <div class="h-px bg-[#475569] w-12"></div>
+                    </div>
+                    <ul class="text-sm text-[#e2e8f0] space-y-2 font-bold leading-relaxed list-none m-0 p-0 text-left">
+                        ${p.ctx_reasons.join('')}
+                    </ul>
+                </div>`;
+            }
+
+            // LE DESIGN DE L'EXEMPLE 2 (Quantum-Data Stat Card)
+            exportHtml += `
+            <div class="relative bg-gradient-to-b from-[#0f172a] to-[#030712] border-[3px] border-[#94a3b8] rounded-[2rem] overflow-hidden shadow-[0_0_40px_rgba(0,229,255,0.15)]">
+                
+                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-[#00e5ff] to-transparent"></div>
+                
+                <div class="bg-gradient-to-b from-[#475569] to-[#1e293b] p-3 text-center border-b-[3px] border-[#94a3b8] relative z-10">
+                    <span class="text-white font-black uppercase tracking-[0.2em] text-lg drop-shadow-md">HOCKAI Smart Ticket</span>
+                </div>
+                
+                <div class="absolute top-[44px] left-1/2 transform -translate-x-1/2 w-14 h-14 bg-gradient-to-br from-yellow-300 via-yellow-500 to-yellow-700 rounded-full border-2 border-yellow-100 shadow-[0_0_20px_#eab308] flex items-center justify-center z-30">
+                    <span class="text-[#451a03] font-black text-lg tracking-widest drop-shadow-sm">IA</span>
+                </div>
+
+                <div class="relative pt-16 pb-6 flex justify-center bg-[radial-gradient(ellipse_at_center,_rgba(0,229,255,0.25)_0%,_transparent_70%)] overflow-hidden">
+                    <div class="absolute inset-0" style="background-image: linear-gradient(rgba(0, 229, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 229, 255, 0.1) 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <img src="${p.base64Img}" crossorigin="anonymous" class="w-40 h-40 rounded-full border-4 border-[#00e5ff] bg-[#0a0f1a] object-cover shadow-[0_0_30px_#00e5ff] relative z-20">
+                </div>
+                
+                <div class="text-center px-6 pb-2 relative z-20">
+                    <div class="text-3xl font-black text-white uppercase tracking-widest">${displayFirst}</div>
+                    <div class="text-4xl font-black text-white uppercase tracking-widest mt-1 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]">${lastName}</div>
+                    <div class="text-sm text-gray-400 font-bold uppercase tracking-[0.3em] mt-3">${p.team} / ${p.type}</div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-transparent via-[#00e5ff]/20 to-transparent border-y border-[#00e5ff]/40 py-5 text-center my-5 relative z-20 flex justify-center items-center gap-4">
+                    <span class="text-[#00e5ff] font-black text-3xl uppercase tracking-widest drop-shadow-[0_0_12px_#00e5ff]">${p.type} : ${p.prob.toFixed(1)}%</span>
+                    <span class="text-white text-2xl font-black opacity-80">|</span>
+                    <span class="text-white font-black text-3xl drop-shadow-md">@${p.odds}</span>
+                </div>
+                
+                ${ctxHtml}
+                
+                <div class="text-center pb-6 pt-3 relative z-20 border-t border-[#475569]/30 bg-black/40">
+                    <span class="text-yellow-500 font-black text-xs uppercase tracking-[0.3em] drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">GÉNÉRÉ PAR L'IA HOCKAI</span>
+                </div>
+            </div>
+            `;
+        });
+
+        exportHtml += `
+            <div class="text-center mt-6 pt-6 border-t border-gray-800">
+                <p class="text-gray-400 text-sm font-bold uppercase tracking-[0.2em]">Scanner d'anomalies disponible sur <span class="text-[#00e5ff] font-black drop-shadow-[0_0_5px_#00e5ff]">www.hockai.fr</span></p>
+            </div>
+        </div>`;
+
+        // 4. Injection dans le DOM invisible
+        let wrapper = document.createElement('div');
+        wrapper.innerHTML = exportHtml;
+        document.body.appendChild(wrapper.firstElementChild);
+        let exportContainer = document.getElementById('quantum-export-container');
+
+        await new Promise(r => setTimeout(r, 800)); // Laisse le temps au CSS et aux polices de charger
+
+        // 5. La Photographie Haute Définition
+        const canvas = await html2canvas(exportContainer, {
+            backgroundColor: '#05080f',
+            scale: 2, // Toujours x2 pour une qualité optimale (600px * 2 = 1200px de large, parfait pour réseaux sociaux)
+            useCORS: true,
+            logging: false
+        });
+
         const imgData = canvas.toDataURL('image/png');
-        
-        // On stocke l'image en mémoire pour le bouton iOS
         window.currentExportImgData = imgData;
 
-        // Détection propre de l'iPhone/iPad
+        // 6. Nettoyage du container caché
+        exportContainer.remove();
+
+        // 7. Affichage / Sauvegarde
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const isMacSafari = /Macintosh/.test(navigator.userAgent) && /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
         if (isIOS || (isMacSafari && navigator.maxTouchPoints > 1)) {
-            // SOLUTION iPHONE : Modal avec bouton de sauvegarde
             let modal = document.getElementById('ios-export-modal');
             if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'ios-export-modal';
+                modal = document.createElement('div'); modal.id = 'ios-export-modal';
                 modal.className = 'fixed inset-0 bg-black/95 z-[9999] hidden flex-col items-center justify-center p-4 backdrop-blur-md';
                 document.body.appendChild(modal);
             }
-            
-            // ⚡ NOUVEAU DESIGN MODAL iOS AVEC BOUTON
             modal.innerHTML = `
                 <div class="w-full max-w-md flex flex-col items-center max-h-screen py-4 overflow-y-auto no-scrollbar">
                     <div class="bg-gray-900 border border-gray-700 rounded-xl p-5 w-full text-center shadow-lg mb-4 shrink-0 mt-8">
-                        <h3 class="text-white font-black uppercase tracking-widest text-sm mb-3"><i class="fas fa-mobile-alt text-ice mr-2"></i> Exporter le Ticket</h3>
-                        
+                        <h3 class="text-white font-black uppercase tracking-widest text-sm mb-3"><i class="fas fa-mobile-alt text-ice mr-2"></i> Exporter le Ticket Premium</h3>
                         <button onclick="window.downloadFromIOSModal()" class="w-full bg-ice hover:bg-cyan-400 text-black font-black uppercase tracking-widest text-xs px-4 py-3.5 rounded-lg transition-all shadow-[0_0_15px_rgba(0,229,255,0.4)] flex items-center justify-center gap-2 mb-3 active:scale-95">
                             <i class="fas fa-download text-lg"></i> Enregistrer l'image
                         </button>
-                        
-                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed border-t border-gray-800 pt-3">Ou maintenez votre doigt appuyé sur l'image ci-dessous pour utiliser le menu classique.</p>
+                        <p class="text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed border-t border-gray-800 pt-3">Ou maintenez votre doigt appuyé sur l'image ci-dessous.</p>
                     </div>
-                    
-                    <div class="relative w-full rounded-xl overflow-hidden border-2 border-ice shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
+                    <div class="relative w-full rounded-xl overflow-hidden border-2 border-[#94a3b8] shadow-[0_0_30px_rgba(0,229,255,0.3)] shrink-0 bg-[#0a0f1a]">
                         <img src="${imgData}" class="w-full h-auto object-contain block" style="-webkit-touch-callout: default; -webkit-user-select: none; user-select: none; pointer-events: auto;">
                     </div>
-                    
                     <button onclick="document.getElementById('ios-export-modal').classList.add('hidden');" class="mt-6 mb-8 bg-gray-800 hover:bg-red-500 text-white font-black uppercase tracking-widest text-xs px-8 py-4 rounded-full transition-all shadow-lg flex items-center gap-2 shrink-0">
                         <i class="fas fa-times"></i> Fermer
                     </button>
@@ -722,23 +778,12 @@ window.exportSmartTicketImage = async function () {
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         } else {
-            // SOLUTION PC / ANDROID : Téléchargement direct classique
-            let link = document.createElement('a'); 
-            link.download = 'HOCKAI_Smart_Ticket.png'; 
-            link.href = imgData; 
-            document.body.appendChild(link); 
-            link.click(); 
-            document.body.removeChild(link);
+            let link = document.createElement('a'); link.download = 'HOCKAI_Quantum_Ticket.png'; link.href = imgData; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
-
     } catch (e) {
-        console.error("Erreur capture html2canvas:", e);
-        alert("Erreur lors de la création de l'image.");
+        console.error("Erreur Capture:", e);
+        alert("L'analyse visuelle a échoué. Veuillez réessayer.");
     } finally {
-        images.forEach((img, i) => img.src = originalSrcs[i]);
-        if (actionDiv) actionDiv.style.display = '';
-        let wm = document.getElementById('temp-watermark'); if (wm) wm.remove();
-        let tl = document.getElementById('temp-header-logo'); if (tl) tl.remove();
         if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
     }
 };
