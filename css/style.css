@@ -465,3 +465,15 @@ body {
             visibility: visible;
             opacity: 1;
         }
+
+        @keyframes loading {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+.animate-loading {
+    animation: loading 2s infinite ease-in-out;
+}
+
+        .ticket-algo-btn {
+    @apply bg-gray-900/80 border p-4 rounded-xl flex flex-col items-center justify-center text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-inner active:scale-95;
+}
