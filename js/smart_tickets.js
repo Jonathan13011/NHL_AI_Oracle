@@ -435,9 +435,16 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             window.hideAnalysis();
             window.hideFullScreenLoader();
             window.renderBlacklistZone();
-        }, 800); // On laisse un petit délai de 800ms pour que l'utilisateur voie au moins 2 étapes (plus pro)
+        }, 800); 
 
-        // 4. MOTEUR D'INFIRMERIE & BANNISSEMENT
+    } catch (err) {
+        console.error("Erreur IA:", err);
+        container.innerHTML = `<div class="text-blood font-bold text-center py-10">Erreur de génération.</div>`;
+        window.hideFullScreenLoader();
+    }
+}; // <-- C'EST ICI QUE LA FONCTION SE FERME PROPREMENT
+
+// 4. MOTEUR D'INFIRMERIE & BANNISSEMENT
         window.banPlayerFromTickets = function (id, name, team) {
             if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
             if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
@@ -738,5 +745,5 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
 
 
         // Initialisation au clic
-        let ticketTabBtn = document.querySelector('button[onclick*="tab-tickets"]');
-        if (ticketTabBtn) ticketTabBtn.addEventListener('click', () => { window.updateTicketMatchSelector(); });
+let ticketTabBtn = document.querySelector('button[onclick*="tab-tickets"]');
+if (ticketTabBtn) ticketTabBtn.addEventListener('click', () => { window.updateTicketMatchSelector(); });
