@@ -59,8 +59,8 @@ window.loadTeamPredictions = async function (mode) {
                 const { match, matchDateOnly, dateStr, predData, ctxData } = res;
                 const card = document.createElement('div');
 
-                // NOUVEAU DESIGN DE CARTE (Ultra-Premium & Mobile First)
-                card.className = "bg-gray-950 border border-gray-800 rounded-2xl p-4 md:p-5 cursor-pointer hover:border-purple-500 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(0,0,0,0.4)] hover:shadow-[0_0_20px_rgba(168,85,247,0.2)] group flex flex-col relative overflow-hidden";
+                // NOUVEAU DESIGN NÉON ROSE/VIOLET
+card.className = "bg-gray-950 border-2 border-fuchsia-500/60 rounded-2xl p-4 md:p-5 cursor-pointer hover:border-fuchsia-400 transition-all transform hover:-translate-y-1 shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:shadow-[0_0_25px_rgba(217,70,239,0.6)] group flex flex-col relative overflow-hidden";
                 card.onclick = () => window.openTeamModal(match.home_team, match.away_team, matchDateOnly, predData, ctxData);
 
                 // Effet de lueur au survol
@@ -242,7 +242,7 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
             <div class="bg-gray-950 p-5 rounded-xl border border-gray-800 mb-6 shadow-lg">
                 <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex justify-between items-center border-b border-gray-800 pb-2">
                     <span><i class="fas fa-balance-scale text-purple-400 mr-2"></i> Verdict de l'Algorithme</span>
-                    <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${mode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
+                    <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${window.currentModalMode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
                 </h4>
                 ${window.currentModalMode === '2way' ? `
                     <div class="flex justify-between items-end mb-2">
