@@ -501,7 +501,7 @@ async function loadTeamPredictions(mode) {
         results.forEach(res => {
             if (res.status === 'success' && res.predData && res.predData.status === "success") {
                 const { match, matchDateOnly, dateStr, predData } = res;
-                const isVisible = (selectedFilterDates.length === 0 || selectedFilterDates.includes(matchDateOnly)) ? 'flex' : 'none';
+                const isVisible = 'flex';
                 const card = document.createElement('div');
 
                 // CARTE DESIGN iOS
