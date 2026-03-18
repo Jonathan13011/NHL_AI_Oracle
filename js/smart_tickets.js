@@ -444,7 +444,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false) {
             window.hideAnalysis();
             window.hideFullScreenLoader();
             window.renderBlacklistZone();
-        }, 800);
+        }, 3000);
 
     } catch (err) {
         console.error("Erreur IA:", err);
@@ -613,8 +613,33 @@ window.generatePalier200 = async function () {
             html += `<div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-yellow-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-ice"></i> MATCH : <span class="text-white">${matchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
             grouped[matchStr].forEach(p => {
                 let pType = p.best_prop_type === 'prob_goal' ? 'But' : (p.best_prop_type === 'prob_assist' ? 'Passe' : 'Point');
+                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
+                let positionStr = (p.position && p.position !== 'undefined') ? ` • ${p.position}` : '';
                 let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
-                html += `<div onclick="openSmartTicketModal('${safeJson}')" class="flex items-center justify-between bg-gray-950/80 p-3 rounded-lg border border-gray-800/80 hover:border-yellow-500 transition cursor-pointer group"><div class="flex items-center gap-3"><img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-700 bg-gray-900 group-hover:scale-110 transition object-cover"><div><div class="font-black text-white text-sm md:text-base uppercase tracking-widest leading-none">${p.name}</div><div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest mt-1"><span class="text-yellow-500">${p.team}</span> • ${p.position}</div></div></div><div class="text-right"><div class="text-[8px] md:text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Over 0.5 ${pType}</div><div class="font-black text-lg md:text-xl text-green-400 drop-shadow-[0_0_5px_#4ADE80]">${p._ticketProb.toFixed(1)}% <span class="text-gray-400 text-sm ml-1 font-bold">(@${p._itemOdds.toFixed(2)})</span></div></div></div>`;
+                
+                html += `
+                    <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-yellow-500 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                        <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+                            <div class="relative flex-shrink-0">
+                                <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur group-hover:bg-yellow-500/40 transition"></div>
+                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-yellow-500 bg-gray-900 object-cover z-10 transition">
+                            </div>
+                            <div class="flex flex-col min-w-0 justify-center">
+                                <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate group-hover:text-yellow-500 transition">${p.name}</div>
+                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5">${p.team}${positionStr}</div>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                        <i class="fas fa-search"></i> Scout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end flex-shrink-0 ml-3">
+                            <div class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">Over 0.5 ${pType}</div>
+                            <div class="font-black text-base md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80]">${p._ticketProb.toFixed(1)}%</div>
+                            <div class="text-[10px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                        </div>
+                    </div>`;
             });
             html += `</div></div>`;
         });
@@ -683,12 +708,38 @@ window.generateSameGameParlay = async function () {
         let html = `<div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 rounded-xl mb-4 shadow-inner relative z-20" id="ticket-export-zone-header"><span class="text-purple-400 font-black uppercase tracking-widest text-xs md:text-sm flex items-center gap-2"><i class="fas fa-handshake"></i> SAME-GAME PARLAY (CORRÉLATION)</span><button onclick="generateSameGameParlay()" class="bg-gray-900 hover:bg-white hover:text-black text-[10px] md:text-xs px-4 py-2 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2"><i class="fas fa-sync-alt text-purple-400"></i> Relancer</button></div><div id="ticket-export-zone" class="bg-gray-950/80 p-4 rounded-xl border-2 ${gradeObj.border} ${gradeObj.glow} relative overflow-hidden transition-all"><div class="absolute top-0 right-0 bg-gray-900 border-l border-b ${gradeObj.border} rounded-bl-2xl p-2 md:p-3 flex items-center gap-3 z-10 shadow-inner"><div class="text-right hidden sm:block"><div class="text-[8px] md:text-[9px] text-gray-500 uppercase font-black tracking-widest">Score Qualité IA</div><div class="text-[9px] md:text-[10px] ${gradeObj.color} font-bold mt-0.5 max-w-[130px] leading-tight">${gradeObj.text}</div></div><div class="text-3xl md:text-4xl font-black ${gradeObj.color} drop-shadow-[0_0_10px_currentColor]">${gradeObj.letter}</div></div><div class="pt-10 md:pt-4 pr-16 md:pr-48"><div class="bg-gray-900/40 border border-gray-800 rounded-xl mb-4 shadow-[0_0_15px_rgba(0,0,0,0.5)] overflow-hidden relative"><div class="absolute left-0 top-0 w-1 h-full bg-purple-500"></div><div class="bg-black/50 p-2.5 border-b border-gray-800 text-[10px] md:text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-4"><i class="fas fa-hockey-puck text-purple-400"></i> MATCH : <span class="text-white">${finalMatchStr}</span></div><div class="p-3 flex flex-col gap-2">`;
         finalTicket.forEach(p => {
             let pType = p.best_prop_type === 'prob_goal' ? 'But' : (p.best_prop_type === 'prob_assist' ? 'Passe' : 'Point');
+            let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
+            let positionStr = (p.position && p.position !== 'undefined') ? ` • ${p.position}` : '';
             let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
-            html += `<div onclick="openSmartTicketModal('${safeJson}')" class="flex items-center justify-between bg-gray-950/80 p-3 rounded-lg border border-gray-800/80 hover:border-purple-500 transition cursor-pointer group"><div class="flex items-center gap-3"><img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-10 h-10 md:w-12 md:h-12 rounded-full border border-gray-700 bg-gray-900 group-hover:scale-110 transition object-cover"><div><div class="font-black text-white text-sm md:text-base uppercase tracking-widest leading-none">${p.name}</div><div class="text-[9px] md:text-[10px] text-gray-500 font-bold tracking-widest mt-1"><span class="text-purple-400">${p.team}</span> • ${p.position}</div><div class="bg-purple-900/40 border border-purple-500 text-purple-300 px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-1 w-max shadow-[0_0_8px_rgba(168,85,247,0.4)]">${p.archetype_badge}</div></div></div><div class="text-right"><div class="text-[8px] md:text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Over 0.5 ${pType}</div><div class="font-black text-lg md:text-xl text-green-400 drop-shadow-[0_0_5px_#4ADE80]">${p._ticketProb.toFixed(1)}% <span class="text-gray-400 text-sm ml-1 font-bold">(@${p._itemOdds.toFixed(2)})</span></div></div></div>`;
+            
+            html += `
+                <div class="flex items-center justify-between bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-purple-500 transition cursor-pointer group" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="flex items-center gap-3 md:gap-4 overflow-hidden flex-1">
+                        <div class="relative flex-shrink-0">
+                            <div class="absolute inset-0 bg-purple-500/20 rounded-full blur group-hover:bg-purple-500/40 transition"></div>
+                            <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-purple-500 bg-gray-900 object-cover z-10 transition">
+                        </div>
+                        <div class="flex flex-col min-w-0 justify-center">
+                            <div class="font-black text-white text-xs md:text-sm uppercase tracking-widest truncate group-hover:text-purple-400 transition">${p.name}</div>
+                            <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-0.5">${p.team}${positionStr}</div>
+                            <div class="bg-purple-900/40 border border-purple-500 text-purple-300 px-1.5 py-0.5 rounded text-[8px] uppercase font-black tracking-widest text-center mt-2 w-max shadow-[0_0_8px_rgba(168,85,247,0.4)]">${p.archetype_badge}</div>
+                            <div class="flex gap-2 mt-2">
+                                <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 text-gray-400 px-2 py-1 rounded text-[8px] md:text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                    <i class="fas fa-search"></i> Scout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end flex-shrink-0 ml-3">
+                        <div class="text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-2 py-0.5 rounded border border-gray-800">Over 0.5 ${pType}</div>
+                        <div class="font-black text-base md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80]">${p._ticketProb.toFixed(1)}%</div>
+                        <div class="text-[10px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                    </div>
+                </div>`;
         });
         html += `</div></div></div><div class="ticket-actions mt-4 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 shadow-[0_0_20px_rgba(0,0,0,0.5)]"><div class="flex flex-col items-center md:items-start w-full md:w-auto text-center md:text-left"><div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Cote Duo Boostée</div><div class="text-3xl font-black text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">@${currentOdds.toFixed(2)}</div></div><div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto"><button onclick="window.exportSmartTicketImage()" class="w-full sm:w-auto bg-gray-800 hover:bg-gray-700 text-white px-5 py-3 rounded-lg font-black text-xs uppercase tracking-widest transition shadow-lg border border-gray-600 flex items-center justify-center gap-2"><i class="fas fa-camera text-lg"></i> Exporter</button><div class="flex items-center gap-2 bg-black border border-gray-700 p-1.5 rounded-lg w-full sm:w-auto"><input type="number" id="quick-stake-input" placeholder="Mise (€)" value="10" class="w-24 bg-gray-900 border border-gray-800 text-white text-xs font-bold text-center rounded px-2 py-2.5 outline-none focus:border-money shadow-inner"><button onclick="window.addBetToBankroll('DUOS', 'SGP IA', ${currentOdds.toFixed(2)}, document.getElementById('quick-stake-input').value || 10)" class="w-full sm:w-auto bg-money/20 hover:bg-money text-money hover:text-black border border-money px-5 py-2.5 rounded text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2"><i class="fas fa-save text-lg"></i> Encaisser</button></div></div></div></div>`;
         container.innerHTML = html;
-    }, 800);
+    }, 3000);
 };
 
 window.goToTicketStep = function (step) {
