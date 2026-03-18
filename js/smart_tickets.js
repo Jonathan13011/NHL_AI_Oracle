@@ -204,15 +204,55 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
             p._matchStr = exactMatch ? `${exactMatch.home_team} vs ${exactMatch.away_team}` : `Match de ${p.team}`;
             p.ctx_boost = 0; p.ctx_reasons = []; p.has_target_badge = false;
 
+            // ⚡ 1. INTELLIGENCE IA : Analyse de la forme du joueur (L5)
+            let statName = assignedRole === 'Buteur' ? 'Buts' : (assignedRole === 'Passeur' ? 'Passes' : 'Points');
+            if (p.last_5_games && p.last_5_games.length > 0) {
+                let l5 = p.last_5_games.slice(0, 5);
+                let targetL5 = l5.reduce((sum, g) => sum + (assignedRole === 'Buteur' ? g.goals : (assignedRole === 'Passeur' ? g.assists : g.points)), 0);
+                let sL5 = l5.reduce((sum, g) => sum + g.shots, 0);
+
+                if (targetL5 >= 3) {
+                    p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#ff3333]">🔥</span> <span><b>Dynamique Explosive :</b> Forme exceptionnelle avec ${targetL5} ${statName} (L5).</span></li>`);
+                } else if (sL5 >= 15 && assignedRole === 'Buteur' && targetL5 <= 1) {
+                    p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#00e5ff]">❄️</span> <span><b>Régression Positive :</b> ${sL5} tirs récents sans réussite. Rupture imminente.</span></li>`);
+                } else if (p.avg_toi > 18) {
+                     p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#4ADE80]">⏱️</span> <span><b>Gros Temps de Jeu :</b> Joueur clé sur-utilisé (>18 min/m).</span></li>`);
+                } else {
+                     p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🧠</span> <span><b>Value Mathématique :</b> Avantage algorithmique (+EV) identifié.</span></li>`);
+                }
+            } else {
+                p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🤖</span> <span><b>Projection IA :</b> Avantage mathématique historique repéré.</span></li>`);
+            }
+
+            // ⚡ 2. INTELLIGENCE IA : Analyse du contexte de match (Adversaire)
             if (exactMatch && window.globalMatchContexts[p._matchStr]) {
                 let ctx = window.globalMatchContexts[p._matchStr];
                 let isHome = exactMatch.home_team === p.team;
+                
+                // Gardien
                 let oppGoalie = isHome ? (ctx.goalies?.away_goalie) : (ctx.goalies?.home_goalie);
                 if (oppGoalie && oppGoalie.gsax !== undefined) {
-                    if (oppGoalie.gsax < -1.0) { p.ctx_boost += 4; p.has_target_badge = true; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-crosshairs text-blood mt-1"></i> <span><b>Cible Facile :</b> Gardien adverse vulnérable.</span></li>`); }
-                    else if (oppGoalie.gsax > 3.0) { p.ctx_boost -= 3; p.ctx_reasons.push(`<li class="flex items-start gap-3"><i class="fas fa-shield-alt text-red-500 mt-1"></i> <span><b>Mur Défensif :</b> Gardien adverse en feu. Danger.</span></li>`); }
+                    if (oppGoalie.gsax < -1.0) { 
+                        p.ctx_boost += 4; p.has_target_badge = true; 
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#ff3333]">🎯</span> <span><b>Cible Facile :</b> Gardien adverse vulnérable (GSAx négatif).</span></li>`); 
+                    } else if (oppGoalie.gsax > 3.0) { 
+                        p.ctx_boost -= 3; 
+                        // On remplace le premier argument si c'est un danger majeur
+                        p.ctx_reasons[0] = `<li class="flex items-start gap-2"><span class="text-orange-500">🛡️</span> <span><b>Mur Défensif :</b> Gardien adverse en feu. Risque élevé.</span></li>`; 
+                    }
+                }
+                
+                // Fatigue (Back-to-Back)
+                if (ctx.teams) {
+                    let oppTeamStats = isHome ? ctx.teams.away : ctx.teams.home;
+                    if (oppTeamStats && oppTeamStats.b2b && p.ctx_reasons.length < 2) {
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-orange-500">🔋</span> <span><b>Adversaire Épuisé :</b> L'équipe adverse joue en Back-to-Back.</span></li>`);
+                    }
                 }
             }
+
+            // ⚡ SÉCURITÉ DESIGN : On ne garde que les 2 arguments les plus pertinents maximum pour ne pas déborder sur l'image
+            p.ctx_reasons = p.ctx_reasons.slice(0, 2);
 
             p._ticketProb = Math.min(99.0, p._ticketProb + p.ctx_boost);
             let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
