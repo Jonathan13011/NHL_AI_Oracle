@@ -23,6 +23,32 @@
             }
         }
     </script>
+    <style type="text/tailwindcss">
+        .ticket-algo-card {
+            @apply flex flex-col items-center justify-center p-5 text-center transition-all duration-300;
+            @apply bg-gray-900 border border-gray-800 rounded-3xl active:scale-95 shadow-lg cursor-pointer;
+            @apply hover:border-gray-600;
+        }
+        .ticket-algo-card.goal:hover { @apply border-blood/70 shadow-[0_0_20px_rgba(255,51,51,0.2)]; }
+        .ticket-algo-card.assist:hover { @apply border-white/70 shadow-[0_0_20px_rgba(255,255,255,0.15)]; }
+        .ticket-algo-card.point:hover { @apply border-ice/70 shadow-[0_0_20px_rgba(0,229,255,0.2)]; }
+        .ticket-algo-card.mixte:hover { @apply border-yellow-500/70 shadow-[0_0_20px_rgba(234,179,8,0.2)]; }
+        .ticket-algo-card.sniper:hover { @apply border-green-500/70 shadow-[0_0_20px_rgba(34,197,94,0.2)]; }
+        .ticket-algo-card.palier:hover { @apply border-orange-500/70 shadow-[0_0_20px_rgba(249,115,22,0.2)]; }
+        .ticket-algo-card.duos:hover { @apply border-purple-500/70 shadow-[0_0_20px_rgba(168,85,247,0.2)]; }
+        .ticket-algo-card.overunder:hover { @apply border-gray-400/70; }
+
+        .algo-icon-circle {
+            @apply w-12 h-12 rounded-full flex items-center justify-center border transition mb-4;
+            @apply bg-black/60;
+        }
+        .algo-title {
+            @apply font-black text-white text-[11px] md:text-xs uppercase tracking-[0.2em] mb-1;
+        }
+        .algo-desc {
+            @apply text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-tight;
+        }
+    </style>
     <link rel="stylesheet" href="css/style.css">
 </head>
 
@@ -439,7 +465,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
-                        <button onclick="generateSmartTicket('goal', 'Buteurs')" class="ticket-algo-card goal group">
+                        <button onclick="window.generateSmartTicket('goal', 'Buteurs')" class="ticket-algo-card goal group">
                             <div
                                 class="algo-icon-circle border-blood/20 group-hover:border-blood group-hover:bg-blood/10">
                                 <i class="fas fa-bullseye text-blood text-xl"></i>
@@ -448,7 +474,7 @@
                             <div class="algo-desc">Value sur les marqueurs</div>
                         </button>
 
-                        <button onclick="generateSmartTicket('assist', 'Passeurs')"
+                        <button onclick="window.generateSmartTicket('assist', 'Passeurs')"
                             class="ticket-algo-card assist group">
                             <div
                                 class="algo-icon-circle border-white/10 group-hover:border-white group-hover:bg-white/10">
@@ -458,7 +484,7 @@
                             <div class="algo-desc">Analyse des assistants</div>
                         </button>
 
-                        <button onclick="generateSmartTicket('point', 'Pointeurs')"
+                        <button onclick="window.generateSmartTicket('point', 'Pointeurs')"
                             class="ticket-algo-card point group">
                             <div class="algo-icon-circle border-ice/20 group-hover:border-ice group-hover:bg-ice/10">
                                 <i class="fas fa-star text-ice text-xl"></i>
@@ -467,7 +493,7 @@
                             <div class="algo-desc">Probabilité G + A</div>
                         </button>
 
-                        <button onclick="generateSmartTicket('mixte', 'Mixte IA')" class="ticket-algo-card mixte group">
+                        <button onclick="window.generateSmartTicket('mixte', 'Mixte IA')" class="ticket-algo-card mixte group">
                             <div
                                 class="algo-icon-circle border-yellow-500/20 group-hover:border-yellow-500 group-hover:bg-yellow-500/10">
                                 <i class="fas fa-random text-yellow-500 text-xl"></i>
