@@ -477,3 +477,35 @@ body {
         .ticket-algo-btn {
     @apply bg-gray-900/80 border p-4 rounded-xl flex flex-col items-center justify-center text-[10px] md:text-xs font-black uppercase tracking-widest transition-all shadow-inner active:scale-95;
 }
+
+/* ========================================================================= */
+        /* NOUVEAUX STYLES INCROYABLES POUR L'ÉTAPE 2 (TICKETS IA)                  */
+        /* ========================================================================= */
+        .ticket-algo-card {
+            @apply flex flex-col items-center justify-center p-5 text-center transition-all duration-300;
+            @apply bg-gray-900 border border-gray-800 rounded-3xl active:scale-95 shadow-lg;
+            @apply hover:border-gray-600;
+        }
+        
+        /* Neon accents on hover for each type */
+        .ticket-algo-card.goal:hover { @apply border-blood/70 shadow-[0_0_20px_rgba(255,51,51,0.2)]; }
+        .ticket-algo-card.assist:hover { @apply border-white/70 shadow-[0_0_20px_rgba(255,255,255,0.15)]; }
+        .ticket-algo-card.point:hover { @apply border-ice/70 shadow-[0_0_20px_rgba(0,229,255,0.2)]; }
+        .ticket-algo-card.mixte:hover { @apply border-yellow-500/70 shadow-[0_0_20px_rgba(234,179,8,0.2)]; }
+        .ticket-algo-card. sniper:hover { @apply border-green-500/70 shadow-[0_0_20px_rgba(34,197,94,0.2)]; }
+        .ticket-algo-card. palier:hover { @apply border-orange-500/70 shadow-[0_0_20px_rgba(249,115,22,0.2)]; }
+        .ticket-algo-card.duos:hover { @apply border-purple-500/70 shadow-[0_0_20px_rgba(168,85,247,0.2)]; }
+        .ticket-algo-card.overunder:hover { @apply border-gray-400/70; }
+
+        .algo-icon-circle {
+            @apply w-12 h-12 rounded-full flex items-center justify-center border transition mb-4;
+            @apply bg-black/60;
+        }
+
+        .algo-title {
+            @apply font-black text-white text-[11px] md:text-xs uppercase tracking-[0.2em] mb-1;
+        }
+
+        .algo-desc {
+            @apply text-[9px] text-gray-500 font-bold uppercase tracking-widest leading-tight;
+        }
