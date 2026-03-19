@@ -1,5 +1,5 @@
 const API_BASE = "/backend";
-// --- FONCTION DE CHANGEMENT D'ONGLET (BLINDÉE) ---
+// --- FONCTION DE CHANGEMENT D'ONGLET (AVEC URL DYNAMIQUE) ---
 window.switchTab = function(tabId, btnElement) {
     // 1. Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(el => {
@@ -19,16 +19,24 @@ window.switchTab = function(tabId, btnElement) {
         targetTab.classList.add('active');
     }
     
-    // 4. Activer le bouton cliqué
+    // 4. Activer le bouton cliqué (ou le deviner si on vient d'un lien partagé)
     if (btnElement) {
         btnElement.classList.add('active');
+    } else {
+        const fallbackBtn = document.querySelector(`button[onclick*="${tabId}"]`);
+        if (fallbackBtn) fallbackBtn.classList.add('active');
+    }
+
+    // ⚡ 5. NOUVEAU : Met à jour l'URL silencieusement pour le partage
+    if (window.location.hash !== `#${tabId}`) {
+        window.history.pushState(null, null, `#${tabId}`);
     }
 
     // Fermeture automatique du menu sur mobile après clic
     if (window.innerWidth < 768) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
-            toggleSidebar();
+            if (typeof window.toggleSidebar === 'function') window.toggleSidebar();
         }
     }
 };
@@ -748,11 +756,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (typeof window.fetchMatches === 'function') window.fetchMatches();
         // Lance le gros calcul IA en arrière-plan sans bloquer l'utilisateur
-        window.silentGlobalScan();
+        if (typeof window.silentGlobalScan === 'function') window.silentGlobalScan();
 
-        // NOUVEAU : Chargement du Coffre-Fort (Bankroll) au démarrage
+        // Chargement du Coffre-Fort (Bankroll) au démarrage
         if (typeof loadBankroll === 'function') {
             loadBankroll();
+        }
+
+        // ⚡ NOUVEAU : Lecture du lien partagé (URL Hash) au démarrage
+        const currentHash = window.location.hash; // ex: "#tab-predictions"
+        if (currentHash && currentHash.length > 1) {
+            const targetTabId = currentHash.substring(1);
+            if (document.getElementById(targetTabId)) {
+                window.switchTab(targetTabId);
+            }
         }
     }, 300);
 });
