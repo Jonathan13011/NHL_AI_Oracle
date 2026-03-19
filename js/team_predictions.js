@@ -177,10 +177,9 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    content.innerHTML = `<div class="text-center py-32"><i class="fas fa-circle-notch fa-spin text-5xl text-purple-500 mb-6 drop-shadow-[0_0_15px_#C084FC]"></i><p class="text-purple-400 font-black uppercase tracking-widest text-[10px] animate-pulse">L'Oracle rédige le rapport d'équipe...</p></div>`;
+    content.innerHTML = `<div class="text-center py-32"><i class="fas fa-circle-notch fa-spin text-5xl text-fuchsia-500 mb-6 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]"></i><p class="text-fuchsia-400 font-black uppercase tracking-widest text-[10px] animate-pulse">L'Oracle génère le rapport Quantitatif...</p></div>`;
 
     try {
-        // On réutilise les données de contexte si elles ont déjà été chargées, sinon on fetch
         let tData = ctxDataLoaded;
         if (!tData) {
             const res = await fetch(`${API_BASE}/team_comparison/${home}/${away}/${date}`);
@@ -192,19 +191,15 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
 
         let isHomeFav = false;
         let homeProb = 0, awayProb = 0, tieProb = 0;
-        let maxProb = 0;
-        let favTeam = "";
+        let maxProb = 0, favTeam = "";
 
         if (window.currentModalMode === '2way') {
-            homeProb = predData.prob_home_win;
-            awayProb = predData.prob_away_win;
+            homeProb = predData.prob_home_win; awayProb = predData.prob_away_win;
             isHomeFav = homeProb >= 50;
             maxProb = Math.max(homeProb, awayProb);
             favTeam = isHomeFav ? home : away;
         } else {
-            homeProb = predData.prob_home_reg;
-            awayProb = predData.prob_away_reg;
-            tieProb = predData.prob_tie;
+            homeProb = predData.prob_home_reg; awayProb = predData.prob_away_reg; tieProb = predData.prob_tie;
             maxProb = Math.max(homeProb, awayProb, tieProb);
             if (maxProb === homeProb) favTeam = home;
             else if (maxProb === awayProb) favTeam = away;
@@ -220,124 +215,207 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
             else resDiv.innerHTML = `<div class="text-red-500 font-black text-sm md:text-base">${(ev * 100).toFixed(2)}% EV</div>`;
         };
 
-        // EN-TÊTE MODALE
+        // --- GÉNÉRATION DE DONNÉES SIMULÉES POUR LA DÉMO VISUELLE ---
+        // (À remplacer par les vraies données de ton backend plus tard)
+        let simHomeXGF = (Math.random() * 10 + 45).toFixed(1);
+        let simAwayXGF = (Math.random() * 10 + 45).toFixed(1);
+        let simHomePDO = (Math.random() * 5 + 97.5).toFixed(1);
+        let simAwayPDO = (Math.random() * 5 + 97.5).toFixed(1);
+        let pdoColorH = simHomePDO > 101.5 ? 'text-red-500' : (simHomePDO < 98.5 ? 'text-green-400' : 'text-white');
+        let pdoColorA = simAwayPDO > 101.5 ? 'text-red-500' : (simAwayPDO < 98.5 ? 'text-green-400' : 'text-white');
+
         let html = `
             <div class="flex justify-center items-center gap-6 bg-gray-900/80 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden mb-6 mt-4 md:mt-0">
-                <div class="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent pointer-events-none"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-fuchsia-500/5 to-transparent pointer-events-none"></div>
                 <div class="flex flex-col items-center w-1/3 z-10">
                     <img src="${aLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-md">
                     <span class="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">${away}</span>
                 </div>
-                <div class="text-purple-500 font-black italic text-2xl md:text-3xl z-10 opacity-50">VS</div>
+                <div class="text-fuchsia-500 font-black italic text-2xl md:text-3xl z-10 opacity-50">VS</div>
                 <div class="flex flex-col items-center w-1/3 z-10">
                     <img src="${hLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-md">
                     <span class="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">${home}</span>
                 </div>
             </div>
-        `;
 
-        // RAPPORT NARRATIF IA (Si dispo)
-        if (tData && tData.status === "success" && tData.ai_st) {
-            html += `
-                <div class="bg-purple-900/20 border-l-4 border-purple-500 p-4 rounded-r-xl shadow-inner mb-6 relative">
-                    <i class="fas fa-brain absolute right-4 top-4 text-3xl text-purple-500/20"></i>
-                    <h4 class="text-[9px] text-purple-400 uppercase font-black tracking-widest mb-1">Synthèse Neuronale</h4>
-                    <p class="text-xs md:text-sm text-gray-300 font-bold leading-relaxed pr-8">${tData.ai_st}</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                <div class="bg-gray-950 p-5 rounded-xl border border-gray-800 shadow-lg flex flex-col justify-center">
+                    <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex justify-between items-center border-b border-gray-800 pb-2">
+                        <span><i class="fas fa-balance-scale text-fuchsia-400 mr-2"></i> Verdict IA</span>
+                        <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${window.currentModalMode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
+                    </h4>
+                    ${window.currentModalMode === '2way' ? `
+                        <div class="flex justify-between items-end mb-2">
+                            <div class="text-2xl md:text-4xl font-black ${!isHomeFav ? 'text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]' : 'text-gray-600'}">${awayProb.toFixed(1)}%</div>
+                            <div class="text-2xl md:text-4xl font-black ${isHomeFav ? 'text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]' : 'text-gray-600'}">${homeProb.toFixed(1)}%</div>
+                        </div>
+                        <div class="w-full h-3 md:h-4 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700 shadow-inner">
+                            <div class="h-full transition-all duration-1000 ${!isHomeFav ? 'bg-gradient-to-r from-fuchsia-700 to-fuchsia-500' : 'bg-gray-700'}" style="width: ${awayProb}%"></div>
+                            <div class="h-full transition-all duration-1000 ${isHomeFav ? 'bg-gradient-to-l from-fuchsia-700 to-fuchsia-500' : 'bg-gray-700'}" style="width: ${homeProb}%"></div>
+                        </div>
+                    ` : `
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex flex-col items-start"><span class="text-[8px] text-gray-500 uppercase font-bold">Ext</span><span class="text-xl font-black text-blood">${awayProb.toFixed(1)}%</span></div>
+                            <div class="flex flex-col items-center"><span class="text-[8px] text-gray-500 uppercase font-bold">Nul</span><span class="text-xl font-black text-tie">${tieProb.toFixed(1)}%</span></div>
+                            <div class="flex flex-col items-end"><span class="text-[8px] text-gray-500 uppercase font-bold">Dom</span><span class="text-xl font-black text-ice">${homeProb.toFixed(1)}%</span></div>
+                        </div>
+                        <div class="w-full h-3 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700">
+                            <div class="bg-blood h-full" style="width: ${awayProb}%"></div><div class="bg-tie h-full" style="width: ${tieProb}%"></div><div class="bg-ice h-full" style="width: ${homeProb}%"></div>
+                        </div>
+                    `}
                 </div>
-            `;
-        }
 
-        // PROBABILITÉS
-        html += `
-            <div class="bg-gray-950 p-5 rounded-xl border border-gray-800 mb-6 shadow-lg">
-                <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex justify-between items-center border-b border-gray-800 pb-2">
-                    <span><i class="fas fa-balance-scale text-purple-400 mr-2"></i> Verdict de l'Algorithme</span>
-                    <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${window.currentModalMode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
+                <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-5 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] flex flex-col justify-center">
+                    <h6 class="text-[10px] md:text-xs text-green-500 uppercase font-black tracking-widest mb-3 border-b border-gray-800 pb-2"><i class="fas fa-search-dollar mr-1"></i> Calculateur de Valeur (EV+)</h6>
+                    <div class="flex flex-col gap-3">
+                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Cote bookmaker pour <strong class="text-white">${favTeam}</strong> :</span>
+                        <div class="flex items-center gap-2 w-full">
+                            <input type="number" id="pred-ev-odds" oninput="window.calcPredEV()" step="0.01" placeholder="Ex: 1.85" class="bg-black border border-gray-600 text-white font-black rounded-lg w-full p-3 text-center focus:border-green-500 outline-none shadow-inner transition">
+                            <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center min-w-[90px] shadow-inner flex items-center justify-center">
+                                <span class="text-gray-500 text-[10px] uppercase font-bold">Résultat</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 class="text-white font-black uppercase text-xs tracking-widest mb-4 mt-2 flex items-center gap-2"><i class="fas fa-microchip text-fuchsia-500"></i> Métriques Quantitatives Avancées</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
+                    <div class="text-center mb-3 tooltip-container cursor-help border-b border-gray-800 pb-2">
+                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Contrôle 5v5 (xGF%) <i class="fas fa-info-circle text-gray-600"></i></span>
+                        <span class="tooltip-text">Pourcentage de buts attendus à 5 contre 5. >50% = Domination territoriale.</span>
+                    </div>
+                    <div class="flex justify-between items-end mb-1">
+                        <span class="text-xl font-black text-white">${simAwayXGF}%</span>
+                        <span class="text-xl font-black text-white">${simHomeXGF}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-800 rounded-full flex overflow-hidden">
+                        <div class="bg-blood h-full" style="width: ${simAwayXGF}%"></div>
+                        <div class="bg-ice h-full" style="width: ${simHomeXGF}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[8px] text-gray-500 uppercase font-bold mt-1"><span>Ext</span><span>Dom</span></div>
+                </div>
+
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
+                    <div class="text-center mb-2 tooltip-container cursor-help border-b border-gray-800 pb-2">
+                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Facteur Chance (PDO) <i class="fas fa-info-circle text-gray-600"></i></span>
+                        <span class="tooltip-text">Moyenne à 100. >101.5 = Surchauffe (Va perdre). <98.5 = Malchanceux (Va gagner).</span>
+                    </div>
+                    <div class="flex justify-between items-center h-full pb-2">
+                        <div class="text-center">
+                            <span class="block text-[8px] text-gray-500 uppercase mb-1">EXT</span>
+                            <span class="text-2xl font-black ${pdoColorA}">${simAwayPDO}</span>
+                        </div>
+                        <div class="text-center border-l border-gray-800 pl-4 ml-4">
+                            <span class="block text-[8px] text-gray-500 uppercase mb-1">DOM</span>
+                            <span class="text-2xl font-black ${pdoColorH}">${simHomePDO}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
+                    <div class="text-center mb-2 tooltip-container cursor-help border-b border-gray-800 pb-2">
+                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Avantage Gardien <i class="fas fa-info-circle text-gray-600"></i></span>
+                        <span class="tooltip-text">Différence de Goals Saved Above Expected (GSAx) entre les deux gardiens probables.</span>
+                    </div>
+                    <div class="flex justify-center items-center h-full pb-2">
+                        <div class="bg-black border border-green-500/30 px-4 py-2 rounded-lg text-center shadow-[0_0_10px_rgba(74,222,128,0.1)]">
+                            <span class="block text-[9px] text-green-400 uppercase tracking-widest font-bold mb-1">Avantage Net</span>
+                            <span class="text-xl font-black text-white">+0.85 <span class="text-xs text-gray-500">But/Match</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900/80 p-5 rounded-xl border border-gray-800 shadow-lg mb-6 flex flex-col">
+                <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex items-center border-b border-gray-800 pb-2">
+                    <i class="fas fa-chart-line text-ice mr-2"></i> Tendance Offensive (xGF L10)
                 </h4>
-                ${window.currentModalMode === '2way' ? `
-                    <div class="flex justify-between items-end mb-2">
-                        <div class="text-2xl md:text-4xl font-black ${!isHomeFav ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-gray-600'}">${awayProb.toFixed(1)}%</div>
-                        <div class="text-2xl md:text-4xl font-black ${isHomeFav ? 'text-purple-400 drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-gray-600'}">${homeProb.toFixed(1)}%</div>
-                    </div>
-                    <div class="w-full h-3 md:h-4 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700 shadow-inner">
-                        <div class="h-full transition-all duration-1000 ${!isHomeFav ? 'bg-gradient-to-r from-purple-700 to-purple-500' : 'bg-gray-700'}" style="width: ${awayProb}%"></div>
-                        <div class="h-full transition-all duration-1000 ${isHomeFav ? 'bg-gradient-to-l from-purple-700 to-purple-500' : 'bg-gray-700'}" style="width: ${homeProb}%"></div>
-                    </div>
-                ` : `
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="flex flex-col items-start"><span class="text-[8px] md:text-[10px] text-gray-500 uppercase font-bold tracking-widest">Extérieur</span><span class="text-xl md:text-3xl font-black text-blood">${awayProb.toFixed(1)}%</span></div>
-                        <div class="flex flex-col items-center"><span class="text-[8px] md:text-[10px] text-gray-500 uppercase font-bold tracking-widest">Nul</span><span class="text-xl md:text-3xl font-black text-tie">${tieProb.toFixed(1)}%</span></div>
-                        <div class="flex flex-col items-end"><span class="text-[8px] md:text-[10px] text-gray-500 uppercase font-bold tracking-widest">Domicile</span><span class="text-xl md:text-3xl font-black text-ice">${homeProb.toFixed(1)}%</span></div>
-                    </div>
-                    <div class="w-full h-3 md:h-4 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700 shadow-inner">
-                        <div class="bg-blood h-full" style="width: ${awayProb}%"></div><div class="bg-tie h-full" style="width: ${tieProb}%"></div><div class="bg-ice h-full" style="width: ${homeProb}%"></div>
-                    </div>
-                `}
+                <div class="relative w-full h-48">
+                    <canvas id="teamMomentumChart"></canvas>
+                </div>
+                <div class="text-[8px] text-gray-500 uppercase tracking-widest text-center mt-3">Analyse de la création de danger sur les 10 derniers matchs</div>
             </div>
 
-            <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-4 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] relative overflow-hidden mb-6 flex flex-row justify-between items-center gap-4">
-                <div class="flex flex-col z-10">
-                    <h6 class="text-[10px] md:text-xs text-green-500 uppercase font-black tracking-widest mb-1"><i class="fas fa-search-dollar mr-1"></i> Calculateur de Valeur (EV+)</h6>
-                    <span class="text-[8px] md:text-[10px] text-gray-400 font-bold uppercase truncate tracking-widest">Cote de votre bookmaker pour : <strong class="text-white">${favTeam}</strong></span>
-                </div>
-                <div class="flex items-center gap-2 z-10 shrink-0">
-                    <input type="number" id="pred-ev-odds" oninput="window.calcPredEV()" step="0.01" placeholder="Ex: 1.85" class="bg-black border border-gray-600 text-white font-black rounded-lg w-20 md:w-24 p-3 text-center text-xs md:text-sm focus:border-green-500 outline-none shadow-inner transition">
-                    <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center min-w-[70px] md:min-w-[90px] shadow-inner flex items-center justify-center">
-                        <span class="text-gray-500 text-[8px] md:text-[10px] uppercase font-bold tracking-widest">Résultat</span>
+            ${tData && tData.status === "success" ? `
+            <div class="bg-gray-950 border border-gray-800 rounded-xl p-5 shadow-inner">
+                <h4 class="text-white font-black text-[10px] md:text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2"><i class="fas fa-chess-board text-yellow-500 mr-2"></i> Tactique & Calendrier</h4>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-xs font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${away}</span>
+                        ${tData.away.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Avantage (PP)</span><span class="text-white font-black">${tData.away.pp.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.away.pp}%"></div></div>
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Défense (PK)</span><span class="text-white font-black">${tData.away.pk.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.away.pk}%"></div></div>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-2">
+                        <span class="text-xs font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${home}</span>
+                        ${tData.home.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Avantage (PP)</span><span class="text-white font-black">${tData.home.pp.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.home.pp}%"></div></div>
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Défense (PK)</span><span class="text-white font-black">${tData.home.pk.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.home.pk}%"></div></div>
                     </div>
                 </div>
-            </div>
+            </div>` : ''}
         `;
-
-        if (tData && tData.status === "success") {
-            const getFatigue = (b2b, in4) => {
-                if (b2b) return `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 flex items-center justify-center gap-1 w-full"><i class="fas fa-battery-empty animate-pulse"></i> Back-to-Back</span>`;
-                if (in4) return `<span class="text-orange-500 bg-orange-500/10 px-2 py-1 rounded text-[8px] font-black border border-orange-500/30 flex items-center justify-center gap-1 w-full"><i class="fas fa-battery-quarter"></i> 3ème en 4 Nuits</span>`;
-                return `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 flex items-center justify-center gap-1 w-full"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`;
-            };
-
-            html += `
-                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-5 shadow-lg mb-4">
-                    <h4 class="text-white font-black text-[10px] md:text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2"><i class="fas fa-chart-pie text-ice mr-2"></i> Confrontation des Fondamentaux</h4>
-                    
-                    <div class="grid grid-cols-2 gap-4 md:gap-6 mb-2">
-                        <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex flex-col items-center gap-3 shadow-inner">
-                            <span class="text-xs md:text-sm font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${away}</span>
-                            ${getFatigue(tData.away.b2b, tData.away.in4)}
-                            <div class="w-full flex justify-between text-[10px] md:text-xs mt-2">
-                                <span class="text-gray-500 uppercase tracking-widest font-bold">Avantage Num. (PP)</span>
-                                <span class="text-white font-black">${tData.away.pp.toFixed(1)}%</span>
-                            </div>
-                            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.away.pp}%"></div></div>
-                            
-                            <div class="w-full flex justify-between text-[10px] md:text-xs mt-2">
-                                <span class="text-gray-500 uppercase tracking-widest font-bold">Désavantage (PK)</span>
-                                <span class="text-white font-black">${tData.away.pk.toFixed(1)}%</span>
-                            </div>
-                            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.away.pk}%"></div></div>
-                        </div>
-
-                        <div class="bg-gray-950 p-4 rounded-xl border border-gray-800 flex flex-col items-center gap-3 shadow-inner">
-                            <span class="text-xs md:text-sm font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${home}</span>
-                            ${getFatigue(tData.home.b2b, tData.home.in4)}
-                            <div class="w-full flex justify-between text-[10px] md:text-xs mt-2">
-                                <span class="text-gray-500 uppercase tracking-widest font-bold">Avantage Num. (PP)</span>
-                                <span class="text-white font-black">${tData.home.pp.toFixed(1)}%</span>
-                            </div>
-                            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.home.pp}%"></div></div>
-                            
-                            <div class="w-full flex justify-between text-[10px] md:text-xs mt-2">
-                                <span class="text-gray-500 uppercase tracking-widest font-bold">Désavantage (PK)</span>
-                                <span class="text-white font-black">${tData.home.pk.toFixed(1)}%</span>
-                            </div>
-                            <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.home.pk}%"></div></div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
 
         content.innerHTML = html;
+
+        // --- GÉNÉRATION DU GRAPHIQUE CHART.JS ---
+        if (window.teamModalChart) window.teamModalChart.destroy();
+        const ctx = document.getElementById('teamMomentumChart').getContext('2d');
+        
+        // Données fictives pour simuler la courbe L10 (À relier à l'API plus tard)
+        let labels = ['M-10', 'M-9', 'M-8', 'M-7', 'M-6', 'M-5', 'M-4', 'M-3', 'M-2', 'M-1'];
+        let dataAway = Array.from({length: 10}, () => (Math.random() * 2 + 1.5).toFixed(2));
+        let dataHome = Array.from({length: 10}, () => (Math.random() * 2 + 1.5).toFixed(2));
+
+        window.teamModalChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: away,
+                        data: dataAway,
+                        borderColor: '#ff3333', // Blood
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        tension: 0.3
+                    },
+                    {
+                        label: home,
+                        data: dataHome,
+                        borderColor: '#00e5ff', // Ice
+                        backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, labels: { color: '#ccc', font: { size: 10, family: 'Montserrat' } } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', font: { size: 9 } } },
+                    x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 9 } } }
+                }
+            }
+        });
+
     } catch (e) {
         console.error(e);
         content.innerHTML = `<div class="text-red-500 font-bold text-center py-10"><i class="fas fa-wifi text-3xl mb-4 block"></i>Erreur de connexion avec l'Oracle.</div>`;
@@ -347,4 +425,5 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
 window.closeTeamModal = function () {
     document.getElementById('team-modal').classList.add('hidden');
     document.getElementById('team-modal').classList.remove('flex');
+    if (window.teamModalChart) window.teamModalChart.destroy(); // Nettoie la mémoire
 };
