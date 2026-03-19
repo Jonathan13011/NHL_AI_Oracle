@@ -119,6 +119,9 @@ async function executePlayerSearch(playerId) {
 
         if (data.status === "error") { alert(data.message); return; }
 
+        // ⚡ NOUVEAU : Mise à jour absolue de l'URL avec le vrai nom renvoyé par la base de données
+        window.history.pushState(null, null, `#tab-performances?player=${encodeURIComponent(data.player.name)}`);
+
         document.getElementById('player-result-container').classList.remove('hidden');
         document.getElementById('player-result-container').classList.add('flex');
 
