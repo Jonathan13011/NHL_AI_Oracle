@@ -74,9 +74,13 @@
             </div>
         </div>
 
-        <nav
-            class="flex-1 py-4 flex flex-col overflow-y-auto overflow-x-hidden touch-pan-y no-scrollbar overscroll-contain gap-1 pb-10">
-            <div class="px-6 py-2 text-[10px] font-black tracking-widest text-gray-600 uppercase">Analyses V1</div>
+        <nav class="flex-1 py-4 flex flex-col overflow-y-auto overflow-x-hidden touch-pan-y no-scrollbar overscroll-contain gap-1 pb-10">
+            
+            <button onclick="switchTab('tab-accueil', this)" class="nav-item active flex items-center gap-4 px-6 py-3 text-left font-bold text-white bg-gray-900/50 border-r-4 border-white shadow-[inset_-10px_0_20px_rgba(255,255,255,0.05)] transition-all">
+                <i class="fas fa-home w-6 text-xl text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"></i> Accueil
+            </button>
+
+            <div class="px-6 py-2 mt-2 text-[10px] font-black tracking-widest text-gray-600 uppercase border-t border-gray-800 pt-4">Analyses V1</div>
             <button onclick="switchTab('tab-matchs', this)" class="nav-item active"><i
                     class="fas fa-calendar-alt text-blue-400 drop-shadow-[0_0_5px_#60A5FA]"></i> Prochains
                 Matchs</button>
@@ -198,7 +202,80 @@
                     <img src="assets/gardiens-hockai-prono-hockey.jpg" class="w-full h-auto object-contain rounded-xl shadow-[0_0_40px_rgba(249,115,22,0.4)] relative z-10" alt="Analyse Gardiens">
                 </div>
             </div>
+            <section id="tab-accueil" class="tab-content active h-full w-full overflow-x-hidden overflow-y-auto pb-32 px-2 relative animate-fade-in">
+                
+                <div class="text-center mb-8 mt-6 md:mt-10 flex-shrink-0 relative z-10">
+                    <div class="inline-block bg-gray-900 border border-gray-700 px-4 py-1.5 rounded-full mb-4 shadow-inner">
+                        <span class="text-[10px] md:text-xs text-ice font-black uppercase tracking-widest flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-ice animate-pulse"></span> Version 3.1 Online
+                        </span>
+                    </div>
+                    <h2 class="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter drop-shadow-[0_0_20px_rgba(255,255,255,0.2)] mb-2 italic">
+                        L'Oracle <span class="text-transparent bg-clip-text bg-gradient-to-r from-ice via-purple-500 to-blood">HOCKAI</span>
+                    </h2>
+                    <p class="text-gray-400 font-bold mt-3 text-xs md:text-sm max-w-2xl mx-auto leading-relaxed px-4">
+                        Bienvenue dans le terminal d'analyse prédictive NHL le plus avancé du marché. 
+                        Oubliez l'intuition, tradez avec les mathématiques.
+                    </p>
+                </div>
 
+                <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10 px-2">
+                    
+                    <div onclick="openHomeModal('intro')" class="md:col-span-3 bg-gradient-to-br from-gray-900 to-black border border-gray-700 hover:border-white p-6 md:p-8 rounded-2xl shadow-lg cursor-pointer transform transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] group relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+                        <div class="absolute -right-10 -bottom-10 opacity-5 text-9xl group-hover:scale-110 transition duration-500"><i class="fas fa-brain"></i></div>
+                        <div class="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border border-white/30 shrink-0">
+                            <i class="fas fa-microchip text-3xl text-white drop-shadow-[0_0_10px_#ffffff]"></i>
+                        </div>
+                        <div class="text-center md:text-left">
+                            <h3 class="text-white font-black text-xl md:text-2xl uppercase tracking-widest mb-2">Qu'est-ce que HOCKAI ?</h3>
+                            <p class="text-gray-400 text-xs md:text-sm font-bold">Découvrez l'architecture du réseau de neurones, la fiabilité mathématique (+EV) et pourquoi nos algorithmes battent les bookmakers sur le long terme.</p>
+                        </div>
+                    </div>
+
+                    <div onclick="openHomeModal('perf')" class="bg-gray-900/80 border border-gray-800 hover:border-green-400 p-6 rounded-2xl shadow-inner cursor-pointer transform transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-green-400 opacity-0 group-hover:opacity-100 transition"></div>
+                        <i class="fas fa-chart-line text-3xl text-green-400 mb-4 drop-shadow-[0_0_10px_#4ADE80]"></i>
+                        <h3 class="text-white font-black text-sm uppercase tracking-widest mb-2">Scouting Joueurs</h3>
+                        <p class="text-gray-500 text-[10px] md:text-xs font-bold">Analyse individuelle, xG, Temps de glace, Matchups et alertes de régression.</p>
+                    </div>
+
+                    <div onclick="openHomeModal('teams')" class="bg-gray-900/80 border border-gray-800 hover:border-purple-400 p-6 rounded-2xl shadow-inner cursor-pointer transform transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-purple-400 opacity-0 group-hover:opacity-100 transition"></div>
+                        <i class="fas fa-chess-knight text-3xl text-purple-400 mb-4 drop-shadow-[0_0_10px_#c084fc]"></i>
+                        <h3 class="text-white font-black text-sm uppercase tracking-widest mb-2">Résultats Équipes</h3>
+                        <p class="text-gray-500 text-[10px] md:text-xs font-bold">Prédictions de victoires (Loi de Poisson), Domination 5v5 et Unités Spéciales.</p>
+                    </div>
+
+                    <div onclick="openHomeModal('goalies')" class="bg-gray-900/80 border border-gray-800 hover:border-orange-500 p-6 rounded-2xl shadow-inner cursor-pointer transform transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-orange-500 opacity-0 group-hover:opacity-100 transition"></div>
+                        <i class="fas fa-shield-alt text-3xl text-orange-500 mb-4 drop-shadow-[0_0_10px_#f97316]"></i>
+                        <h3 class="text-white font-black text-sm uppercase tracking-widest mb-2">La Forteresse</h3>
+                        <p class="text-gray-500 text-[10px] md:text-xs font-bold">Confrontation des gardiens partants via la métrique GSAx (Goals Saved Above Expected).</p>
+                    </div>
+
+                    <div onclick="openHomeModal('tools')" class="md:col-span-3 bg-gray-950 border border-money/30 hover:border-money p-6 rounded-2xl shadow-inner cursor-pointer transform transition-all duration-300 hover:scale-[1.01] group relative overflow-hidden flex flex-col items-center text-center">
+                        <div class="absolute inset-0 bg-money/5 opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
+                        <i class="fas fa-briefcase text-4xl text-money mb-3 drop-shadow-[0_0_10px_#4ADE80]"></i>
+                        <h3 class="text-white font-black text-lg md:text-xl uppercase tracking-widest mb-2">Les Outils Quantitatifs (Trading V2)</h3>
+                        <p class="text-gray-400 text-xs md:text-sm font-bold max-w-2xl">Passez au niveau professionnel : Scanner Live, Gestion de Bankroll (Kelly Criterion), Labo de Chimie, Monte Carlo et Télémétrie en temps réel.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <div id="home-content-modal" class="fixed inset-0 bg-black/95 z-[9999] hidden flex-col items-center justify-start md:justify-center p-0 md:p-4 backdrop-blur-md overflow-y-auto">
+                <div class="bg-gray-950 border-0 md:border border-gray-700 md:rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col min-h-screen md:min-h-0 relative">
+                    
+                    <div class="sticky top-0 right-0 w-full flex justify-end p-4 z-50 pointer-events-none">
+                        <button onclick="closeHomeModal()" class="pointer-events-auto bg-gray-900 border border-gray-600 text-gray-400 hover:text-white w-10 h-10 rounded-full flex items-center justify-center text-xl transition-all shadow-lg backdrop-blur-md">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div id="home-modal-body" class="px-6 pb-12 md:px-10 md:pb-10 -mt-10 md:-mt-4 w-full flex-1">
+                        </div>
+                </div>
+            </div>
             <section id="tab-matchs" class="tab-content active h-full max-w-6xl mx-auto overflow-y-auto pr-2 pb-10">
                 <div class="flex justify-between items-end mb-8 border-b border-gray-800 pb-4 mt-4">
                     <div class="w-full text-center mb-4">
@@ -3013,7 +3090,7 @@
     <script src="js/over_under.js?v=1"></script>
     <script src="js/goalies.js?v=1"></script>
     <script src="js/team_predictions.js?v=5"></script>
-    <script src="js/app.js?v=11"></script>
+    <script src="js/app.js?v=12"></script>
 
     <div id="gsax-modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
