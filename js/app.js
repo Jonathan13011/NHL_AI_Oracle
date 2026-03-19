@@ -32,19 +32,26 @@ window.switchTab = function(tabId, btnElement) {
         window.history.pushState(null, null, `#${tabId}`);
     }
 
-    // ⚡ 6. NOUVEAU : DÉCLENCHEMENT DES ANIMATIONS DE CHARGEMENT
+    // ⚡ 6. DÉCLENCHEMENT DES ANIMATIONS ET CHARGEMENTS AUTOMATIQUES
     if (tabId === 'tab-predictions') {
         const screenEquipes = document.getElementById('equipes-screen');
         if (screenEquipes) {
             screenEquipes.classList.remove('hidden');
             setTimeout(() => screenEquipes.classList.add('hidden'), 2000);
         }
+        
+        // AUTO-LOAD : On charge les données "Vainqueur Final" en mode silencieux !
+        if (typeof window.loadTeamPredictions === 'function') {
+            window.loadTeamPredictions('2way', true);
+        }
+        
     } else if (tabId === 'tab-formes') {
         const screenGardiens = document.getElementById('gardiens-screen');
         if (screenGardiens) {
             screenGardiens.classList.remove('hidden');
             setTimeout(() => screenGardiens.classList.add('hidden'), 2000);
         }
+        // (Si tu as une fonction similaire pour charger les gardiens automatiquement, tu pourras l'ajouter ici plus tard)
     }
 
     // 7. Fermeture automatique du menu sur mobile après clic

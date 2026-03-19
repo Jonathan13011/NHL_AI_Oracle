@@ -4,7 +4,7 @@
 
 window.currentModalMode = '2way';
 
-window.loadTeamPredictions = async function (mode) {
+window.loadTeamPredictions = async function (mode, silent = false) {
     window.currentModalMode = mode;
     
     // 1. Mise à jour du style des boutons (Toggle)
@@ -15,7 +15,8 @@ window.loadTeamPredictions = async function (mode) {
     document.getElementById('btn-3way').className = mode === '3way' ? activeClass : inactiveClass;
 
     const container = document.getElementById('team-predictions-container');
-    if (typeof showFullScreenLoader === 'function') showFullScreenLoader("L'Oracle analyse", "Recherche des avantages (Key Edges)...", false);
+    // On n'affiche l'ancienne animation QUE si on n'est pas en mode silencieux
+    if (!silent && typeof showFullScreenLoader === 'function') showFullScreenLoader("L'Oracle analyse", "Recherche des avantages (Key Edges)...", false);
 
     try {
         // Chargement du calendrier si vide
@@ -167,7 +168,7 @@ card.className = "bg-gray-950 border-2 border-fuchsia-500/60 rounded-2xl p-4 md:
         console.error("Erreur chargement des équipes:", e); 
         container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Erreur de connexion.</div>';
     } finally { 
-        if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader(); 
+        if (!silent && typeof hideFullScreenLoader === 'function') hideFullScreenLoader(); 
     }
 };
 
