@@ -170,30 +170,32 @@
         </div>
 
         <div class="p-8 h-full">
-            <div id="welcome-screen"
-                class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-4">
-                <div
-                    class="relative w-full max-w-[90%] md:max-w-[80%] aspect-video border-4 border-ice shadow-[0_0_50px_rgba(0,229,255,0.8)] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-gray-900">
-                    <img src="assets/hockai-nhl-chargement-welcome-pronostic-sport-hockey-web.jpg"
-                        class="w-full h-full object-cover">
+            <div id="welcome-screen" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-4 transition-opacity duration-500">
+                <div class="relative w-full max-w-[95%] md:max-w-[70%] lg:max-w-[60%] flex flex-col items-center justify-center">
+                    <div class="absolute inset-0 bg-ice opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+                    
+                    <img src="assets/hockai-nhl-chargement-welcome-pronostic-sport-hockey-web.jpg" class="w-full h-auto object-contain rounded-xl shadow-[0_0_40px_rgba(0,229,255,0.3)] relative z-10" alt="Bienvenue">
                 </div>
             </div>
 
-            <div id="analysis-screen" class="fixed inset-0 z-[9998] bg-black/90 backdrop-blur-2xl flex items-center justify-center hidden p-4">
-                <div class="relative w-full max-w-[90%] md:max-w-[80%] aspect-video border-4 border-ice shadow-[0_0_50px_rgba(0,229,255,0.8)] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-gray-900">
-                    <img src="assets/hockai-nhl-chargement-perf--pronostic-sport-hockey-web.jpg" class="w-full h-full object-cover">
+            <div id="analysis-screen" class="fixed inset-0 z-[9998] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center hidden p-4 transition-opacity duration-500">
+                <div class="relative w-full max-w-[95%] md:max-w-[70%] lg:max-w-[60%] flex flex-col items-center justify-center">
+                    <div class="absolute inset-0 bg-ice opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+                    <img src="assets/hockai-nhl-chargement-perf--pronostic-sport-hockey-web.jpg" class="w-full h-auto object-contain rounded-xl shadow-[0_0_40px_rgba(0,229,255,0.3)] relative z-10" alt="Chargement">
                 </div>
             </div>
 
-            <div id="equipes-screen" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-2xl flex items-center justify-center hidden p-4">
-                <div class="relative w-full max-w-[90%] md:max-w-[80%] aspect-video border-4 border-purple-500 shadow-[0_0_50px_rgba(168,85,247,0.8)] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-gray-900">
-                    <img src="assets/equipes-hockai-prono-hockey.jpg" class="w-full h-full object-cover">
+            <div id="equipes-screen" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center hidden p-4 transition-opacity duration-500">
+                <div class="relative w-full max-w-[95%] md:max-w-[70%] lg:max-w-[60%] flex flex-col items-center justify-center">
+                    <div class="absolute inset-0 bg-purple-600 opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+                    <img src="assets/equipes-hockai-prono-hockey.jpg" class="w-full h-auto object-contain rounded-xl shadow-[0_0_40px_rgba(168,85,247,0.4)] relative z-10" alt="Analyse Équipes">
                 </div>
             </div>
 
-            <div id="gardiens-screen" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-2xl flex items-center justify-center hidden p-4">
-                <div class="relative w-full max-w-[90%] md:max-w-[80%] aspect-video border-4 border-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.8)] rounded-[2rem] md:rounded-[3rem] overflow-hidden bg-gray-900">
-                    <img src="assets/gardiens-hockai-prono-hockey.jpg" class="w-full h-full object-cover">
+            <div id="gardiens-screen" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center hidden p-4 transition-opacity duration-500">
+                <div class="relative w-full max-w-[95%] md:max-w-[70%] lg:max-w-[60%] flex flex-col items-center justify-center">
+                    <div class="absolute inset-0 bg-orange-500 opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+                    <img src="assets/gardiens-hockai-prono-hockey.jpg" class="w-full h-auto object-contain rounded-xl shadow-[0_0_40px_rgba(249,115,22,0.4)] relative z-10" alt="Analyse Gardiens">
                 </div>
             </div>
 
