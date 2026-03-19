@@ -1,5 +1,5 @@
 const API_BASE = "/backend";
-// --- FONCTION DE CHANGEMENT D'ONGLET (AVEC URL DYNAMIQUE) ---
+// --- FONCTION DE CHANGEMENT D'ONGLET (AVEC URL DYNAMIQUE & ANIMATIONS) ---
 window.switchTab = function(tabId, btnElement) {
     // 1. Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(el => {
@@ -27,12 +27,27 @@ window.switchTab = function(tabId, btnElement) {
         if (fallbackBtn) fallbackBtn.classList.add('active');
     }
 
-    // ⚡ 5. NOUVEAU : Met à jour l'URL silencieusement pour le partage
+    // 5. Met à jour l'URL silencieusement pour le partage
     if (window.location.hash !== `#${tabId}`) {
         window.history.pushState(null, null, `#${tabId}`);
     }
 
-    // Fermeture automatique du menu sur mobile après clic
+    // ⚡ 6. NOUVEAU : DÉCLENCHEMENT DES ANIMATIONS DE CHARGEMENT
+    if (tabId === 'tab-predictions') {
+        const screenEquipes = document.getElementById('equipes-screen');
+        if (screenEquipes) {
+            screenEquipes.classList.remove('hidden');
+            setTimeout(() => screenEquipes.classList.add('hidden'), 2000);
+        }
+    } else if (tabId === 'tab-formes') {
+        const screenGardiens = document.getElementById('gardiens-screen');
+        if (screenGardiens) {
+            screenGardiens.classList.remove('hidden');
+            setTimeout(() => screenGardiens.classList.add('hidden'), 2000);
+        }
+    }
+
+    // 7. Fermeture automatique du menu sur mobile après clic
     if (window.innerWidth < 768) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar && !sidebar.classList.contains('-translate-x-full')) {
@@ -40,6 +55,7 @@ window.switchTab = function(tabId, btnElement) {
         }
     }
 };
+
 // --- GESTION DES ÉCRANS DE CHARGEMENT HOCKAI ---
 
 // 1. Affichage automatique de "Bienvenue" pendant 2 secondes à l'ouverture du site
