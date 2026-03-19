@@ -543,9 +543,13 @@ window.renderPerfHomeDashboard = async function () {
     if (coldContainer) coldContainer.innerHTML = coldPlayers.map(p => renderCard(p, 'cold')).join('');
 };
 
-// 2. Gestion de la recherche par nom (pour les boutons raccourcis)
+// 2. Gestion de la recherche par nom (pour les boutons raccourcis et l'URL)
 window.executePlayerSearchByName = async function (name) {
     document.getElementById('player-search-input').value = name;
+
+    // ⚡ NOUVEAU : On met à jour l'URL dynamiquement pour qu'elle soit partageable !
+    window.history.pushState(null, null, `#tab-performances?player=${encodeURIComponent(name)}`);
+
     let pool = window.globalPredictionsPool || [];
     let p = pool.find(pl => pl.name === name);
     if (p && p.id) {
@@ -582,6 +586,10 @@ window.closePlayerProfile = function () {
     }
     document.getElementById('player-search-input').value = '';
     cachedSearchId = null;
+
+// ⚡ NOUVEAU : On nettoie l'URL pour enlever le nom du joueur
+    window.history.pushState(null, null, `#tab-performances`);
+
 };
 
 // 4. On intercepte subtilement la recherche pour cacher l'accueil
@@ -755,20 +763,34 @@ window.silentGlobalScan = async function () {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         if (typeof window.fetchMatches === 'function') window.fetchMatches();
-        // Lance le gros calcul IA en arrière-plan sans bloquer l'utilisateur
+        // Lance le gros calcul IA en arrière-plan
         if (typeof window.silentGlobalScan === 'function') window.silentGlobalScan();
 
-        // Chargement du Coffre-Fort (Bankroll) au démarrage
-        if (typeof loadBankroll === 'function') {
-            loadBankroll();
-        }
+        // Chargement du Coffre-Fort
+        if (typeof loadBankroll === 'function') loadBankroll();
 
-        // ⚡ NOUVEAU : Lecture du lien partagé (URL Hash) au démarrage
-        const currentHash = window.location.hash; // ex: "#tab-predictions"
+        // ⚡ LECTURE DU LIEN PARTAGÉ (AVEC DEEP LINKING)
+        const currentHash = window.location.hash; 
         if (currentHash && currentHash.length > 1) {
-            const targetTabId = currentHash.substring(1);
+            // On sépare l'onglet (#tab-xxx) des paramètres (?player=xxx)
+            const [hashPart, queryPart] = currentHash.substring(1).split('?');
+            const targetTabId = hashPart;
+
             if (document.getElementById(targetTabId)) {
                 window.switchTab(targetTabId);
+                
+                // Si l'URL contient une demande d'ouverture de fiche joueur
+                if (queryPart) {
+                    const params = new URLSearchParams(queryPart);
+                    if (targetTabId === 'tab-performances' && params.has('player')) {
+                        // On attend 800ms que la base de données soit bien chargée avant d'ouvrir
+                        setTimeout(() => {
+                            if (typeof window.executePlayerSearchByName === 'function') {
+                                window.executePlayerSearchByName(params.get('player'));
+                            }
+                        }, 800); 
+                    }
+                }
             }
         }
     }, 300);
