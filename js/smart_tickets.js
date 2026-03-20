@@ -491,28 +491,33 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
         // ACTIONS DU TICKET (Boutons Encaisser, Exporter...)
         html += `
                 </div> 
-                <div class="ticket-actions mt-5 bg-gray-900 border border-gray-800 rounded-2xl p-5 flex flex-col gap-4 shadow-inner relative z-10">
-                    <div class="flex flex-col md:flex-row justify-between items-center gap-5 w-full">
-                        <div class="flex flex-col items-center md:items-start w-full md:w-auto text-center md:text-left">
+                <div class="ticket-actions mt-5 bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5 flex flex-col gap-4 shadow-inner relative z-10">
+                    <div class="flex flex-col lg:flex-row justify-between items-center gap-5 w-full">
+                        <div class="flex flex-col items-center lg:items-start w-full lg:w-auto text-center lg:text-left">
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1.5">Cote Totale (Équitable)</div>
-                            <div class="text-4xl font-black text-yellow-500 drop-shadow-[0_0_12px_rgba(234,179,8,0.5)]">@${totalTicketOdds.toFixed(2)}</div>
+                            <div class="text-3xl md:text-4xl font-black text-yellow-500 drop-shadow-[0_0_12px_rgba(234,179,8,0.5)]">@${totalTicketOdds.toFixed(2)}</div>
                         </div>
-                        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                            <button onclick="window.exportSmartTicketImage()" class="w-full sm:w-auto bg-gray-800 hover:bg-white hover:text-black text-white px-6 py-4 rounded-xl font-black text-xs uppercase tracking-widest transition shadow-lg border border-gray-600 flex items-center justify-center gap-3 active:scale-95">
-                                <i class="fas fa-camera text-lg text-ice group-hover:text-black"></i> Exporter
+                        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                            <button onclick="window.exportSmartTicketImage()" class="w-full sm:w-auto bg-gray-800 hover:bg-white hover:text-black text-white px-5 py-3.5 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest transition shadow-lg border border-gray-600 flex items-center justify-center gap-3 active:scale-95 shrink-0">
+                                <i class="fas fa-camera text-base text-ice group-hover:text-black"></i> Exporter
                             </button>
-                            <div class="flex items-center gap-2 bg-black/50 border border-gray-700 p-2 rounded-xl w-full sm:w-auto">
-                                <input type="number" id="quick-stake-input" placeholder="€" value="10" class="w-20 bg-gray-900 border border-gray-800 text-white text-xs font-bold text-center rounded-lg p-3.5 outline-none focus:border-money shadow-inner">
-                                <button onclick="window.addBetToBankroll('TICKET IA', '${title} (${selected.length} Sélections)', ${totalTicketOdds.toFixed(2)}, document.getElementById('quick-stake-input').value || 10)" class="w-full sm:w-auto bg-money/10 hover:bg-money text-money hover:text-black border border-money px-6 py-3.5 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 active:scale-95">
-                                    <i class="fas fa-save text-lg"></i> Encaisser
+                            <div class="flex items-center gap-2 bg-black/50 border border-gray-700 p-2 rounded-xl w-full sm:w-auto shrink-0">
+                                <input type="number" id="quick-stake-input" placeholder="€" value="10" class="w-16 md:w-20 bg-gray-900 border border-gray-800 text-white text-[10px] md:text-xs font-bold text-center rounded-lg p-3 outline-none focus:border-money shadow-inner">
+                                <button onclick="window.addBetToBankroll('TICKET IA', '${title} (${selected.length} Sélections)', ${totalTicketOdds.toFixed(2)}, document.getElementById('quick-stake-input').value || 10)" class="w-full sm:w-auto bg-money/10 hover:bg-money text-money hover:text-black border border-money px-5 py-3 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 active:scale-95">
+                                    <i class="fas fa-save text-base"></i> Encaisser
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <button onclick="window.generateCoverTicket()" class="w-full bg-black/40 hover:bg-gray-800 text-gray-400 border border-dashed border-gray-700 hover:border-gray-500 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] md:text-xs transition flex items-center justify-center gap-3 group shadow-inner">
-                        <i class="fas fa-shield-alt text-lg text-gray-600 group-hover:text-white"></i> 
-                        Générer une Couverture (Hedging Sécurisé)
+                    
+                    <button onclick="window.executeShieldFractionation()" class="w-full bg-cyan-900/30 hover:bg-cyan-900/60 border border-dashed border-cyan-500/50 hover:border-cyan-400 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] md:text-xs transition flex flex-col md:flex-row items-center justify-center gap-2 md:gap-3 group shadow-inner text-cyan-400 mt-2">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-shield-virus text-lg group-hover:scale-110 transition"></i> 
+                            Activer le Bouclier IA (Anti-Variance)
+                        </div>
+                        <span class="text-[8px] md:text-[9px] text-cyan-200/50 hidden md:inline">• Découpe ce ticket en duos/trios sécurisés</span>
                     </button>
+
                 </div>
             </div> `;
 
@@ -956,38 +961,65 @@ window.generatePalier200 = async function () {
                 let lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : firstName;
                 let displayFirst = nameParts.length > 1 ? firstName : '';
 
-                let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType })).replace(/'/g, "%27");
+                let safeJson = encodeURIComponent(JSON.stringify({ id: p.id, name: p.name, team: p.team, prob: p._ticketProb, type: pType, ctx_reasons: p.ctx_reasons })).replace(/'/g, "%27");
 
-                // NOUVEAU DESIGN ROW PALIER ULRA-RESPONSIVE (Grille)
+                // Logique d'affichage du cadenas
+                let isLocked = window.lockedTicketPlayers.has(String(p.id));
+                let lockClass = isLocked ? 'text-black border-yellow-500 bg-yellow-500 shadow-[0_0_10px_#eab308]' : 'text-gray-400 border-gray-600 bg-gray-900 hover:text-yellow-400 hover:border-yellow-400';
+                let lockIcon = isLocked ? 'fa-lock' : 'fa-unlock';
+                
+                // Couleur de la jauge circulaire
+                let strokeColor = p._ticketProb >= 50 ? '#4ADE80' : (p._ticketProb >= 40 ? '#00e5ff' : '#ff3333');
+
                 html += `
-                    <div class="flex flex-col bg-gray-950 p-3 md:p-4 rounded-xl border border-gray-800 hover:border-yellow-500 transition cursor-pointer group gap-3" onclick="openSmartTicketModal('${safeJson}')">
+                    <div class="relative bg-gray-900 border ${isLocked ? 'border-yellow-500' : 'border-gray-800 hover:border-ice/50'} rounded-2xl p-4 md:p-5 mt-6 md:mt-8 mb-3 mx-1 md:mx-2 shadow-[0_10px_20px_rgba(0,0,0,0.4)] flex flex-col transition-all duration-300 group cursor-pointer" onclick="openSmartTicketModal('${safeJson}')">
                         
-                        <div class="grid grid-cols-[1fr,auto] items-start gap-2 md:gap-3 w-full">
-                            
-                            <div class="flex flex-col min-w-0 justify-center flex-1 pt-0.5 pr-2 border-r border-gray-800/60">
-                                ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] md:text-xs capitalize tracking-wider truncate mb-1">${displayFirst}</div>` : ''}
-                                <div class="font-black text-white text-sm md:text-base uppercase tracking-widest leading-tight break-words group-hover:text-yellow-500 transition">${lastName}</div>
-                                <div class="text-[9px] text-gray-500 font-bold tracking-widest truncate mt-1">
-                                    ${p.team}${positionStr}
-                                </div>
+                        <div class="absolute -top-8 right-3 md:right-5 z-20 flex flex-col items-end">
+                            <div class="relative">
+                                <div class="absolute inset-0 ${isLocked ? 'bg-yellow-500/20' : 'bg-ice/20'} rounded-full blur group-hover:bg-ice/40 transition"></div>
+                                <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-16 h-16 md:w-[72px] md:h-[72px] object-cover rounded-full border-[3px] ${isLocked ? 'border-yellow-500' : 'border-gray-800 group-hover:border-ice'} shadow-[0_5px_15px_rgba(0,0,0,0.8)] transition duration-300 bg-gray-950">
+                                
+                                <button id="lock-btn-${p.id}" onclick="event.stopPropagation(); window.togglePlayerLock('${p.id}')" class="absolute -bottom-2 -right-2 ${lockClass} rounded-full w-8 h-8 flex items-center justify-center border transition z-30" title="Verrouiller ce joueur">
+                                    <i class="fas ${lockIcon} text-[10px]"></i>
+                                </button>
                             </div>
-                            
-                            <div class="flex flex-col items-center gap-1 shrink-0 pl-1">
-                                <div class="relative shrink-0">
-                                    <div class="absolute inset-0 bg-yellow-500/20 rounded-full blur group-hover:bg-yellow-500/40 transition"></div>
-                                    <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="relative w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-gray-700 group-hover:border-yellow-500 bg-gray-900 object-cover z-10 transition">
-                                </div>
-                                <div class="flex flex-col items-center mt-1 pt-1.5 border-t border-gray-800 w-full">
-                                    <div class="text-[8px] md:text-[9px] text-gray-400 uppercase font-black tracking-widest mb-1 bg-gray-900 px-1.5 py-0.5 rounded border border-gray-700">Over 0.5 ${pType}</div>
-                                    <div class="font-black text-lg md:text-xl text-green-400 drop-shadow-[0_0_8px_#4ADE80] my-0.5 leading-none">${p._ticketProb.toFixed(1)}%</div>
-                                    <div class="text-[9px] text-gray-400 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                        </div>
+
+                        <div class="absolute -bottom-2 -left-2 text-6xl md:text-7xl text-white opacity-[0.03] font-black uppercase overflow-hidden pointer-events-none z-0">
+                            ${p.team}
+                        </div>
+
+                        <div class="relative z-10 w-[70%]">
+                            ${displayFirst ? `<div class="font-bold text-gray-400 text-[10px] md:text-xs capitalize tracking-wider mb-0.5">${displayFirst}</div>` : ''}
+                            <h4 class="text-white font-black text-sm md:text-lg uppercase tracking-widest leading-tight truncate group-hover:text-ice transition">${lastName}</h4>
+                            <div class="text-[9px] md:text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+                                ${p.team}${positionStr} ${targetBadgeHtml}
+                            </div>
+
+                            <div class="inline-flex items-center bg-black/60 border border-gray-700 px-2 md:px-3 py-1 md:py-1.5 rounded-lg gap-2 shadow-inner w-max">
+                                 <span class="text-[9px] md:text-xs font-black text-gray-300 uppercase">${pType}</span>
+                                 <span class="text-[9px] text-gray-500">@${itemOdds.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <div class="absolute bottom-4 right-4 flex flex-col items-center z-10" title="Score IA">
+                            <div class="relative w-12 h-12 md:w-14 md:h-14">
+                                <svg class="w-full h-full transform -rotate-90 drop-shadow-[0_0_5px_currentColor]" style="color: ${strokeColor}" viewBox="0 0 36 36">
+                                    <path stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#1f2937" stroke-width="3"></path>
+                                    <path stroke-dasharray="${p._ticketProb}, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" class="transition-all duration-1000 ease-out"></path>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-white font-black text-[10px] md:text-xs">${p._ticketProb.toFixed(0)}%</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex justify-end items-center w-full pt-2.5 border-t border-gray-800/60 gap-2 shrink-0">
-                            <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="flex-1 sm:flex-none justify-center bg-gray-900 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                        <div class="flex justify-start items-center w-full pt-3 mt-3 border-t border-gray-800/60 gap-2 shrink-0 relative z-10">
+                            <button onclick="event.stopPropagation(); window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="flex-1 sm:flex-none justify-center bg-gray-950 hover:bg-green-500 hover:text-black border border-gray-700 hover:border-green-500 text-gray-400 px-3 py-1.5 md:py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
                                 <i class="fas fa-search text-green-500 group-hover:text-current"></i> Scout
+                            </button>
+                            <button onclick="event.stopPropagation(); window.banPlayerFromTickets('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')" class="flex-1 sm:flex-none justify-center bg-gray-950 hover:bg-blood hover:text-white border border-gray-700 hover:border-blood text-gray-400 px-3 py-1.5 md:py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition shadow-md flex items-center gap-1">
+                                <i class="fas fa-ban text-blood group-hover:text-current"></i> Bannir
                             </button>
                         </div>
                     </div>
@@ -1304,4 +1336,122 @@ window.openZappingMenu = function(type, title) {
 window.executeZapping = function(type, title, strategy) {
     document.getElementById('zapping-tactical-modal').classList.add('hidden');
     window.generateSmartTicket(type, title, true, strategy);
+};
+
+// ==========================================
+// 🛡️ MOTEUR DE FRACTIONNEMENT (LE BOUCLIER)
+// ==========================================
+window.executeShieldFractionation = function() {
+    let container = document.getElementById('ticket-display');
+    if (!window.currentTicketPlayers || window.currentTicketPlayers.length < 3) {
+        alert("Action impossible : Vous devez avoir au moins 3 sélections sur votre ticket pour le fractionner.");
+        return;
+    }
+
+    // On remonte légèrement la page pour l'animation
+    window.scrollTo({ top: container.offsetTop - 50, behavior: 'smooth' });
+    
+    // Animation de chargement spéciale
+    container.innerHTML = `
+        <div class="text-center py-16 bg-gray-900 border border-cyan-500/50 border-dashed rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.2)]">
+            <i class="fas fa-shield-virus text-5xl text-cyan-400 mb-6 animate-pulse drop-shadow-[0_0_15px_#22d3ee]"></i>
+            <div class="text-white font-black uppercase tracking-widest text-sm md:text-base">Analyse de Variance...</div>
+            <div class="text-[10px] text-gray-400 uppercase mt-3 font-bold tracking-widest">L'IA découpe votre ticket pour sécuriser vos gains.</div>
+        </div>
+    `;
+
+    setTimeout(() => {
+        // 1. On trie les joueurs actuels du plus fiable au moins fiable
+        let sortedPlayers = [...window.currentTicketPlayers].sort((a, b) => b._ticketProb - a._ticketProb);
+        
+        // 2. Découpage intelligent (Système Round Robin allégé)
+        let chunks = [];
+        if (sortedPlayers.length === 3) {
+            // Si 3 joueurs, on fait un duo fort et un solo
+            chunks.push(sortedPlayers.slice(0, 2));
+            chunks.push([sortedPlayers[2]]);
+        } else if (sortedPlayers.length >= 4) {
+            // Si 4 joueurs ou plus, on groupe par paires (Duos)
+            for (let i = 0; i < sortedPlayers.length; i += 2) {
+                chunks.push(sortedPlayers.slice(i, i + 2));
+            }
+        }
+
+        let html = `
+            <div class="flex justify-between items-center bg-gray-950 border border-gray-800 p-3 md:p-4 rounded-2xl mb-6 shadow-inner">
+                <span class="text-cyan-400 font-black uppercase tracking-[0.2em] text-[10px] md:text-sm flex items-center gap-2">
+                    <i class="fas fa-shield-virus text-lg"></i> <span class="truncate">MODE BOUCLIER ACTIVÉ</span>
+                </span>
+                <button onclick="window.goToTicketStep(1)" class="bg-gray-900 hover:bg-white hover:text-black text-[9px] md:text-xs px-3 md:px-5 py-2 md:py-3 rounded-lg font-black uppercase tracking-widest transition border border-gray-700 shadow-lg flex items-center gap-2">
+                    <i class="fas fa-undo"></i> Réinitialiser
+                </button>
+            </div>
+            
+            <div class="text-[10px] md:text-xs text-gray-300 font-bold mb-6 bg-cyan-900/20 border-l-4 border-cyan-500 p-4 rounded-r-xl leading-relaxed shadow-inner">
+                <i class="fas fa-info-circle text-cyan-400 mr-2"></i> L'IA a fractionné vos ${sortedPlayers.length} sélections en <strong class="text-white">sous-tickets indépendants</strong>. 
+                Encaisser ces tickets séparément. Si une anomalie survient sur la glace, seule une fraction de votre investissement sera perdue.
+            </div>
+            
+            <div class="flex flex-col gap-6">
+        `;
+
+        let chunkNames = ["A. DUO SÉCURISÉ (Base Fiable)", "B. DUO STANDARD", "C. DUO OUTSIDER", "D. SÉLECTION BONUS"];
+
+        chunks.forEach((chunk, index) => {
+            let currentOdds = 1.0;
+            let chunkName = chunkNames[index] || `SOUS-TICKET ${index + 1}`;
+            
+            chunk.forEach(p => { currentOdds *= p._itemOdds; });
+
+            html += `
+            <div class="bg-gray-950/80 p-3 md:p-5 rounded-2xl md:rounded-3xl border border-cyan-500/30 flex flex-col transition-all shadow-xl">
+                <div class="flex justify-between items-center bg-gray-900 border border-gray-800 rounded-xl p-3 shadow-inner mb-4">
+                    <span class="text-cyan-400 font-black text-[10px] md:text-xs uppercase tracking-widest"><i class="fas fa-ticket-alt mr-2"></i> ${chunkName}</span>
+                    <span class="text-white font-black text-sm md:text-lg bg-black px-3 py-1 rounded-lg border border-gray-700">@${currentOdds.toFixed(2)}</span>
+                </div>
+                <div class="flex flex-col gap-2">
+            `;
+            
+            chunk.forEach(p => {
+                let imgUrl = p.id ? `https://assets.nhle.com/mugs/nhl/latest/${p.id}.png` : 'assets/logo_hockAI.png';
+                let lastName = p.name.split(' ').slice(1).join(' ') || p.name.split(' ')[0];
+                let pType = p._ticketRole;
+                
+                // Mini-Card simplifiée et élégante
+                html += `
+                    <div class="flex items-center justify-between bg-black/60 p-3 rounded-xl border border-gray-800 transition">
+                        <div class="flex items-center gap-3">
+                            <img src="${imgUrl}" onerror="this.src='assets/logo_hockAI.png'" class="w-12 h-12 rounded-full border-2 border-gray-700 object-cover bg-gray-900">
+                            <div>
+                                <div class="text-white font-black text-sm md:text-base uppercase tracking-widest leading-none mb-1">${lastName}</div>
+                                <div class="text-[9px] text-gray-500 font-bold uppercase tracking-widest flex items-center gap-2">
+                                    <span class="text-gray-400">${p.team}</span> • ${pType}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-cyan-400 font-black text-sm md:text-lg drop-shadow-[0_0_5px_rgba(6,182,212,0.5)]">${p._ticketProb.toFixed(1)}%</div>
+                            <div class="text-[9px] text-gray-500 font-bold mt-0.5">@${p._itemOdds.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                </div>
+                <div class="mt-4 flex flex-col sm:flex-row justify-end gap-3 w-full">
+                    <div class="flex items-center gap-2 bg-black border border-gray-700 p-1.5 rounded-lg w-full sm:w-auto">
+                        <input type="number" id="stake-shield-${index}" placeholder="€" value="10" class="w-16 md:w-20 bg-gray-900 border border-gray-800 text-white text-[10px] md:text-xs font-bold text-center rounded-lg p-3 outline-none focus:border-cyan-500 shadow-inner">
+                        <button onclick="window.addBetToBankroll('BOUCLIER IA', '${chunkName}', ${currentOdds.toFixed(2)}, document.getElementById('stake-shield-${index}').value || 10)" class="w-full sm:w-auto bg-cyan-900/30 hover:bg-cyan-600 text-cyan-400 hover:text-black border border-cyan-500 px-4 py-2.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-widest transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fas fa-save text-sm"></i> Encaisser
+                        </button>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+
+    }, 2000); // 2 secondes d'animation
 };
