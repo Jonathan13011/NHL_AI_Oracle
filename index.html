@@ -253,7 +253,16 @@
                         <h3 class="text-white font-black text-sm uppercase tracking-widest mb-2">La Forteresse</h3>
                         <p class="text-gray-500 text-[10px] md:text-xs font-bold">Confrontation des gardiens partants via la métrique GSAx (Goals Saved Above Expected).</p>
                     </div>
-
+                    <div onclick="openHomeModal('tickets')" class="md:col-span-3 bg-gradient-to-r from-gray-900 to-gray-950 border border-blood/30 hover:border-blood p-6 md:p-8 rounded-2xl shadow-lg cursor-pointer transform transition-all duration-300 hover:scale-[1.01] hover:shadow-[0_0_30px_rgba(255,51,51,0.15)] group relative overflow-hidden flex flex-col md:flex-row items-center gap-6">
+                        <div class="absolute -left-10 -top-10 opacity-5 text-9xl group-hover:scale-110 transition duration-500"><i class="fas fa-ticket-alt"></i></div>
+                        <div class="text-center md:text-left flex-1 relative z-10">
+                            <h3 class="text-white font-black text-xl md:text-2xl uppercase tracking-widest mb-2">Tickets Fiables (Générateur IA)</h3>
+                            <p class="text-gray-400 text-xs md:text-sm font-bold">Laissez l'algorithme construire votre ticket parfait. Définissez votre profil de risque et l'IA assemble automatiquement les meilleures probabilités mathématiques de la nuit.</p>
+                        </div>
+                        <div class="w-16 h-16 rounded-full bg-blood/10 flex items-center justify-center border border-blood/30 shrink-0 group-hover:bg-blood/20 transition relative z-10">
+                            <i class="fas fa-magic text-3xl text-blood drop-shadow-[0_0_10px_#ff3333]"></i>
+                        </div>
+                    </div>
                     <div onclick="openHomeModal('tools')" class="md:col-span-3 bg-gray-950 border border-money/30 hover:border-money p-6 rounded-2xl shadow-inner cursor-pointer transform transition-all duration-300 hover:scale-[1.01] group relative overflow-hidden flex flex-col items-center text-center">
                         <div class="absolute inset-0 bg-money/5 opacity-0 group-hover:opacity-100 transition pointer-events-none"></div>
                         <i class="fas fa-briefcase text-4xl text-money mb-3 drop-shadow-[0_0_10px_#4ADE80]"></i>
@@ -3091,7 +3100,7 @@
     <script src="js/over_under.js?v=1"></script>
     <script src="js/goalies.js?v=1"></script>
     <script src="js/team_predictions.js?v=5"></script>
-    <script src="js/app.js?v=13"></script>
+    <script src="js/app.js?v=14"></script>
 
     <div id="gsax-modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
