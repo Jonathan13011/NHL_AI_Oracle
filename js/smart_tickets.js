@@ -1401,7 +1401,11 @@ window.executeShieldFractionation = function() {
             let currentOdds = 1.0;
             let chunkName = chunkNames[index] || `SOUS-TICKET ${index + 1}`;
             
-            chunk.forEach(p => { currentOdds *= p._itemOdds; });
+            // ⚡ CORRECTION DU CRASH ICI : On calcule et on SAUVEGARDE la cote pour chaque joueur
+            chunk.forEach(p => { 
+                p._itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
+                currentOdds *= p._itemOdds; 
+            });
 
             html += `
             <div class="bg-gray-950/80 p-3 md:p-5 rounded-2xl md:rounded-3xl border border-cyan-500/30 flex flex-col transition-all shadow-xl">
