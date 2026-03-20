@@ -2122,24 +2122,59 @@ const HOME_MODAL_CONTENT = {
         action: { text: "Explorer le Dashboard", tab: null } // Juste fermer
     },
     'tickets': {
-        title: "Générateur de Tickets",
+        title: "Le Terminal de Tickets (Générateur IA)",
         icon: "fa-ticket-alt", color: "text-blood", border: "border-blood", shadow: "shadow-[0_0_15px_rgba(255,51,51,0.3)]",
         body: `
-            <div class="space-y-4 text-gray-300 text-[11px] md:text-sm leading-relaxed font-bold">
-                <p>La création d'un combiné est souvent un piège émotionnel. La section <strong>Tickets Fiables</strong> retire totalement le facteur humain de l'équation.</p>
+            <div class="space-y-5 text-gray-300 text-[11px] md:text-sm leading-relaxed font-bold">
+                <p>La création d'un combiné est souvent un piège émotionnel. La section <strong>Tickets Fiables</strong> retire le facteur humain pour assembler la combinaison présentant la meilleure <strong class="text-white">Expected Value (+EV)</strong> globale de la nuit.</p>
                 
-                <div class="bg-gray-900 p-5 rounded-xl mt-4 border-l-4 border-blood shadow-inner">
-                    <h4 class="text-white font-black uppercase tracking-widest text-xs mb-3 border-b border-gray-800 pb-2"><i class="fas fa-cogs text-blood mr-2"></i> Assemblage Quantitatif</h4>
-                    <ul class="list-decimal pl-5 space-y-3 text-[11px] md:text-sm text-gray-400">
-                        <li><strong class="text-white">Scanner de Valeur :</strong> L'IA filtre les joueurs disponibles et ne conserve que ceux ayant un "Edge" mathématique significatif.</li>
-                        <li><strong class="text-white">Synthèse :</strong> L'algorithme croise la forme, le volume de tirs attendu et la faiblesse adverse pour assembler le ticket présentant la meilleure <strong>Expected Value (+EV)</strong> globale de la nuit.</li>
-                    </ul>
+                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 shadow-inner space-y-4">
+                    <h4 class="text-white font-black uppercase tracking-widest text-xs mb-3 border-b border-gray-800 pb-2 flex items-center gap-2">
+                        <i class="fas fa-microchip text-blood"></i> Intelligence & Personnalisation
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-brain text-blood mt-1"></i>
+                            <p><strong class="text-white">Analyses Croisées :</strong> L'IA filtre les joueurs et ne conserve que ceux dont l'historique, le temps de glace prévu et la faiblesse adverse maximisent le "Edge" mathématique.</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-sliders-h text-blood mt-1"></i>
+                            <p><strong class="text-white">Profil de Risque :</strong> Définissez votre tolérance à la variance (Sécurisé, Standard, Poker) pour que l'IA adapte l'agressivité du ticket.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/50 p-4 rounded-lg border border-red-900/50 mt-2">
+                        <div class="flex items-center gap-3 mb-2">
+                            <i class="fas fa-user-injured text-red-500 text-xl animate-pulse"></i>
+                            <h5 class="text-white font-black uppercase tracking-widest text-[11px]">Infirmerie Manuelle</h5>
+                        </div>
+                        <p class="text-gray-400 text-xs">Une "Game Time Decision" de dernière minute ? Si la base de données n'est pas à jour, ce système exclusif vous permet d'écarter manuellement un joueur du générateur pour sécuriser votre ticket.</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900 p-5 rounded-xl border border-gray-800 shadow-inner">
+                    <h4 class="text-white font-black uppercase tracking-widest text-xs mb-3 border-b border-gray-800 pb-2 flex items-center gap-2">
+                        <i class="fas fa-cogs text-ice"></i> Le Menu Tactique
+                    </h4>
+                    <p class="text-gray-400 mb-4 text-xs">Déployez ce menu pour accéder à des outils de contrôle absolu sur votre ticket avant validation.</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div class="bg-black/40 p-3 rounded border border-gray-800">
+                            <i class="fas fa-lock text-yellow-500 mr-2"></i> <strong class="text-white">Bouton Lock :</strong> Figez une sélection coup de cœur. Le générateur changera le reste du ticket mais conservera ce pari bloqué.
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-gray-800">
+                            <i class="fas fa-share-alt text-cyan-400 mr-2"></i> <strong class="text-white">Exporter :</strong> Génère une image stylisée de votre ticket pour le partager instantanément sur vos réseaux.
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-gray-800 col-span-2">
+                            <i class="fas fa-money-bill-wave text-money mr-2"></i> <strong class="text-white">Encaisser :</strong> Valide le ticket dans votre Coffre-Fort personnel. L'IA calculera automatiquement le résultat (Gagné/Perdu) dès la fin des matchs.
+                        </div>
+                    </div>
                 </div>
                 
-                <p class="pt-2 text-gray-400">Définissez votre profil de risque (Sécurisé, Standard, Poker) et laissez l'IA construire votre combinaison parfaite.</p>
             </div>
         `,
-        action: { text: "Générer un Ticket", tab: "tab-tickets" }
+        action: { text: "Générer un Ticket +EV", tab: "tab-tickets" }
     },
     'perf': {
         title: "Scouting Individuel",
