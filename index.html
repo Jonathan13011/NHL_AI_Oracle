@@ -17,6 +17,7 @@
     <title>HOCKAI - L'intelligence qui glace les pronostics</title>
     <link rel="icon" type="image/png" href="assets/logo_hockAI.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -3501,7 +3502,7 @@
 
             <div id="signup-form" class="auth-box hidden">
                 <h2 class="text-3xl font-black text-blood mb-2 uppercase tracking-tighter italic">Inscription</h2>
-                <p class="text-gray-500 text-sm mb-8">Recevez vos accès par email</p>
+                <p class="text-gray-500 text-sm mb-8">Créez vos accès pour l'Oracle</p>
 
                 <form id="form-signup" class="space-y-4">
                     <div>
@@ -3511,9 +3512,18 @@
                             class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white focus:border-blood focus:ring-1 focus:ring-blood outline-none transition-all"
                             placeholder="votre@email.com" required>
                     </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-2 ml-1">Choisissez un mot de
+                            passe</label>
+                        <input type="password" id="signup-password"
+                            class="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-white focus:border-blood focus:ring-1 focus:ring-blood outline-none transition-all"
+                            placeholder="••••••••" required minlength="6">
+                    </div>
+
                     <button type="submit"
-                        class="w-full bg-blood text-white font-black py-4 rounded-xl hover:bg-red-600 transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-blood/20 uppercase italic">Demander
-                        mes accès</button>
+                        class="w-full bg-blood text-white font-black py-4 rounded-xl hover:bg-red-600 transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-blood/20 uppercase italic">Créer
+                        mon profil</button>
                 </form>
 
                 <div class="mt-8 pt-6 border-t border-zinc-900 text-center">
