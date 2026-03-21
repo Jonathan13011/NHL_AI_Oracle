@@ -1851,9 +1851,15 @@ window.toggleOracleLiveSync = function (isActive) {
 // =========================================================================
 // 🔐 MODULE D'AUTHENTIFICATION (FRONTEND)
 // =========================================================================
-window.currentAuthMode = 'login'; // 'login' ou 'register'
+window.isUserLoggedIn = false; // Simulation de l'état de connexion
 
+// 1. Ouvrir la modale (ou rediriger si déjà connecté)
 window.openAuthModal = function () {
+    if (window.isUserLoggedIn) {
+        alert("Redirection vers ton Espace Privé...");
+        // Plus tard : window.location.href = "/mon-compte";
+        return;
+    }
     let modal = document.getElementById('auth-modal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -1861,6 +1867,7 @@ window.openAuthModal = function () {
     }
 };
 
+// 2. Fermer la modale
 window.closeAuthModal = function () {
     let modal = document.getElementById('auth-modal');
     if (modal) {
@@ -1869,77 +1876,70 @@ window.closeAuthModal = function () {
     }
 };
 
-window.switchAuthTab = function (mode) {
-    window.currentAuthMode = mode;
-    let btnLogin = document.getElementById('tab-btn-login');
-    let btnRegister = document.getElementById('tab-btn-register');
-    let registerFields = document.getElementById('register-fields');
-    let submitBtnText = document.getElementById('auth-submit-btn').querySelector('span');
-    let submitBtnIcon = document.getElementById('auth-submit-btn').querySelector('i');
-    let forgotLink = document.getElementById('forgot-password-link');
+// 3. Basculer entre Connexion et Inscription (LA FONCTION QUI TE MANQUAIT)
+window.switchAuth = function (mode) {
+    const loginForm = document.getElementById('login-form'); // Le conteneur (div)
+    const signupForm = document.getElementById('signup-form'); // Le conteneur (div)
 
-    if (mode === 'login') {
-        btnLogin.className = "flex-1 py-4 text-xs font-black uppercase tracking-widest text-purple-400 border-b-2 border-purple-500 bg-gray-900/50 transition";
-        btnRegister.className = "flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition";
-        registerFields.classList.add('hidden');
-        document.getElementById('auth-username').removeAttribute('required');
-        submitBtnText.innerText = "Se Connecter";
-        submitBtnIcon.className = "fas fa-sign-in-alt";
-        forgotLink.style.display = "block";
+    if (mode === 'signup') {
+        loginForm.classList.add('hidden');
+        signupForm.classList.remove('hidden');
     } else {
-        btnRegister.className = "flex-1 py-4 text-xs font-black uppercase tracking-widest text-purple-400 border-b-2 border-purple-500 bg-gray-900/50 transition";
-        btnLogin.className = "flex-1 py-4 text-xs font-black uppercase tracking-widest text-gray-500 hover:text-gray-300 border-b-2 border-transparent transition";
-        registerFields.classList.remove('hidden');
-        document.getElementById('auth-username').setAttribute('required', 'true');
-        submitBtnText.innerText = "Créer mon compte";
-        submitBtnIcon.className = "fas fa-user-plus";
-        forgotLink.style.display = "none";
-    }
-    document.getElementById('auth-error-msg').classList.add('hidden');
-};
-
-window.togglePasswordVisibility = function () {
-    let input = document.getElementById('auth-password');
-    let icon = document.getElementById('auth-eye-icon');
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-        icon.classList.add('text-purple-400');
-    } else {
-        input.type = "password";
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-        icon.classList.remove('text-purple-400');
+        signupForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
     }
 };
 
-window.handleAuthSubmit = function (e) {
-    e.preventDefault();
-    let btn = document.getElementById('auth-submit-btn');
-    let originalHtml = btn.innerHTML;
+// 4. Mettre à jour l'interface (Bouton du header)
+window.updateAuthUI = function() {
+    const btnText = document.getElementById('auth-btn-text');
+    const statusDot = document.getElementById('auth-status-dot');
     
-    // On affiche l'état de chargement sur le bouton
-    btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> <span>Authentification...</span>`;
-
-    // Simulation de la réponse du serveur
-    setTimeout(() => {
-        // 1. On cache la fenêtre de connexion
-        window.closeAuthModal();
-        
-        // 2. On affiche l'image de BIENVENUE
-        const welcome = document.getElementById('welcome-screen');
-        welcome.classList.remove('hidden');
-
-        // 3. Après 2 secondes, on cache l'image et on libère l'accès
-        setTimeout(() => {
-            welcome.classList.add('hidden');
-            btn.innerHTML = originalHtml;
-            // Optionnel : débloquer les fonctionnalités ici
-        }, 2000);
-        
-    }, 1000);
+    if (window.isUserLoggedIn) {
+        if(btnText) btnText.textContent = "Mon Espace";
+        if(statusDot) {
+            statusDot.classList.remove('bg-red-500');
+            statusDot.classList.add('bg-green-500'); // Le point passe au vert !
+        }
+    } else {
+        if(btnText) btnText.textContent = "Se connecter";
+        if(statusDot) {
+            statusDot.classList.remove('bg-green-500');
+            statusDot.classList.add('bg-red-500');
+        }
+    }
 };
+
+// 5. Gérer la soumission du formulaire de CONNEXION
+const formLogin = document.getElementById('form-login');
+if (formLogin) {
+    formLogin.addEventListener('submit', function (e) {
+        e.preventDefault(); // Empêche le rechargement
+        let btn = e.target.querySelector('button');
+        let originalHtml = btn.innerHTML;
+        
+        // Effet de chargement
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ENTRÉE...`;
+        btn.disabled = true;
+
+        // Simulation de connexion au serveur (1 seconde)
+        setTimeout(() => {
+            window.isUserLoggedIn = true;
+            window.closeAuthModal();
+            window.updateAuthUI();
+            
+            // On déclenche l'écran de bienvenue HOCKAI
+            const welcome = document.getElementById('welcome-screen');
+            if(welcome) {
+                welcome.classList.remove('hidden');
+                setTimeout(() => welcome.classList.add('hidden'), 2000);
+            }
+            
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }, 1000);
+    });
+}
 
 // =========================================================================
 // 🚀 GESTION DE L'INSCRIPTION (SÉCURISÉE)
