@@ -1919,73 +1919,75 @@ window.updateAuthUI = function() {
     }
 };
 
-// --- LOGIQUE DE CONNEXION ---
-const formLogin = document.getElementById('form-login');
-if (formLogin) {
-    formLogin.addEventListener('submit', async function (e) {
-        e.preventDefault();
-        let email = document.getElementById('login-email').value;
-        let password = document.getElementById('login-password').value;
-        let btn = e.target.querySelector('button');
-        let originalHtml = btn.innerHTML;
-        
-        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> CONNEXION...`;
-        btn.disabled = true;
+// On attend que tout le HTML soit lu par le navigateur avant d'attacher les actions
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- LOGIQUE DE CONNEXION ---
+    const formLogin = document.getElementById('form-login');
+    if (formLogin) {
+        formLogin.addEventListener('submit', async function (e) {
+            e.preventDefault(); // Empêche le rechargement de la page !
+            let email = document.getElementById('login-email').value;
+            let password = document.getElementById('login-password').value;
+            let btn = e.target.querySelector('button');
+            let originalHtml = btn.innerHTML;
+            
+            btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> CONNEXION...`;
+            btn.disabled = true;
 
-        // Appel à Supabase pour vérifier l'email et le mot de passe
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
 
-        if (error) {
-            alert("Erreur : " + (error.message === "Invalid login credentials" ? "Identifiants incorrects." : error.message));
-        } else {
-            window.closeAuthModal();
-            const welcome = document.getElementById('welcome-screen');
-            if(welcome) {
-                welcome.classList.remove('hidden');
-                setTimeout(() => welcome.classList.add('hidden'), 2000);
+            if (error) {
+                alert("Erreur : " + (error.message === "Invalid login credentials" ? "Identifiants incorrects." : error.message));
+            } else {
+                window.closeAuthModal();
+                const welcome = document.getElementById('welcome-screen');
+                if(welcome) {
+                    welcome.classList.remove('hidden');
+                    setTimeout(() => welcome.classList.add('hidden'), 2000);
+                }
             }
-        }
-        
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-    });
-}
-
-// --- LOGIQUE D'INSCRIPTION ---
-const signupForm = document.getElementById('form-signup');
-if (signupForm) {
-    signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('signup-email').value;
-        const password = document.getElementById('signup-password').value;
-        const btn = e.target.querySelector('button');
-        const originalText = btn.innerText;
-
-        btn.innerText = "CRÉATION EN COURS...";
-        btn.disabled = true;
-
-        // Appel à Supabase pour créer le compte
-        const { data, error } = await supabaseClient.auth.signUp({
-            email: email,
-            password: password,
+            
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
         });
+    }
 
-        if (error) {
-            alert("Erreur lors de l'inscription : " + error.message);
-        } else {
-            alert("Inscription réussie ! Un email de confirmation a été envoyé à " + email + ". Veuillez cliquer sur le lien dans l'email pour activer votre compte.");
-            window.switchAuth('login');
-            document.getElementById('signup-email').value = "";
-            document.getElementById('signup-password').value = "";
-        }
-        
-        btn.innerText = originalText;
-        btn.disabled = false;
-    });
-}
+    // --- LOGIQUE D'INSCRIPTION ---
+    const signupForm = document.getElementById('form-signup');
+    if (signupForm) {
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Empêche le rechargement de la page !
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const btn = e.target.querySelector('button');
+            const originalText = btn.innerText;
+
+            btn.innerText = "CRÉATION EN COURS...";
+            btn.disabled = true;
+
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                alert("Erreur lors de l'inscription : " + error.message);
+            } else {
+                alert("Inscription réussie ! Un email de confirmation a été envoyé à " + email + ". Veuillez cliquer sur le lien dans l'email pour activer votre compte.");
+                window.switchAuth('login');
+                document.getElementById('signup-email').value = "";
+                document.getElementById('signup-password').value = "";
+            }
+            
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
+    }
+});
 
 function updatePerformanceLists() {
     // globalPredictionsPool est déjà défini en haut de ton fichier app.js
