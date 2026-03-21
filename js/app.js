@@ -1852,13 +1852,17 @@ window.toggleOracleLiveSync = function (isActive) {
 // 🔐 MODULE D'AUTHENTIFICATION (SUPABASE)
 // =========================================================================
 const SUPABASE_URL = 'https://gfmquozjspyuoppunojs.supabase.co';
-const SUPABASE_ANON_KEY = 'TA_VRAIE_CLE_LONGUE_ICI'; 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ⚠️ N'OUBLIE PAS DE COLLER TA VRAIE CLÉ PUBLIQUE ICI
+const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g'; 
+
+// ⚡ LA CORRECTION EST ICI : On renomme la variable en "supabaseClient"
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.isUserLoggedIn = false;
 
 // Supabase écoute tout seul si on est connecté ou non
-supabase.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event, session) => {
     window.isUserLoggedIn = !!session;
     window.updateAuthUI();
 });
@@ -1866,7 +1870,6 @@ supabase.auth.onAuthStateChange((event, session) => {
 window.openAuthModal = function () {
     if (window.isUserLoggedIn) {
         alert("Tu es déjà connecté ! Bienvenue dans ton Espace Privé.");
-        // Plus tard, on pourra rediriger vers un dashboard spécifique ici
         return;
     }
     let modal = document.getElementById('auth-modal');
@@ -1930,7 +1933,7 @@ if (formLogin) {
         btn.disabled = true;
 
         // Appel à Supabase pour vérifier l'email et le mot de passe
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password,
         });
@@ -1965,7 +1968,7 @@ if (signupForm) {
         btn.disabled = true;
 
         // Appel à Supabase pour créer le compte
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
         });
