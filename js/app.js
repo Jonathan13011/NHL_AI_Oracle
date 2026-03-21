@@ -126,7 +126,19 @@ document.getElementById('player-search-input').addEventListener('input', functio
                 document.getElementById('autocomplete-results').innerHTML = '';
                 data.data.forEach(p => {
                     const div = document.createElement('div'); div.className = "p-4 hover:bg-green-500 hover:text-deepblue cursor-pointer text-white transition flex justify-between items-center border-b border-gray-700 font-bold"; div.innerHTML = `<span>${p.name}</span><span class="text-[10px] bg-gray-900 px-2 py-1 rounded text-gray-400 uppercase tracking-widest">${p.team} - ${p.position}</span>`;
-                    div.onclick = () => { document.getElementById('player-search-input').value = p.name; cachedSearchId = p.id; document.getElementById('autocomplete-results').classList.add('hidden'); executePlayerSearch(p.id); }; document.getElementById('autocomplete-results').appendChild(div);
+                    div.onclick = () => { 
+                        document.getElementById('player-search-input').value = p.name; 
+                        cachedSearchId = p.id; 
+                        document.getElementById('autocomplete-results').classList.add('hidden'); 
+                        executePlayerSearch(p.id); 
+                        
+                        // 📡 RADAR GOOGLE : Joueur recherché
+                        if (typeof gtag === 'function') {
+                            gtag('event', 'recherche_joueur', {
+                                'nom_joueur': p.name
+                            });
+                        }
+                    };
                 }); document.getElementById('autocomplete-results').classList.remove('hidden');
             } else { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-gray-500 italic text-center">Aucun joueur trouvé.</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
         } catch (e) { }

@@ -20,6 +20,12 @@ window.loadBankroll = async function () {
 };
 
 window.addBetToBankroll = async function (category, description, odds, stake) {
+    // 📡 RADAR GOOGLE : Pari ajouté au coffre
+    if (typeof gtag === 'function') {
+        gtag('event', 'ajout_coffre_fort', {
+            'categorie_pari': category
+        });
+    }
     let bet = {
         date: new Date().toISOString(),
         category: category,

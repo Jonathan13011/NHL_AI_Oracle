@@ -662,6 +662,12 @@ window.downloadFromIOSModal = async function() {
 };
 
 window.exportSmartTicketImage = async function () {
+    // 📡 RADAR GOOGLE : Exportation d'une image
+    if (typeof gtag === 'function') {
+        gtag('event', 'export_image', {
+            'type_image': 'Ticket IA'
+        });
+    }
     if (typeof html2canvas === 'undefined') { alert("Module en chargement..."); return; }
     let ticketContainer = document.getElementById('ticket-export-zone'); if (!ticketContainer) return;
     
