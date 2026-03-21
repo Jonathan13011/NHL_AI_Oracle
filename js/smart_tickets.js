@@ -542,22 +542,55 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
     }
 }; // <-- C'EST ICI QUE LA FONCTION SE FERME PROPREMENT
 
-// 4. MOTEUR D'INFIRMERIE & BANNISSEMENT (Avec Mémoire Locale)
+// ==========================================
+// 4. MOTEUR D'INFIRMERIE & BANNISSEMENT (CONNECTÉ À SUPABASE)
+// ==========================================
 
-// ⚡ 1. Initialisation : On récupère la mémoire du navigateur au démarrage
-window.userBannedPlayers = new Set(JSON.parse(localStorage.getItem('hockai_banned_ids')) || []);
-window.bannedPlayersDetails = JSON.parse(localStorage.getItem('hockai_banned_details')) || {};
+window.userBannedPlayers = new Set();
+window.bannedPlayersDetails = {};
 
-window.banPlayerFromTickets = function (id, name, team) {
-    if (!window.userBannedPlayers) window.userBannedPlayers = new Set();
-    if (!window.bannedPlayersDetails) window.bannedPlayersDetails = {};
-    
-    // Ajout à la liste noire et sauvegarde dans le téléphone
-    window.userBannedPlayers.add(String(id)); 
+// 1. Charger l'infirmerie depuis Supabase au démarrage
+window.loadBannedPlayers = async function () {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') {
+        window.userBannedPlayers.clear();
+        window.bannedPlayersDetails = {};
+        if (typeof renderBlacklistZone === 'function') renderBlacklistZone();
+        return;
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('banned_players')
+            .select('*');
+
+        if (error) throw error;
+
+        window.userBannedPlayers.clear();
+        window.bannedPlayersDetails = {};
+
+        data.forEach(player => {
+            window.userBannedPlayers.add(String(player.player_id));
+            window.bannedPlayersDetails[String(player.player_id)] = { name: player.player_name, team: player.team };
+        });
+
+        if (typeof renderBlacklistZone === 'function') renderBlacklistZone();
+    } catch (e) {
+        console.error("Erreur chargement infirmerie :", e);
+    }
+};
+
+// 2. Ajouter un joueur à l'infirmerie
+window.banPlayerFromTickets = async function (id, name, team) {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') {
+        alert("🛡️ Vous devez être connecté pour utiliser l'infirmerie manuelle.");
+        window.openAuthModal();
+        return;
+    }
+
+    // Ajout visuel instantané pour plus de fluidité
+    window.userBannedPlayers.add(String(id));
     window.bannedPlayersDetails[String(id)] = { name, team };
-
-    localStorage.setItem('hockai_banned_ids', JSON.stringify(Array.from(window.userBannedPlayers)));
-    localStorage.setItem('hockai_banned_details', JSON.stringify(window.bannedPlayersDetails));
+    window.renderBlacklistZone();
 
     // ⚡ ASTUCE CHIRURGICALE : On verrouille automatiquement tous les AUTRES joueurs du ticket !
     if (window.currentTicketPlayers && window.currentTicketPlayers.length > 0) {
@@ -568,29 +601,51 @@ window.banPlayerFromTickets = function (id, name, team) {
         });
     }
 
-    // On relance l'IA en mode "Zapping" (true) pour conserver les joueurs verrouillés, avec la dernière stratégie
+    // On relance l'IA en mode "Zapping" (true) pour conserver les joueurs verrouillés
     let currentStrategy = window.lastTicketConfig.strategy || 'standard';
     window.generateSmartTicket(window.lastTicketConfig.type, window.lastTicketConfig.title || 'Ticket IA', true, currentStrategy);
-};
 
-window.unbanPlayerFromTickets = function (id) {
-    if (window.userBannedPlayers) {
-        // Retrait de la liste
-        window.userBannedPlayers.delete(String(id));
-        delete window.bannedPlayersDetails[String(id)];
-        
-        // ⚡ Mise à jour de la mémoire du navigateur
-        localStorage.setItem('hockai_banned_ids', JSON.stringify(Array.from(window.userBannedPlayers)));
-        localStorage.setItem('hockai_banned_details', JSON.stringify(window.bannedPlayersDetails));
+    // Sauvegarde en base de données Supabase
+    try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const { error } = await supabaseClient
+            .from('banned_players')
+            .insert([{ user_id: user.id, player_id: String(id), player_name: name, team: team }]);
+
+        if (error) throw error;
+    } catch (e) {
+        console.error("Erreur ajout infirmerie :", e);
     }
-    window.renderBlacklistZone();
 };
 
+// 3. Retirer un joueur de l'infirmerie
+window.unbanPlayerFromTickets = async function (id) {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') return;
+
+    // Retrait visuel instantané
+    window.userBannedPlayers.delete(String(id));
+    delete window.bannedPlayersDetails[String(id)];
+    window.renderBlacklistZone();
+
+    // Suppression en base de données Supabase
+    try {
+        const { error } = await supabaseClient
+            .from('banned_players')
+            .delete()
+            .eq('player_id', String(id));
+
+        if (error) throw error;
+    } catch (e) {
+        console.error("Erreur suppression infirmerie :", e);
+    }
+};
+
+// 4. Rendu Visuel de la liste noire
 window.renderBlacklistZone = function () {
     let container = document.getElementById('blacklist-zone');
     if (!container) {
         let td = document.getElementById('ticket-display');
-        if (!td) return; // Sécurité si la page n'est pas encore chargée
+        if (!td) return;
         container = document.createElement('div'); 
         container.id = 'blacklist-zone'; 
         container.className = 'mt-6 max-w-7xl mx-auto px-2 fade-in';
@@ -631,14 +686,28 @@ window.renderBlacklistZone = function () {
     container.innerHTML = html + `</div></div>`;
 };
 
-// ⚡ 2. NOUVEAU : Fonction utilitaire pour vider toute l'infirmerie d'un coup
-window.clearAllBannedPlayers = function() {
+// 5. Vider toute l'infirmerie d'un coup
+window.clearAllBannedPlayers = async function() {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') return;
+
     if(confirm("Voulez-vous vraiment vider toute l'infirmerie ?")) {
+        // Retrait visuel
         window.userBannedPlayers.clear();
         window.bannedPlayersDetails = {};
-        localStorage.removeItem('hockai_banned_ids');
-        localStorage.removeItem('hockai_banned_details');
         window.renderBlacklistZone();
+
+        // Suppression totale en base de données Supabase pour cet utilisateur
+        try {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { error } = await supabaseClient
+                .from('banned_players')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+        } catch (e) {
+            console.error("Erreur suppression totale infirmerie :", e);
+        }
     }
 };
 

@@ -1868,9 +1868,10 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     window.currentUserEmail = session ? session.user.email : ""; 
     window.updateAuthUI();
 
-    // ⚡ NOUVEAU : On charge la bankroll dès qu'on est connecté !
-    if (window.isUserLoggedIn && typeof window.loadBankroll === 'function') {
-        window.loadBankroll();
+    // ⚡ On charge la bankroll ET l'infirmerie dès qu'on est connecté !
+    if (window.isUserLoggedIn) {
+        if (typeof window.loadBankroll === 'function') window.loadBankroll();
+        if (typeof window.loadBannedPlayers === 'function') window.loadBannedPlayers(); // LIGNE AJOUTÉE
     }
 });
 
