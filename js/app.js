@@ -1860,11 +1860,18 @@ const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.isUserLoggedIn = false;
+window.currentUserEmail = ""; // NOUVELLE VARIABLE
 
 // Supabase écoute tout seul si on est connecté ou non
 supabaseClient.auth.onAuthStateChange((event, session) => {
     window.isUserLoggedIn = !!session;
+    window.currentUserEmail = session ? session.user.email : ""; 
     window.updateAuthUI();
+
+    // ⚡ NOUVEAU : On charge la bankroll dès qu'on est connecté !
+    if (window.isUserLoggedIn && typeof window.loadBankroll === 'function') {
+        window.loadBankroll();
+    }
 });
 
 window.openAuthModal = function () {
@@ -1903,19 +1910,22 @@ window.switchAuth = function (mode) {
 window.updateAuthUI = function() {
     const btnText = document.getElementById('auth-btn-text');
     const statusDot = document.getElementById('auth-status-dot');
+    const emailText = document.getElementById('auth-user-email'); // NOUVEAU
     
     if (window.isUserLoggedIn) {
-        if(btnText) btnText.textContent = "Mon Espace";
+        if(btnText) btnText.textContent = "Connecté";
         if(statusDot) {
             statusDot.classList.remove('bg-red-500');
             statusDot.classList.add('bg-green-500');
         }
+        if(emailText) emailText.textContent = window.currentUserEmail; // AFFICHE L'EMAIL
     } else {
         if(btnText) btnText.textContent = "Se connecter";
         if(statusDot) {
             statusDot.classList.remove('bg-green-500');
             statusDot.classList.add('bg-red-500');
         }
+        if(emailText) emailText.textContent = "Espace Privé"; // REMET LE TEXTE PAR DÉFAUT
     }
 };
 

@@ -1,59 +1,112 @@
 // ==========================================
-// MOTEUR BANKROLL & MONTANTE IA
+// MOTEUR BANKROLL & MONTANTE IA (CONNECTÉ À SUPABASE)
 // ==========================================
 window.globalBankroll = [];
 
+// 1. Charger la Bankroll depuis Supabase
 window.loadBankroll = async function () {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') {
+        console.warn("Utilisateur non connecté ou Supabase non initialisé. Bankroll vide.");
+        window.globalBankroll = [];
+        if (typeof updateBankrollDashboard === 'function') updateBankrollDashboard();
+        if (typeof renderBetHistory === 'function') renderBetHistory();
+        return;
+    }
+
     try {
-        // ANTI-CACHE : On force le navigateur à recharger la vraie base de données
-        let res = await fetch(`${API_BASE}/bankroll?timestamp=${new Date().getTime()}`, { cache: 'no-store' });
-        let data = await res.json();
-        if (data.status === 'success') {
-            window.globalBankroll = data.bets;
-            if (typeof updateBankrollDashboard === 'function') updateBankrollDashboard();
-            if (typeof updateMontanteModule === 'function') updateMontanteModule();
-            if (typeof renderBetHistory === 'function') renderBetHistory();
-        }
+        // On récupère tous les paris de l'utilisateur connecté, triés du plus récent au plus ancien
+        const { data, error } = await supabaseClient
+            .from('bankroll')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // On adapte le format des données de Supabase au format attendu par ton code (date au lieu de created_at)
+        window.globalBankroll = data.map(bet => ({
+            ...bet,
+            date: bet.created_at 
+        }));
+
+        if (typeof updateBankrollDashboard === 'function') updateBankrollDashboard();
+        if (typeof updateMontanteModule === 'function') updateMontanteModule();
+        if (typeof renderBetHistory === 'function') renderBetHistory();
+
     } catch (e) {
-        console.error("Erreur chargement Bankroll", e);
+        console.error("Erreur chargement Bankroll Supabase :", e);
     }
 };
 
+// 2. Ajouter un pari dans Supabase
 window.addBetToBankroll = async function (category, description, odds, stake) {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') {
+        alert("🛡️ Vous devez être connecté pour sauvegarder un ticket dans le Coffre-Fort.");
+        window.openAuthModal();
+        return;
+    }
+
     // 📡 RADAR GOOGLE : Pari ajouté au coffre
     if (typeof gtag === 'function') {
         gtag('event', 'ajout_coffre_fort', {
             'categorie_pari': category
         });
     }
-    let bet = {
-        date: new Date().toISOString(),
-        category: category,
-        description: description,
-        odds: parseFloat(odds),
-        stake: parseFloat(stake),
-        status: "PENDING"
-    };
-    await fetch(`${API_BASE}/bankroll`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bet)
-    });
-    alert("Ticket sauvegardé dans le Coffre-Fort !");
-    window.loadBankroll();
+
+    try {
+        // Récupération de l'ID de l'utilisateur connecté
+        const { data: { user } } = await supabaseClient.auth.getUser();
+
+        // Insertion dans la table bankroll
+        const { data, error } = await supabaseClient
+            .from('bankroll')
+            .insert([
+                { 
+                    user_id: user.id, // INDISPENSABLE pour la sécurité RLS
+                    category: category, 
+                    description: description, 
+                    odds: parseFloat(odds), 
+                    stake: parseFloat(stake), 
+                    status: "PENDING" 
+                }
+            ]);
+
+        if (error) throw error;
+
+        alert("Ticket sauvegardé en toute sécurité dans votre Coffre-Fort !");
+        window.loadBankroll(); // On recharge l'affichage
+
+    } catch (e) {
+        console.error("Erreur d'insertion Bankroll :", e);
+        alert("Une erreur est survenue lors de la sauvegarde du ticket.");
+    }
 };
 
+// 3. Modifier le statut d'un pari (Gagné/Perdu)
 window.changeBetStatus = async function (id, status) {
-    await fetch(`${API_BASE}/bankroll/${id}/${status}`, { method: 'PUT' });
-    window.loadBankroll();
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('bankroll')
+            .update({ status: status })
+            .eq('id', id); // On met à jour la ligne qui a cet ID précis
+
+        if (error) throw error;
+        window.loadBankroll(); // On recharge l'affichage
+
+    } catch (e) {
+        console.error("Erreur de mise à jour Bankroll :", e);
+    }
 };
 
+// 4. Supprimer un pari
 window.deleteBet = async function (btnElement, id) {
-    if (confirm("Supprimer ce pari de l'historique ?")) {
+    if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') return;
 
-        // 1. Suppression visuelle ABSOLUE (Ciblage physique du parent)
+    if (confirm("Supprimer ce pari de l'historique de manière permanente ?")) {
+
+        // 1. Suppression visuelle instantanée
         let card = btnElement.closest('.bg-gray-900');
-
         if (card) {
             card.style.transition = 'all 0.3s ease';
             card.style.opacity = '0';
@@ -64,14 +117,23 @@ window.deleteBet = async function (btnElement, id) {
         // 2. Mise à jour de la mémoire JavaScript
         window.globalBankroll = window.globalBankroll.filter(b => String(b.id) !== String(id));
 
-        // 3. Mise à jour des bilans et de la montante sans recharger la page
+        // 3. Mise à jour des bilans et de la montante
         if (typeof updateBankrollDashboard === 'function') updateBankrollDashboard();
         if (typeof updateMontanteModule === 'function') updateMontanteModule();
 
-        // 4. Suppression silencieuse dans la base de données Python
+        // 4. Suppression réelle dans Supabase
         try {
-            await fetch(`${API_BASE}/bankroll/${id}`, { method: 'DELETE' });
-        } catch (e) { console.error("Erreur serveur", e); }
+            const { error } = await supabaseClient
+                .from('bankroll')
+                .delete()
+                .eq('id', id);
+                
+            if (error) throw error;
+        } catch (e) { 
+            console.error("Erreur de suppression Bankroll :", e); 
+            // En cas d'erreur, on recharge la bankroll pour remettre le ticket
+            window.loadBankroll(); 
+        }
     }
 };
 
