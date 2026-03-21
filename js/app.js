@@ -1852,10 +1852,7 @@ window.toggleOracleLiveSync = function (isActive) {
 // 🔐 MODULE D'AUTHENTIFICATION (SUPABASE)
 // =========================================================================
 const SUPABASE_URL = 'https://gfmquozjspyuoppunojs.supabase.co';
-// ⚠️ IMPORTANT : Remplace le texte ci-dessous par ta vraie clé "Publishable Key" copiée depuis Supabase !
-const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g'; 
-
-// Initialisation de Supabase
+const SUPABASE_ANON_KEY = 'TA_VRAIE_CLE_LONGUE_ICI'; 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 window.isUserLoggedIn = false;
