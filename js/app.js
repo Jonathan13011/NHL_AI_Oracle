@@ -32,6 +32,13 @@ window.switchTab = function(tabId, btnElement) {
         window.history.pushState(null, null, `#${tabId}`);
     }
 
+    // 📡 RADAR GOOGLE ANALYTICS : Traquer la section visitée
+    if (typeof gtag === 'function') {
+        gtag('event', 'visite_section', {
+            'nom_section': tabId
+        });
+    }
+
     // ⚡ 6. DÉCLENCHEMENT DES ANIMATIONS ET CHARGEMENTS AUTOMATIQUES
     if (tabId === 'tab-predictions') {
         const screenEquipes = document.getElementById('equipes-screen');

@@ -82,6 +82,12 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
     window.goToTicketStep(3);
     window.showFullScreenLoader();
     window.showAnalysis();
+    // 📡 RADAR GOOGLE ANALYTICS : Traquer la génération de ticket
+    if (typeof gtag === 'function') {
+        gtag('event', 'generation_ticket', {
+            'type_ticket': type
+        });
+    }
     let container = document.getElementById('ticket-display');
     if (!container) return;
 
@@ -1350,6 +1356,11 @@ window.executeShieldFractionation = function() {
 
     // On remonte légèrement la page pour l'animation
     window.scrollTo({ top: container.offsetTop - 50, behavior: 'smooth' });
+
+    // 📡 RADAR GOOGLE ANALYTICS : Traquer l'utilisation du bouclier
+    if (typeof gtag === 'function') {
+        gtag('event', 'utilisation_bouclier');
+    }
     
     // Animation de chargement spéciale
     container.innerHTML = `
