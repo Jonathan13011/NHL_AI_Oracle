@@ -1849,15 +1849,27 @@ window.toggleOracleLiveSync = function (isActive) {
 };
 
 // =========================================================================
-// 🔐 MODULE D'AUTHENTIFICATION (FRONTEND)
+// 🔐 MODULE D'AUTHENTIFICATION (SUPABASE)
 // =========================================================================
-window.isUserLoggedIn = false; // Simulation de l'état de connexion
+const SUPABASE_URL = 'https://gfmquozjspyuoppunojs.supabase.co';
+// ⚠️ IMPORTANT : Remplace le texte ci-dessous par ta vraie clé "Publishable Key" copiée depuis Supabase !
+const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g'; 
 
-// 1. Ouvrir la modale (ou rediriger si déjà connecté)
+// Initialisation de Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+window.isUserLoggedIn = false;
+
+// Supabase écoute tout seul si on est connecté ou non
+supabase.auth.onAuthStateChange((event, session) => {
+    window.isUserLoggedIn = !!session;
+    window.updateAuthUI();
+});
+
 window.openAuthModal = function () {
     if (window.isUserLoggedIn) {
-        alert("Redirection vers ton Espace Privé...");
-        // Plus tard : window.location.href = "/mon-compte";
+        alert("Tu es déjà connecté ! Bienvenue dans ton Espace Privé.");
+        // Plus tard, on pourra rediriger vers un dashboard spécifique ici
         return;
     }
     let modal = document.getElementById('auth-modal');
@@ -1867,7 +1879,6 @@ window.openAuthModal = function () {
     }
 };
 
-// 2. Fermer la modale
 window.closeAuthModal = function () {
     let modal = document.getElementById('auth-modal');
     if (modal) {
@@ -1876,10 +1887,9 @@ window.closeAuthModal = function () {
     }
 };
 
-// 3. Basculer entre Connexion et Inscription (LA FONCTION QUI TE MANQUAIT)
 window.switchAuth = function (mode) {
-    const loginForm = document.getElementById('login-form'); // Le conteneur (div)
-    const signupForm = document.getElementById('signup-form'); // Le conteneur (div)
+    const loginForm = document.getElementById('login-form');
+    const signupForm = document.getElementById('signup-form');
 
     if (mode === 'signup') {
         loginForm.classList.add('hidden');
@@ -1890,7 +1900,6 @@ window.switchAuth = function (mode) {
     }
 };
 
-// 4. Mettre à jour l'interface (Bouton du header)
 window.updateAuthUI = function() {
     const btnText = document.getElementById('auth-btn-text');
     const statusDot = document.getElementById('auth-status-dot');
@@ -1899,7 +1908,7 @@ window.updateAuthUI = function() {
         if(btnText) btnText.textContent = "Mon Espace";
         if(statusDot) {
             statusDot.classList.remove('bg-red-500');
-            statusDot.classList.add('bg-green-500'); // Le point passe au vert !
+            statusDot.classList.add('bg-green-500');
         }
     } else {
         if(btnText) btnText.textContent = "Se connecter";
@@ -1910,82 +1919,71 @@ window.updateAuthUI = function() {
     }
 };
 
-// 5. Gérer la soumission du formulaire de CONNEXION
+// --- LOGIQUE DE CONNEXION ---
 const formLogin = document.getElementById('form-login');
 if (formLogin) {
-    formLogin.addEventListener('submit', function (e) {
-        e.preventDefault(); // Empêche le rechargement
+    formLogin.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        let email = document.getElementById('login-email').value;
+        let password = document.getElementById('login-password').value;
         let btn = e.target.querySelector('button');
         let originalHtml = btn.innerHTML;
         
-        // Effet de chargement
-        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> ENTRÉE...`;
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> CONNEXION...`;
         btn.disabled = true;
 
-        // Simulation de connexion au serveur (1 seconde)
-        setTimeout(() => {
-            window.isUserLoggedIn = true;
+        // Appel à Supabase pour vérifier l'email et le mot de passe
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            alert("Erreur : " + (error.message === "Invalid login credentials" ? "Identifiants incorrects." : error.message));
+        } else {
             window.closeAuthModal();
-            window.updateAuthUI();
-            
-            // On déclenche l'écran de bienvenue HOCKAI
             const welcome = document.getElementById('welcome-screen');
             if(welcome) {
                 welcome.classList.remove('hidden');
                 setTimeout(() => welcome.classList.add('hidden'), 2000);
             }
-            
-            btn.innerHTML = originalHtml;
-            btn.disabled = false;
-        }, 1000);
+        }
+        
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
     });
 }
 
-// =========================================================================
-// 🚀 GESTION DE L'INSCRIPTION (SÉCURISÉE)
-// =========================================================================
+// --- LOGIQUE D'INSCRIPTION ---
 const signupForm = document.getElementById('form-signup');
-
-// On vérifie si le formulaire existe sur la page avant d'ajouter l'écouteur
 if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
-        e.preventDefault(); // Empêche le rechargement de la page
-
-        const emailInput = document.getElementById('signup-email');
-        if (!emailInput) return;
-
-        const email = emailInput.value;
+        e.preventDefault();
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
         const btn = e.target.querySelector('button');
         const originalText = btn.innerText;
 
-        // État de chargement
-        btn.innerText = "EXPÉDITION...";
+        btn.innerText = "CRÉATION EN COURS...";
         btn.disabled = true;
 
-        try {
-            // On utilise le chemin Vercel pour éviter les problèmes de sécurité (CORS)
-            const response = await fetch('/backend/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: email })
-            });
+        // Appel à Supabase pour créer le compte
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+        });
 
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                alert("Génial ! Ton mot de passe est en route vers ton email. 📧");
-                emailInput.value = ""; // On vide le champ
-            } else {
-                alert("Mince, ça n'a pas marché : " + result.message);
-            }
-        } catch (err) {
-            console.error("Erreur Inscription:", err);
-            alert("❌ Impossible de joindre le serveur HOCKAI.");
-        } finally {
-            // On remet le bouton dans son état normal
-            btn.innerText = originalText;
-            btn.disabled = false;
+        if (error) {
+            alert("Erreur lors de l'inscription : " + error.message);
+        } else {
+            alert("Inscription réussie ! Un email de confirmation a été envoyé à " + email + ". Veuillez cliquer sur le lien dans l'email pour activer votre compte.");
+            window.switchAuth('login');
+            document.getElementById('signup-email').value = "";
+            document.getElementById('signup-password').value = "";
         }
+        
+        btn.innerText = originalText;
+        btn.disabled = false;
     });
 }
 
