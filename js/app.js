@@ -2085,6 +2085,79 @@ window.renderDashboardInfirmary = function() {
     container.innerHTML = html;
 };
 
+// --- RECHERCHE INTELLIGENTE INFIRMERIE ---
+window.filterInfirmarySearch = function() {
+    let input = document.getElementById('infirmary-search-input').value.toLowerCase().trim();
+    let dropdown = document.getElementById('infirmary-search-results');
+
+    // Cacher si moins de 2 lettres
+    if (input.length < 2) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+
+    // On utilise la base de données des joueurs déjà chargée par le site
+    let pool = window.globalPredictionsPool || [];
+    let matchesHtml = "";
+    let count = 0;
+
+    for (let p of pool) {
+        if (count >= 10) break; // On affiche max 10 résultats pour ne pas surcharger
+        
+        // On cherche le joueur, et on s'assure qu'il n'est pas DEJA dans l'infirmerie
+        if (p.name.toLowerCase().includes(input) && !window.userBannedPlayers.has(String(p.id))) {
+            matchesHtml += `
+                <div class="p-3 hover:bg-gray-800 cursor-pointer border-b border-gray-800/50 flex items-center justify-between transition group" onclick="window.addPlayerToInfirmaryFromDashboard('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${p.team}')">
+                    <div class="flex items-center gap-3">
+                        <img src="${p.headshot || 'assets/logo_hockAI.png'}" class="w-8 h-8 rounded-full border border-gray-700 bg-gray-950 object-cover group-hover:border-blood transition">
+                        <div>
+                            <div class="text-white text-xs font-black uppercase tracking-widest group-hover:text-blood transition">${p.name}</div>
+                            <div class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">${p.team}</div>
+                        </div>
+                    </div>
+                    <div class="bg-blood/20 text-blood w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition transform group-hover:scale-110">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                </div>
+            `;
+            count++;
+        }
+    }
+
+    if (matchesHtml === "") {
+        dropdown.innerHTML = '<div class="p-4 text-xs text-gray-500 font-bold italic text-center">Aucun joueur disponible ou joueur déjà exclu.</div>';
+    } else {
+        dropdown.innerHTML = matchesHtml;
+    }
+    dropdown.classList.remove('hidden');
+};
+
+// Fonction déclenchée au clic sur un résultat
+window.addPlayerToInfirmaryFromDashboard = function(id, name, team) {
+    // 1. On vide et on cache la barre de recherche
+    document.getElementById('infirmary-search-input').value = '';
+    document.getElementById('infirmary-search-results').classList.add('hidden');
+    
+    // 2. On utilise ta fonction existante (qui sauvegarde sur Supabase !)
+    window.banPlayerFromTickets(id, name, team);
+    
+    // 3. On rafraîchit l'affichage du Dashboard
+    setTimeout(() => {
+        if(typeof window.renderDashboardInfirmary === 'function') {
+            window.renderDashboardInfirmary();
+        }
+    }, 500); // Petit délai pour laisser Supabase travailler
+};
+
+// Fermer le menu déroulant si on clique à côté
+document.addEventListener('click', function(e) {
+    let dropdown = document.getElementById('infirmary-search-results');
+    let input = document.getElementById('infirmary-search-input');
+    if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
+        dropdown.classList.add('hidden');
+    }
+});
+
 window.logoutUser = async function() {
     if(confirm("Voulez-vous vraiment fermer votre session HOCKAI ?")) {
         await supabaseClient.auth.signOut();
