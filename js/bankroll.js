@@ -231,8 +231,9 @@ window.calculateMontanteStake = function () {
 };
 
 // --- RENDU VISUEL DE L'HISTORIQUE ---
-function renderBetHistory() {
+window.renderBetHistory = function() {
     let container = document.getElementById('bankroll-history');
+    if (!container) return;
     container.innerHTML = '';
 
     if (window.globalBankroll.length === 0) {
@@ -244,15 +245,28 @@ function renderBetHistory() {
         let dateStr = new Date(b.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
         let statusHtml = '';
-        if (b.status === "PENDING") statusHtml = `<div class="flex gap-2"><button onclick="changeBetStatus(${b.id}, 'WON')" class="bg-green-500/20 text-green-400 border border-green-500 px-3 py-1 rounded text-xs font-black hover:bg-green-500 hover:text-black transition"><i class="fas fa-check"></i></button><button onclick="changeBetStatus(${b.id}, 'LOST')" class="bg-red-500/20 text-red-500 border border-red-500 px-3 py-1 rounded text-xs font-black hover:bg-red-500 hover:text-white transition"><i class="fas fa-times"></i></button></div>`;
-        else if (b.status === "WON") statusHtml = `<span class="text-green-400 font-black text-sm drop-shadow-[0_0_5px_#22c55e]"><i class="fas fa-check-circle"></i> GAGNÉ (+${(b.stake * b.odds - b.stake).toFixed(2)}€)</span>`;
-        else statusHtml = `<span class="text-red-500 font-black text-sm drop-shadow-[0_0_5px_#ff3333]"><i class="fas fa-times-circle"></i> PERDU (-${b.stake.toFixed(2)}€)</span>`;
+        if (b.status === "PENDING") {
+            // ⚡ NOUVEAU : Le Compteur Live Cyberpunk au lieu des boutons !
+            statusHtml = `
+                <div class="flex flex-col items-center justify-center bg-black border border-gray-800 px-4 py-2 rounded-lg shadow-inner min-w-[140px]">
+                    <span class="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1 flex items-center">
+                        <i class="fas fa-robot text-purple-400 mr-1.5 animate-pulse"></i> Arbitrage IA
+                    </span>
+                    <span class="text-xs text-yellow-500 font-black font-mono tracking-wider timer-9am drop-shadow-[0_0_5px_rgba(234,179,8,0.4)]">--h --m --s</span>
+                </div>
+            `;
+        }
+        else if (b.status === "WON") {
+            statusHtml = `<span class="text-green-400 font-black text-sm drop-shadow-[0_0_5px_#22c55e]"><i class="fas fa-check-circle"></i> GAGNÉ (+${(b.stake * b.odds - b.stake).toFixed(2)}€)</span>`;
+        }
+        else {
+            statusHtml = `<span class="text-red-500 font-black text-sm drop-shadow-[0_0_5px_#ff3333]"><i class="fas fa-times-circle"></i> PERDU (-${b.stake.toFixed(2)}€)</span>`;
+        }
 
-        // NOUVEAU : Ajout de l'ID 'bet-card-${b.id}' et des classes de transition CSS (transition-all duration-300 transform)
         container.innerHTML += `
-            <div id="bet-card-${b.id}" class="bg-gray-900 border border-gray-800 p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4 relative transition-all duration-300 transform origin-left">
-                <button onclick="window.deleteBet(this, ${b.id})" class="absolute top-2 right-2 text-gray-600 hover:text-blood transition z-50"><i class="fas fa-trash-alt"></i></button>
-                <div class="flex-1 w-full">
+            <div id="bet-card-${b.id}" class="bg-gray-900 border border-gray-800 p-4 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4 relative transition-all duration-300 transform origin-left hover:border-purple-500/30">
+                <button onclick="window.deleteBet(this, '${b.id}')" class="absolute top-2 right-2 text-gray-600 hover:text-blood transition z-50"><i class="fas fa-trash-alt"></i></button>
+                <div class="flex-1 w-full mt-2 md:mt-0">
                     <div class="text-[10px] text-gray-500 font-black tracking-widest uppercase mb-1">${dateStr} • ${b.category}</div>
                     <div class="text-white font-bold text-sm">${b.description}</div>
                 </div>
@@ -260,13 +274,51 @@ function renderBetHistory() {
                     <div class="text-center"><div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Cote</div><div class="text-yellow-500 font-black">${b.odds.toFixed(2)}</div></div>
                     <div class="text-center"><div class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Mise</div><div class="text-white font-black">${b.stake.toFixed(2)}€</div></div>
                 </div>
-                <div class="w-full md:w-48 flex justify-center md:justify-end">
+                <div class="w-full md:w-auto flex justify-center md:justify-end shrink-0">
                     ${statusHtml}
                 </div>
             </div>
         `;
     });
-}
+    
+    // On lance la mise à jour des compteurs immédiatement
+    if (typeof window.updateArbitrageTimers === 'function') window.updateArbitrageTimers();
+};
+
+// ==========================================
+// MOTEUR DE COMPTE À REBOURS (ARBITRAGE IA)
+// ==========================================
+window.updateArbitrageTimers = function() {
+    let timers = document.querySelectorAll('.timer-9am');
+    if (timers.length === 0) return;
+
+    let now = new Date();
+    let next9am = new Date();
+    // Le serveur Cron est réglé sur 09h00 du matin
+    next9am.setHours(9, 0, 0, 0);
+
+    // Si on est déjà passé 09h00 aujourd'hui, le prochain arbitrage est demain à 09h00
+    if (now.getHours() >= 9) {
+        next9am.setDate(next9am.getDate() + 1);
+    }
+
+    let diff = next9am - now;
+    let h = Math.floor(diff / (1000 * 60 * 60));
+    let m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    let s = Math.floor((diff % (1000 * 60)) / 1000);
+
+    // Formatage propre avec des zéros (ex: 08h 05m 09s)
+    let timeString = `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+
+    timers.forEach(t => {
+        t.innerText = timeString;
+    });
+};
+
+// On actualise les compteurs automatiquement toutes les secondes (1000ms)
+setInterval(window.updateArbitrageTimers, 1000);
+
+// N'oublie pas de garder tes fonctions de recherche (NHL_TEAMS_LIST, etc.) qui étaient en dessous intactes !
 
 // ==========================================
 // SAISIE MANUELLE & BARRE DE RECHERCHE INTELLIGENTE V2
