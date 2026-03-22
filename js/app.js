@@ -1877,7 +1877,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
 
 window.openAuthModal = function () {
     if (window.isUserLoggedIn) {
-        alert("Tu es déjà connecté ! Bienvenue dans ton Espace Privé.");
+        window.openUserDashboard(); // Ouvre l'espace membre au lieu de l'alerte
         return;
     }
     let modal = document.getElementById('auth-modal');
@@ -1914,7 +1914,7 @@ window.updateAuthUI = function() {
     const emailText = document.getElementById('auth-user-email'); // NOUVEAU
     
     if (window.isUserLoggedIn) {
-        if(btnText) btnText.textContent = "Connecté";
+        if(btnText) btnText.textContent = "Mon Espace";
         if(statusDot) {
             statusDot.classList.remove('bg-red-500');
             statusDot.classList.add('bg-green-500');
@@ -1927,6 +1927,179 @@ window.updateAuthUI = function() {
             statusDot.classList.add('bg-red-500');
         }
         if(emailText) emailText.textContent = "Espace Privé"; // REMET LE TEXTE PAR DÉFAUT
+    }
+};
+
+// =========================================================================
+// 🚀 MOTEUR DE L'ESPACE PERSONNEL (DASHBOARD)
+// =========================================================================
+
+window.openUserDashboard = function() {
+    document.getElementById('user-dashboard-modal').classList.remove('hidden');
+    document.getElementById('user-dashboard-modal').classList.add('flex');
+    
+    // Afficher l'email
+    let emailEl = document.getElementById('dashboard-user-email');
+    if(emailEl) emailEl.innerText = window.currentUserEmail || "Utilisateur connecté";
+    
+    // Générer les données
+    window.renderDashboardOverview();
+    window.renderDashboardHistory();
+    window.renderDashboardInfirmary();
+};
+
+window.closeUserDashboard = function() {
+    document.getElementById('user-dashboard-modal').classList.add('hidden');
+    document.getElementById('user-dashboard-modal').classList.remove('flex');
+};
+
+window.switchDashboardTab = function(tabName) {
+    // Cacher tous les panneaux
+    document.querySelectorAll('.dash-content-panel').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+    });
+    // Réinitialiser les boutons du menu
+    document.querySelectorAll('.dash-tab-btn').forEach(btn => {
+        btn.classList.remove('bg-gray-900', 'border-purple-500', 'text-white');
+        btn.classList.add('bg-black', 'border-transparent', 'text-gray-500');
+    });
+    
+    // Afficher le panneau ciblé
+    document.getElementById(`dash-tab-${tabName}`).classList.remove('hidden');
+    document.getElementById(`dash-tab-${tabName}`).classList.add('flex');
+    
+    // Activer le bouton ciblé
+    let activeBtn = document.getElementById(`btn-dash-${tabName}`);
+    if(activeBtn) {
+        activeBtn.classList.add('bg-gray-900', 'border-purple-500', 'text-white');
+        activeBtn.classList.remove('bg-black', 'border-transparent', 'text-gray-500');
+    }
+};
+
+window.renderDashboardOverview = function() {
+    let container = document.getElementById('dash-overview-stats');
+    if(!container) return;
+
+    let totalInvesti = 0; let totalGains = 0; let parisTermines = 0; let parisGagnes = 0;
+
+    window.globalBankroll.forEach(b => {
+        if (b.status === "PENDING") return;
+        totalInvesti += b.stake;
+        parisTermines++;
+        if (b.status === "WON") {
+            totalGains += (b.stake * b.odds);
+            parisGagnes++;
+        }
+    });
+
+    let benefice = totalGains - totalInvesti;
+    let roi = totalInvesti > 0 ? (benefice / totalInvesti) * 100 : 0;
+    let winrate = parisTermines > 0 ? (parisGagnes / parisTermines) * 100 : 0;
+    
+    let benefColor = benefice >= 0 ? 'text-money' : 'text-blood';
+
+    container.innerHTML = `
+        <div class="bg-black/50 border border-gray-800 p-4 rounded-xl shadow-inner text-center">
+            <div class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Bénéfice Net</div>
+            <div class="text-xl md:text-3xl font-black ${benefColor}">${benefice >= 0 ? '+' : ''}${benefice.toFixed(2)}€</div>
+        </div>
+        <div class="bg-black/50 border border-gray-800 p-4 rounded-xl shadow-inner text-center">
+            <div class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">ROI Global</div>
+            <div class="text-xl md:text-3xl font-black text-white">${roi.toFixed(1)}%</div>
+        </div>
+        <div class="bg-black/50 border border-gray-800 p-4 rounded-xl shadow-inner text-center">
+            <div class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Taux de réussite</div>
+            <div class="text-xl md:text-3xl font-black text-ice">${winrate.toFixed(0)}%</div>
+        </div>
+        <div class="bg-black/50 border border-gray-800 p-4 rounded-xl shadow-inner text-center">
+            <div class="text-[9px] md:text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-1">Tickets joués</div>
+            <div class="text-xl md:text-3xl font-black text-purple-400">${window.globalBankroll.length}</div>
+        </div>
+    `;
+};
+
+window.renderDashboardHistory = function() {
+    let container = document.getElementById('dash-history-list');
+    if(!container) return;
+
+    if (window.globalBankroll.length === 0) {
+        container.innerHTML = `<div class="text-center p-10 bg-black/40 rounded-xl border border-gray-800 border-dashed text-gray-500 font-bold text-xs uppercase tracking-widest italic">Aucun ticket dans votre historique.</div>`;
+        return;
+    }
+
+    let html = "";
+    // On utilise la même logique que la bankroll principale, mais adaptée pour le Dashboard
+    window.globalBankroll.forEach(b => {
+        let dateStr = new Date(b.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        
+        let statusBadge = '';
+        if (b.status === "PENDING") statusBadge = `<span class="bg-yellow-500/20 text-yellow-500 border border-yellow-500 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest animate-pulse">En Cours</span>`;
+        else if (b.status === "WON") statusBadge = `<span class="bg-money/20 text-money border border-money px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Gagné (+${(b.stake * b.odds - b.stake).toFixed(2)}€)</span>`;
+        else statusBadge = `<span class="bg-blood/20 text-blood border border-blood px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Perdu</span>`;
+
+        html += `
+            <div class="bg-black/60 border border-gray-800 p-4 rounded-xl flex flex-col md:flex-row justify-between md:items-center gap-3 hover:border-purple-500/50 transition">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-gray-500 text-[10px] font-black tracking-widest">${dateStr}</span>
+                        ${statusBadge}
+                    </div>
+                    <div class="text-white font-bold text-xs md:text-sm">${b.description}</div>
+                </div>
+                <div class="flex items-center gap-4 bg-gray-900 px-4 py-2 rounded-lg border border-gray-700 w-fit">
+                    <div class="text-center"><span class="block text-[9px] text-gray-500 uppercase tracking-widest font-black">Cote</span><span class="text-yellow-400 font-black">@${b.odds.toFixed(2)}</span></div>
+                    <div class="w-px h-6 bg-gray-700"></div>
+                    <div class="text-center"><span class="block text-[9px] text-gray-500 uppercase tracking-widest font-black">Mise</span><span class="text-white font-black">${b.stake.toFixed(2)}€</span></div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+};
+
+window.renderDashboardInfirmary = function() {
+    let container = document.getElementById('dash-infirmary-list');
+    if(!container) return;
+
+    if (!window.userBannedPlayers || window.userBannedPlayers.size === 0) { 
+        container.innerHTML = `<div class="w-full text-center p-10 bg-black/40 rounded-xl border border-gray-800 border-dashed text-gray-500 font-bold text-xs uppercase tracking-widest italic">Votre infirmerie est vide.</div>`;
+        return; 
+    }
+
+    let html = "";
+    window.userBannedPlayers.forEach(id => {
+        let info = window.bannedPlayersDetails[id] || { name: "Inconnu", team: "---" };
+        html += `
+            <div class="bg-black border border-blood/30 hover:border-blood px-3 py-2 rounded-lg flex items-center gap-3 shadow-inner transition">
+                <div>
+                    <div class="text-white font-black text-xs uppercase tracking-widest">${info.name}</div>
+                    <div class="text-gray-500 text-[9px] font-bold uppercase">${info.team}</div>
+                </div>
+                <button onclick="window.unbanPlayerFromTickets('${id}'); window.renderDashboardInfirmary();" class="bg-gray-800 hover:bg-green-500 hover:text-black text-green-400 rounded-full w-6 h-6 flex items-center justify-center transition shadow-lg" title="Réintégrer ce joueur">
+                    <i class="fas fa-undo text-[10px]"></i>
+                </button>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+};
+
+window.logoutUser = async function() {
+    if(confirm("Voulez-vous vraiment fermer votre session HOCKAI ?")) {
+        await supabaseClient.auth.signOut();
+        // Réinitialisation locale des variables critiques
+        window.isUserLoggedIn = false;
+        window.currentUserEmail = "";
+        window.globalBankroll = [];
+        window.userBannedPlayers.clear();
+        window.bannedPlayersDetails = {};
+        
+        window.updateAuthUI();
+        window.closeUserDashboard();
+        
+        alert("Déconnexion réussie. À bientôt dans l'Arène !");
+        location.reload(); // Recharge la page pour vider complètement la mémoire cache de l'UI
     }
 };
 
