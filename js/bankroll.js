@@ -246,11 +246,11 @@ window.renderBetHistory = function() {
 
         let statusHtml = '';
         if (b.status === "PENDING") {
-            // ⚡ NOUVEAU : Le Compteur Live Cyberpunk au lieu des boutons !
+            // ⚡ NOUVEAU : Le Compteur Live avec "Résultats dans"
             statusHtml = `
                 <div class="flex flex-col items-center justify-center bg-black border border-gray-800 px-4 py-2 rounded-lg shadow-inner min-w-[140px]">
                     <span class="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1 flex items-center">
-                        <i class="fas fa-robot text-purple-400 mr-1.5 animate-pulse"></i> Arbitrage IA
+                        <i class="fas fa-stopwatch text-purple-400 mr-1.5 animate-pulse"></i> Résultats dans
                     </span>
                     <span class="text-xs text-yellow-500 font-black font-mono tracking-wider timer-9am drop-shadow-[0_0_5px_rgba(234,179,8,0.4)]">--h --m --s</span>
                 </div>
