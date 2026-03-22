@@ -37,15 +37,14 @@ window.loadBankroll = async function () {
     }
 };
 
-// 2. Ajouter un pari dans Supabase
-window.addBetToBankroll = async function (category, description, odds, stake) {
+// 2. Ajouter un pari dans Supabase (Avec données structurées)
+window.addBetToBankroll = async function (category, description, odds, stake, selections = []) {
     if (!window.isUserLoggedIn || typeof supabaseClient === 'undefined') {
         alert("🛡️ Vous devez être connecté pour sauvegarder un ticket dans le Coffre-Fort.");
         window.openAuthModal();
         return;
     }
 
-    // 📡 RADAR GOOGLE : Pari ajouté au coffre
     if (typeof gtag === 'function') {
         gtag('event', 'ajout_coffre_fort', {
             'categorie_pari': category
@@ -53,27 +52,26 @@ window.addBetToBankroll = async function (category, description, odds, stake) {
     }
 
     try {
-        // Récupération de l'ID de l'utilisateur connecté
         const { data: { user } } = await supabaseClient.auth.getUser();
 
-        // Insertion dans la table bankroll
         const { data, error } = await supabaseClient
             .from('bankroll')
             .insert([
                 { 
-                    user_id: user.id, // INDISPENSABLE pour la sécurité RLS
+                    user_id: user.id,
                     category: category, 
                     description: description, 
                     odds: parseFloat(odds), 
                     stake: parseFloat(stake), 
-                    status: "PENDING" 
+                    status: "PENDING",
+                    selections: selections // ⚡ NOUVEAU : On sauvegarde les détails techniques !
                 }
             ]);
 
         if (error) throw error;
 
         alert("Ticket sauvegardé en toute sécurité dans votre Coffre-Fort !");
-        window.loadBankroll(); // On recharge l'affichage
+        window.loadBankroll(); 
 
     } catch (e) {
         console.error("Erreur d'insertion Bankroll :", e);
@@ -384,25 +382,32 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Enregistrement final du pari
+// Enregistrement final du pari manuel
 window.submitManualBet = function() {
     let target = document.getElementById('manual-bet-target').value.trim();
-    let type = document.getElementById('manual-bet-type').value; // Valeur du menu déroulant
+    let type = document.getElementById('manual-bet-type').value; 
     let odds = parseFloat(document.getElementById('manual-bet-odds').value);
     let stake = parseFloat(document.getElementById('manual-bet-stake').value);
+    let category = document.getElementById('manual-bet-category').value; // 'team' ou 'player'
 
     if (!target || !type || isNaN(odds) || isNaN(stake)) {
         alert("Action requise : Veuillez sélectionner une cible, une cote et une mise valide.");
         return;
     }
 
-    // Création de l'étiquette pour l'historique
     let description = `${target} - ${type} (1 Sélection)`;
     
-    // Sauvegarde en base de données
-    window.addBetToBankroll('MANUEL', description, odds, stake);
+    // ⚡ NOUVEAU : On crée la structure technique pour le serveur Python
+    let selectionsData = [{
+        target_name: target,
+        market: type,
+        target_type: category // Permet au serveur de savoir si c'est un joueur ou une équipe
+    }];
+    
+    // On envoie le pari AVEC les sélections JSON
+    window.addBetToBankroll('MANUEL', description, odds, stake, selectionsData);
 
-    // Réinitialisation de l'interface visuelle
+    // Réinitialisation de l'interface
     document.getElementById('manual-bet-target').value = '';
     document.getElementById('manual-bet-category').value = '';
     document.getElementById('manual-bet-odds').value = '';
