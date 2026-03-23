@@ -161,10 +161,35 @@ window.clearRadarPlayer = function() {
     window.updateGlobalRadar();
 };
 
-// 2. LE MOTEUR D'AFFICHAGE DU RADAR
+// --- BASCULE DU MODE DE PÉRIODE (Slider vs Saison) ---
+window.toggleRadarMode = function() {
+    const modeInput = document.getElementById('radar-period-mode');
+    const sliderContainer = document.getElementById('radar-slider-container');
+    const seasonContainer = document.getElementById('radar-season-container');
+    const modeBtn = document.getElementById('radar-mode-btn');
+
+    if (modeInput.value === 'recent') {
+        modeInput.value = 'season';
+        sliderContainer.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => { sliderContainer.classList.add('hidden'); seasonContainer.classList.remove('hidden'); seasonContainer.classList.add('flex'); }, 200);
+        modeBtn.innerHTML = 'Voir Récents <i class="fas fa-sync-alt ml-1"></i>';
+        modeBtn.classList.replace('text-gray-400', 'text-ice');
+    } else {
+        modeInput.value = 'recent';
+        seasonContainer.classList.add('hidden');
+        seasonContainer.classList.remove('flex');
+        sliderContainer.classList.remove('hidden');
+        setTimeout(() => sliderContainer.classList.remove('opacity-0', 'pointer-events-none'), 50);
+        modeBtn.innerHTML = 'Voir Saison <i class="fas fa-sync-alt ml-1"></i>';
+        modeBtn.classList.replace('text-ice', 'text-gray-400');
+    }
+    window.updateGlobalRadar();
+};
+
 window.updateGlobalRadar = async function() {
     const metric = document.getElementById('radar-metric').value;
-    const period = document.getElementById('radar-period').value;
+    const periodMode = document.getElementById('radar-period-mode').value; // 'recent' ou 'season'
+    const recentCount = parseInt(document.getElementById('radar-game-slider').value); // Valeur du slider (1 à 10)
     const position = document.getElementById('radar-position').value;
     const targetPlayerId = document.getElementById('radar-selected-player').value;
     
@@ -202,101 +227,142 @@ window.updateGlobalRadar = async function() {
     else if (metric === 'points' || metric === 'assists') { chartColor = 'rgba(0, 229, 255, 0.5)'; borderColor = '#00e5ff'; }
     else if (metric === 'speed') { chartColor = 'rgba(168, 85, 247, 0.5)'; borderColor = '#a855f7'; }
     else if (metric === 'pass_pct') { chartColor = 'rgba(96, 165, 250, 0.5)'; borderColor = '#60a5fa'; }
-    let metricText = document.getElementById('radar-metric').options[document.getElementById('radar-metric').selectedIndex].text.replace(/[^a-zA-Z ]/g, "").trim();
+    let metricText = document.getElementById('radar-metric').options[document.getElementById('radar-metric').selectedIndex].text.replace(/[^a-zA-Z ()%]/g, "").trim();
+
+    // Helper mathématique intelligent : s'adapte au slider !
+    const getPlayerVal = (player, m, pMode, count) => {
+        if (pMode === 'season') {
+            if (m === 'points') return player.avg_points || 0;
+            if (m === 'goals') return player.avg_goals || 0;
+            if (m === 'assists') return player.avg_assists || 0;
+            if (m === 'shots') return player.avg_shots || 0;
+            if (m === 'speed') return player.avg_speed || (player.position === 'D' ? 31.5 : 34.2);
+            if (m === 'pass_pct') return player.pass_pct || (player.position === 'D' ? 82 : 78);
+            if (m === 'breakout') return 0;
+            if (m === 'toi') return 18.5; 
+        } else {
+            let fullHist = player.last_10_games || player.last_5_games || [];
+            if (fullHist.length === 0) return 0;
+            
+            let hist = fullHist.slice(0, count); 
+            
+            let rG = hist.reduce((s, g) => s + (g.goals||0), 0);
+            let rS = hist.reduce((s, g) => s + (g.shots||0), 0);
+            
+            if (m === 'goals') return rG;
+            if (m === 'shots') return rS;
+            if (m === 'points') return hist.reduce((s, g) => s + (g.points||0), 0);
+            if (m === 'assists') return hist.reduce((s, g) => s + (g.assists||0), 0);
+            if (m === 'breakout') return (rG <= 1 && rS >= (count*2)) ? (rS * 2) - (rG * 15) : 0;
+            if (m === 'toi') { let tm=0; hist.forEach(g=>{if(g.toi){let parts=String(g.toi).split(':');tm+=parseInt(parts[0])+(parseInt(parts[1])/60);}}); return tm/hist.length; }
+            if (m === 'speed') return player.avg_speed || (player.position === 'D' ? 31.5 : 34.2);
+            if (m === 'pass_pct') return player.pass_pct || (player.position === 'D' ? 82 : 78);
+        }
+        return 0;
+    };
 
     // ==========================================
     // MODE 1 : ANALYSE D'UN JOUEUR SPÉCIFIQUE
     // ==========================================
     if (targetPlayerId !== 'all') {
-        rankingSection.style.display = 'none'; // On cache le classement global
+        rankingSection.style.display = 'none'; 
         let p = pool.find(pl => String(pl.id) === String(targetPlayerId));
         if (!p) return;
 
-        chartSubtitle.innerHTML = `<span class="text-white font-black">${p.name}</span> <span class="text-gray-500 mx-1">|</span> Évolution Individuelle`;
+        let periodText = periodMode === 'season' ? 'Saison Complète' : `Derniers ${recentCount} Matchs`;
+        chartSubtitle.innerHTML = `<span class="text-white font-black">${p.name}</span> <span class="text-gray-500 mx-1">|</span> ${periodText}`;
 
-        // Récupérer l'historique L10 ou L5
-        let history = p.last_10_games && p.last_10_games.length > 0 ? p.last_10_games : p.last_5_games;
-        if (!history) return;
+        if (periodMode === 'season') {
+            let playerVal = getPlayerVal(p, metric, 'season', 0);
+            let poolPos = pool.filter(x => x.position === p.position && x.id !== p.id);
+            let sum = 0, count = 0;
+            poolPos.forEach(x => { let v = getPlayerVal(x, metric, 'season', 0); if(v>0){sum+=v; count++;} });
+            let leagueAvg = count > 0 ? (sum/count) : 0;
 
-        // Limiter la période selon le menu déroulant
-        let limit = period === 'L5' ? 5 : (period === 'L10' ? 10 : history.length);
-        let chronoGames = [...history].slice(0, limit).reverse(); // Du plus ancien au plus récent
-
-        let labels = chronoGames.map(g => g.date ? g.date.substring(5) : 'Match');
-        let dataValues = chronoGames.map(g => {
-            if(metric === 'goals') return g.goals;
-            if(metric === 'assists') return g.assists;
-            if(metric === 'points') return g.points;
-            if(metric === 'shots') return g.shots;
-            if(metric === 'toi') { let parts = String(g.toi||"0:0").split(':'); return parseFloat(parts[0]) + (parseFloat(parts[1])/60); }
-            if(metric === 'breakout') return (g.shots * 2) - (g.goals * 15); // Calcul mathématique simulé au match
-            return (Math.random() * 5 + 5); // Fallback pour speed/pass si non dispo au match par match
-        });
-
-        // Dessiner le graphique LIGNE (Évolution)
-        globalRadarChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: metricText,
-                    data: dataValues,
-                    backgroundColor: chartColor.replace('0.5', '0.2'),
-                    borderColor: borderColor,
-                    borderWidth: 3,
-                    pointBackgroundColor: '#fff',
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    fill: true,
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
-                scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 10 } } },
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true } }
+            globalRadarChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [p.name, `Moyenne (${p.position === 'D' ? 'Défenseurs' : 'Attaquants'})`],
+                    datasets: [{
+                        label: metricText,
+                        data: [playerVal, leagueAvg],
+                        backgroundColor: [chartColor.replace('0.5', '0.8'), 'rgba(156, 163, 175, 0.3)'],
+                        borderColor: [borderColor, '#9CA3AF'],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' } }, beginAtZero: true },
+                        x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: window.innerWidth < 768 ? 9 : 12 } } }
+                    }
                 }
-            }
-        });
+            });
+        } 
+        else {
+            let fullHist = p.last_10_games || p.last_5_games || [];
+            if (fullHist.length === 0) return;
+
+            let chronoGames = fullHist.slice(0, recentCount).reverse(); 
+            
+            let labels = chronoGames.map(g => g.match || (g.date ? g.date.substring(5) : 'Match'));
+            let dataValues = chronoGames.map(g => {
+                if(metric === 'goals') return g.goals || 0;
+                if(metric === 'assists') return g.assists || 0;
+                if(metric === 'points') return g.points || 0;
+                if(metric === 'shots') return g.shots || 0;
+                if(metric === 'toi') { let pts = String(g.toi||"0:0").split(':'); return parseFloat(pts[0]) + (parseFloat(pts[1])/60); }
+                if(metric === 'breakout') return ((g.shots||0) * 2) - ((g.goals||0) * 15);
+                return getPlayerVal(p, metric, 'season', 0); 
+            });
+
+            globalRadarChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: metricText,
+                        data: dataValues,
+                        backgroundColor: chartColor.replace('0.5', '0.2'),
+                        borderColor: borderColor,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: borderColor,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: window.innerWidth < 768 ? 9 : 11 }, maxRotation: 45, minRotation: 45 } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' } }, beginAtZero: true }
+                    }
+                }
+            });
+        }
     } 
     // ==========================================
     // MODE 2 : CLASSEMENT GLOBAL (TOP LIGUE)
     // ==========================================
     else {
-        rankingSection.style.display = 'block'; // On affiche le classement
-        chartSubtitle.innerHTML = `Top 10 Ligue`;
+        rankingSection.style.display = 'block'; 
+        let periodText = periodMode === 'season' ? 'Saison Complète' : `Cumul sur ${recentCount} Matchs`;
+        chartSubtitle.innerHTML = `Top 10 Ligue <span class="text-gray-500 mx-1">|</span> <span class="text-white">${periodText}</span>`;
 
         let filteredPool = pool.filter(p => p.position !== 'G');
         if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
         if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
 
         filteredPool.forEach(p => {
-            p._radarValue = 0; p._radarLabel = metricText;
-            let history = period === 'L10' ? (p.last_10_games || p.last_5_games) : p.last_5_games;
-            
-            if (period === 'L5' || period === 'L10') {
-                if (!history || history.length === 0) return;
-                let rGoals = history.reduce((sum, g) => sum + g.goals, 0);
-                let rShots = history.reduce((sum, g) => sum + g.shots, 0);
-                
-                if (metric === 'breakout') { p._radarValue = (rGoals <= 1 && rShots >= 10) ? (rShots * 2) - (rGoals * 15) : 0; }
-                else if (metric === 'points') { p._radarValue = history.reduce((sum, g) => sum + g.points, 0); }
-                else if (metric === 'goals') { p._radarValue = rGoals; }
-                else if (metric === 'assists') { p._radarValue = history.reduce((sum, g) => sum + g.assists, 0); }
-                else if (metric === 'shots') { p._radarValue = rShots; }
-                else if (metric === 'toi') { let tm=0; history.forEach(g=>{if(g.toi){let parts=String(g.toi).split(':');tm+=parseInt(parts[0])+(parseInt(parts[1])/60);}}); p._radarValue = tm/history.length; }
-                else if (metric === 'speed') { p._radarValue = p.avg_speed || (p.position === 'D' ? (Math.random()*(33-28)+28) : (Math.random()*(38-32)+32)); }
-                else if (metric === 'pass_pct') { p._radarValue = p.pass_pct || (Math.random()*(95-75)+75); }
-            } else {
-                if (metric === 'points') p._radarValue = p.avg_points || 0;
-                else if (metric === 'goals') p._radarValue = p.avg_goals || 0;
-                else if (metric === 'assists') p._radarValue = p.avg_assists || 0;
-                else if (metric === 'shots') p._radarValue = p.avg_shots || 0;
-                else if (metric === 'speed') p._radarValue = p.avg_speed || 33;
-                else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 85;
-            }
+            p._radarValue = getPlayerVal(p, metric, periodMode, recentCount);
+            p._radarLabel = metricText;
         });
 
         filteredPool = filteredPool.filter(p => p._radarValue > 0);
@@ -306,11 +372,10 @@ window.updateGlobalRadar = async function() {
         let chartPlayers = filteredPool.slice(0, 10);
 
         if (topPlayers.length === 0) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 font-bold py-10 italic">Aucune donnée disponible.</div>`;
+            gridContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 font-bold py-10 italic border border-gray-800 border-dashed rounded-xl">Aucune donnée disponible pour ces paramètres.</div>`;
             return;
         }
 
-        // Dessiner le graphique BARRES HORIZONTALES (Top 10)
         globalRadarChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -334,7 +399,6 @@ window.updateGlobalRadar = async function() {
             }
         });
 
-        // Remplir les cartes en bas
         gridContainer.innerHTML = topPlayers.map((p, index) => `
             <div onclick="window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-3 md:p-4 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-[${borderColor}] hover:-translate-y-1 transition transform cursor-pointer flex flex-col items-center">
                 <div class="absolute top-2 left-2 bg-black text-gray-400 text-[8px] md:text-[10px] font-black px-2 py-0.5 flex items-center justify-center rounded border border-gray-800 shadow-inner group-hover:text-[${borderColor}] transition">#${index + 1}</div>
@@ -358,11 +422,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let filterTabBtn = document.querySelector('button[onclick*="tab-filtres"]');
     if (filterTabBtn) {
         filterTabBtn.addEventListener('click', () => {
-            // Force le redessin du graphe dès que l'onglet s'ouvre
             setTimeout(window.updateGlobalRadar, 200);
         });
     }
 });
+
+// Fonction pour fermer la page de résultats
+window.closeScreener = function () {
+    document.getElementById('screener-results').classList.add('hidden');
+    document.getElementById('screener-results').classList.remove('flex');
+    document.getElementById('screener-home').classList.remove('hidden');
+};
 let hasScannedGlobal = false; let usedPlayersForTickets = new Set();
 let myChart = null; let playerChart = null; let psModalChart = null; let mcChart = null;
 let scanInterval; let cachedSearchId = null;
