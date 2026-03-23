@@ -452,13 +452,28 @@
                                 </select>
                             </div>
 
-                            <div class="lg:col-span-1">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
-                                <select id="radar-period" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-blood outline-none cursor-pointer shadow-inner appearance-none transition">
-                                    <option value="L5">🔥 Dynamique (5 derniers)</option>
-                                    <option value="L10" selected>📈 Tendance (10 derniers)</option>
-                                    <option value="season">📊 Moyenne Saison</option>
-                                </select>
+                            <div class="lg:col-span-1 flex flex-col justify-between relative">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
+                                    <button id="radar-mode-btn" onclick="window.toggleRadarMode()" class="text-[8px] md:text-[9px] bg-gray-800 text-gray-400 px-2 py-1 rounded font-black uppercase tracking-widest transition hover:text-white hover:bg-gray-700 border border-gray-600 shadow-lg">
+                                        Voir Saison <i class="fas fa-sync-alt ml-1"></i>
+                                    </button>
+                                </div>
+                                
+                                <div id="radar-slider-container" class="bg-black border border-gray-700 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
+                                    <span class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
+                                    <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
+                                    <div class="flex items-center gap-1 w-8 justify-end whitespace-nowrap">
+                                        <span class="text-gray-600 text-[8px] font-black">L</span>
+                                        <span class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" id="radar-slider-val">5</span>
+                                    </div>
+                                </div>
+
+                                <div id="radar-season-container" class="bg-gray-900 border border-ice/50 rounded-xl p-3 h-[46px] shadow-inner items-center justify-center transition-all hidden absolute bottom-0 left-0 w-full cursor-not-allowed">
+                                    <span class="text-ice text-[10px] md:text-xs font-black uppercase tracking-widest animate-pulse"><i class="fas fa-chart-pie mr-2"></i> Moyennes Annuelles</span>
+                                </div>
+                                
+                                <input type="hidden" id="radar-period-mode" value="recent">
                             </div>
 
                             <div class="lg:col-span-1">
@@ -3132,7 +3147,7 @@
     <script src="js/over_under.js?v=1"></script>
     <script src="js/goalies.js?v=1"></script>
     <script src="js/team_predictions.js?v=5"></script>
-    <script src="js/app.js?v=32"></script>
+    <script src="js/app.js?v=33"></script>
 
     <div id="gsax-modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
