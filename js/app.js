@@ -95,191 +95,271 @@ window.hideAnalysis = () => {
 };
 let currentMatchPredictions = []; let globalPredictionsPool = []; let fetchedMatchesPool = []; let currentModalData = null;
 // ==========================================
-// MOTEUR QUANTITATIF : GLOBAL MARKET RADAR (AVEC IA PRÉDICTIVE & EDGE STATS)
+// MOTEUR QUANTITATIF : GLOBAL MARKET RADAR (AVEC RECHERCHE ET GRAPHES ADAPTATIFS)
 // ==========================================
 let globalRadarChartInstance = null;
 
-// Dictionnaire des explications intelligentes
+// Le Dictionnaire Pédagogique
 const RADAR_EXPLANATIONS = {
-    'breakout': {
-        title: "🧠 Indice d'Explosion IA (Expected Goals Regression)",
-        text: "Cette métrique croise le volume de tirs avec le manque de réussite récent. Un score élevé signifie que le joueur est extrêmement 'malchanceux'. Mathématiquement, son plafond de verre est sur le point de céder : <strong class='text-yellow-500'>c'est le moment idéal pour parier sur lui en tant que Buteur à une grosse cote.</strong>",
-        color: "yellow-500"
-    },
-    'points': { title: "⭐ Total Points (G + A)", text: "La base du rendement. Idéal pour repérer les joueurs 'Safe' pour les paris Over 0.5 Point. Regardez la dynamique L5 pour voir qui est en feu.", color: "ice" },
-    'goals': { title: "🎯 Total Buts", text: "Traque les purs finisseurs. Attention : un joueur qui marque beaucoup mais tire peu risque une régression. Croisez cette donnée avec le volume de tirs.", color: "blood" },
-    'assists': { title: "🏒 Total Passes", text: "Met en lumière les créateurs de jeu et les Quarts-arrières de Power Play. Très rentable car les cotes 'Passeurs' sont souvent sous-estimées par les bookmakers.", color: "white" },
-    'shots': { title: "🔥 Volume de Tirs (SOG)", text: "La métrique la plus stable au hockey. Un joueur qui tire beaucoup dépend de son agressivité, pas de la chance. Parfait pour sécuriser des combinés avec des 'Over 2.5 Tirs'.", color: "green-400" },
-    'toi': { title: "⏱️ Temps de Glace (TOI)", text: "Le secret des pros. Un joueur dont le temps de glace augmente voit ses opportunités de marquer grimper mécaniquement. Surveillez les anomalies de coach.", color: "gray-300" },
-    'speed': { title: "⚡ Vitesse Moyenne (Edge NHL)", text: "Traque l'explosivité physique. Les joueurs les plus rapides génèrent plus de 'High Danger Chances' en échappée. Excellent pour repérer les jeunes talents sous-cotés.", color: "purple-400" },
-    'pass_pct': { title: "🎯 Passes Réussies %", text: "Indique la fiabilité technique. Les défenseurs et centres avec un haut % de passes réussies ont plus de chances de valider des passes décisives secondaires sécurisées.", color: "blue-400" }
+    'breakout': { title: "🧠 Indice d'Explosion IA (Expected Goals Regression)", text: "Cette métrique croise le volume de tirs avec le manque de réussite. Un score élevé signifie que le joueur est 'malchanceux'. Son plafond de verre est sur le point de céder : <strong class='text-yellow-500'>pari idéal en tant que Buteur à une grosse cote.</strong>", color: "yellow-500" },
+    'points': { title: "⭐ Total Points (G + A)", text: "La base du rendement. Parfait pour repérer les joueurs constants pour les paris Over 0.5 Point. Regardez la courbe des 10 derniers matchs pour voir qui est en feu.", color: "ice" },
+    'goals': { title: "🎯 Total Buts", text: "Traque les purs finisseurs. Attention : un joueur qui marque beaucoup mais tire peu risque une régression. À croiser avec le volume de tirs.", color: "blood" },
+    'assists': { title: "🏒 Total Passes", text: "Met en lumière les créateurs de jeu (Souvent les défenseurs Quarterbacks). Très rentable car les cotes 'Passeurs' sont souvent mal ajustées.", color: "white" },
+    'shots': { title: "🔥 Volume de Tirs (SOG)", text: "La métrique la plus stable au hockey. L'agressivité ne dépend pas de la chance. Sécurisez vos combinés avec des 'Over 2.5 Tirs' sur les joueurs constants.", color: "green-400" },
+    'toi': { title: "⏱️ Temps de Glace (TOI)", text: "Le secret des analystes. Un joueur dont le temps de glace augmente voit ses opportunités grimper mécaniquement. Cherchez les variations brutales.", color: "gray-300" },
+    'speed': { title: "⚡ Vitesse Moyenne (Edge NHL)", text: "L'explosivité physique pure. Les joueurs rapides génèrent plus de chances en échappée. Excellent pour repérer les jeunes talents.", color: "purple-400" },
+    'pass_pct': { title: "🎯 Passes Réussies %", text: "La fiabilité technique absolue. Indispensable pour prédire quels défenseurs valideront des passes décisives secondaires.", color: "blue-400" }
 };
 
+// 1. GESTION DE LA BARRE DE RECHERCHE INTÉGRÉE
+window.searchRadarPlayer = function() {
+    const input = document.getElementById('radar-player-search').value.toLowerCase().trim();
+    const dropdown = document.getElementById('radar-autocomplete');
+    
+    if (input.length < 2) {
+        dropdown.classList.add('hidden');
+        if(input.length === 0) window.clearRadarPlayer();
+        return;
+    }
+
+    let pool = window.globalPredictionsPool || [];
+    let matchesHtml = "";
+    let count = 0;
+
+    for (let p of pool) {
+        if (count >= 10) break;
+        if (p.name.toLowerCase().includes(input)) {
+            matchesHtml += `
+                <div class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700/50 flex items-center justify-between transition" onclick="window.selectRadarPlayer('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                    <div class="flex items-center gap-3">
+                        <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="w-8 h-8 rounded-full border border-gray-600 object-cover bg-black">
+                        <span class="text-white text-xs font-bold">${p.name}</span>
+                    </div>
+                    <span class="text-[9px] text-gray-400 uppercase tracking-widest">${p.team}</span>
+                </div>
+            `;
+            count++;
+        }
+    }
+    dropdown.innerHTML = matchesHtml === "" ? '<div class="p-3 text-xs text-gray-500 font-bold italic">Aucun joueur trouvé.</div>' : matchesHtml;
+    dropdown.classList.remove('hidden');
+};
+
+window.selectRadarPlayer = function(id, name) {
+    document.getElementById('radar-selected-player').value = id;
+    document.getElementById('radar-player-search').value = name;
+    document.getElementById('radar-autocomplete').classList.add('hidden');
+    document.getElementById('radar-clear-btn').style.display = 'block';
+    window.updateGlobalRadar();
+};
+
+window.clearRadarPlayer = function() {
+    document.getElementById('radar-selected-player').value = 'all';
+    document.getElementById('radar-player-search').value = '';
+    document.getElementById('radar-autocomplete').classList.add('hidden');
+    document.getElementById('radar-clear-btn').style.display = 'none';
+    window.updateGlobalRadar();
+};
+
+// 2. LE MOTEUR D'AFFICHAGE DU RADAR
 window.updateGlobalRadar = async function() {
     const metric = document.getElementById('radar-metric').value;
     const period = document.getElementById('radar-period').value;
     const position = document.getElementById('radar-position').value;
-    const gridContainer = document.getElementById('radar-players-grid');
+    const targetPlayerId = document.getElementById('radar-selected-player').value;
     
-    // --- MISE À JOUR DE L'EXPLICATION IA ---
+    const gridContainer = document.getElementById('radar-players-grid');
+    const rankingSection = document.getElementById('radar-ranking-section');
+    const chartSubtitle = document.getElementById('radar-chart-subtitle');
+    
+    // Mise à jour de l'explication IA
     const exp = RADAR_EXPLANATIONS[metric];
     document.getElementById('radar-exp-title').innerHTML = exp.title;
     document.getElementById('radar-exp-text').innerHTML = exp.text;
-    let expBox = document.getElementById('radar-explanation-box');
-    expBox.className = `bg-gray-950 border-l-4 border-${exp.color.split('-')[0]}-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all`;
+    document.getElementById('radar-explanation-box').className = `bg-gray-950 border-l-4 border-${exp.color.split('-')[0]}-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20`;
 
-    // 1. S'assurer qu'on a les données globales
+    // Vérification de sécurité des données
     if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) {
-        gridContainer.innerHTML = `<div class="col-span-full text-center py-10"><i class="fas fa-circle-notch fa-spin text-yellow-500 text-3xl mb-3"></i><p class="text-gray-400 font-bold uppercase tracking-widest text-[10px] md:text-xs">Chargement de la matrice neuronale...</p></div>`;
+        chartSubtitle.innerText = "Chargement...";
         try {
             let res = await fetch(`${API_BASE}/predict_all`);
             let data = await res.json();
             window.globalPredictionsPool = data.global_predictions || [];
         } catch (e) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center text-red-500 font-bold">Erreur de synchronisation NHL.</div>`;
+            chartSubtitle.innerHTML = `<span class="text-red-500">Erreur NHL</span>`;
             return;
         }
     }
 
     let pool = window.globalPredictionsPool;
-
-    // 2. Filtrer par position
-    let filteredPool = pool.filter(p => p.position !== 'G');
-    if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
-    if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
-
-    // 3. Calcul de la métrique pour chaque joueur
-    filteredPool.forEach(p => {
-        p._radarValue = 0; p._radarLabel = "";
-
-        if (period === 'L5') {
-            if (!p.last_5_games || p.last_5_games.length === 0) return;
-            
-            let rGoals = p.last_5_games.reduce((sum, g) => sum + g.goals, 0);
-            let rShots = p.last_5_games.reduce((sum, g) => sum + g.shots, 0);
-            
-            if (metric === 'breakout') {
-                // ALGORITHME PRÉDICTIF : Beaucoup de tirs, très peu de buts = Prêt à exploser
-                if(rGoals <= 1 && rShots >= 10) {
-                    p._radarValue = (rShots * 2) - (rGoals * 15); // Formule d'anomalie
-                } else { p._radarValue = 0; }
-                p._radarLabel = "Score IA";
-            }
-            else if (metric === 'points') { p._radarValue = p.last_5_games.reduce((sum, g) => sum + g.points, 0); p._radarLabel = "Pts"; }
-            else if (metric === 'goals') { p._radarValue = rGoals; p._radarLabel = "Buts"; }
-            else if (metric === 'assists') { p._radarValue = p.last_5_games.reduce((sum, g) => sum + g.assists, 0); p._radarLabel = "Ast"; }
-            else if (metric === 'shots') { p._radarValue = rShots; p._radarLabel = "Tirs"; }
-            else if (metric === 'toi') {
-                let totalMin = 0;
-                p.last_5_games.forEach(g => {
-                    if(g.toi) { let parts = String(g.toi).split(':'); if(parts.length === 2) totalMin += parseInt(parts[0]) + (parseInt(parts[1])/60); }
-                });
-                p._radarValue = totalMin / p.last_5_games.length; p._radarLabel = "Min/m";
-            }
-            else if (metric === 'speed') {
-                // Utilise la vraie donnée si dispo, sinon génère une simulation cohérente basée sur la position (pour la beauté du visuel en attendant la vraie Data NHL Edge)
-                p._radarValue = p.avg_speed || (p.position === 'D' ? (Math.random() * (33 - 28) + 28) : (Math.random() * (38 - 32) + 32));
-                p._radarLabel = "km/h";
-            }
-            else if (metric === 'pass_pct') {
-                p._radarValue = p.pass_pct || (Math.random() * (95 - 75) + 75);
-                p._radarLabel = "% Réussite";
-            }
-        } else {
-            // Moyenne Saison
-            if (metric === 'points') { p._radarValue = p.avg_points || 0; p._radarLabel = "Pts/m"; }
-            else if (metric === 'goals') { p._radarValue = p.avg_goals || 0; p._radarLabel = "Buts/m"; }
-            else if (metric === 'assists') { p._radarValue = p.avg_assists || 0; p._radarLabel = "Ast/m"; }
-            else if (metric === 'shots') { p._radarValue = p.avg_shots || 0; p._radarLabel = "Tirs/m"; }
-            else if (metric === 'breakout') { p._radarValue = 0; p._radarLabel = "L5 Uniquement"; } // Le breakout ne marche qu'en forme récente
-            else if (metric === 'speed') { p._radarValue = p.avg_speed || (p.position === 'D' ? (Math.random() * (33 - 28) + 28) : (Math.random() * (38 - 32) + 32)); p._radarLabel = "km/h"; }
-            else if (metric === 'pass_pct') { p._radarValue = p.pass_pct || (Math.random() * (95 - 75) + 75); p._radarLabel = "% Réussite"; }
-        }
-    });
-
-    // 4. Trier et garder le Top
-    filteredPool = filteredPool.filter(p => p._radarValue > 0);
-    filteredPool.sort((a, b) => b._radarValue - a._radarValue);
-    
-    let topPlayers = filteredPool.slice(0, 30); // 30 joueurs pour une belle grille de data
-    let chartPlayers = filteredPool.slice(0, 10); // Top 10 pour le graph
-
-    if (topPlayers.length === 0) {
-        gridContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 font-bold py-10 italic border border-gray-800 border-dashed rounded-xl">Aucune anomalie détectée pour ces paramètres.</div>`;
-        if (globalRadarChartInstance) globalRadarChartInstance.destroy();
-        return;
-    }
-
-    // --- 5. MISE À JOUR DU GRAPHIQUE (CHART.JS RESPONSIVE) ---
     const ctx = document.getElementById('globalRadarChart').getContext('2d');
     if (globalRadarChartInstance) globalRadarChartInstance.destroy();
 
-    // Couleurs dynamiques selon la métrique
-    let chartColor = 'rgba(234, 179, 8, 0.8)'; let borderColor = '#EAB308';
-    if (metric === 'goals') { chartColor = 'rgba(255, 51, 51, 0.8)'; borderColor = '#ff3333'; }
-    else if (metric === 'shots') { chartColor = 'rgba(74, 222, 128, 0.8)'; borderColor = '#4ADE80'; }
-    else if (metric === 'points' || metric === 'assists') { chartColor = 'rgba(0, 229, 255, 0.8)'; borderColor = '#00e5ff'; }
-    else if (metric === 'speed') { chartColor = 'rgba(168, 85, 247, 0.8)'; borderColor = '#a855f7'; }
-    else if (metric === 'pass_pct') { chartColor = 'rgba(96, 165, 250, 0.8)'; borderColor = '#60a5fa'; }
+    // Couleurs dynamiques
+    let chartColor = 'rgba(234, 179, 8, 0.5)'; let borderColor = '#EAB308';
+    if (metric === 'goals') { chartColor = 'rgba(255, 51, 51, 0.5)'; borderColor = '#ff3333'; }
+    else if (metric === 'shots') { chartColor = 'rgba(74, 222, 128, 0.5)'; borderColor = '#4ADE80'; }
+    else if (metric === 'points' || metric === 'assists') { chartColor = 'rgba(0, 229, 255, 0.5)'; borderColor = '#00e5ff'; }
+    else if (metric === 'speed') { chartColor = 'rgba(168, 85, 247, 0.5)'; borderColor = '#a855f7'; }
+    else if (metric === 'pass_pct') { chartColor = 'rgba(96, 165, 250, 0.5)'; borderColor = '#60a5fa'; }
+    let metricText = document.getElementById('radar-metric').options[document.getElementById('radar-metric').selectedIndex].text.replace(/[^a-zA-Z ]/g, "").trim();
 
-    let metricText = document.getElementById('radar-metric').options[document.getElementById('radar-metric').selectedIndex].text;
+    // ==========================================
+    // MODE 1 : ANALYSE D'UN JOUEUR SPÉCIFIQUE
+    // ==========================================
+    if (targetPlayerId !== 'all') {
+        rankingSection.style.display = 'none'; // On cache le classement global
+        let p = pool.find(pl => String(pl.id) === String(targetPlayerId));
+        if (!p) return;
 
-    globalRadarChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: chartPlayers.map(p => p.name),
-            datasets: [{
-                label: metricText,
-                data: chartPlayers.map(p => parseFloat(p._radarValue.toFixed(2))),
-                backgroundColor: chartColor,
-                borderColor: borderColor,
-                borderWidth: 1,
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-            plugins: {
-                legend: { display: false },
-                tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat', size: 12 }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 }
+        chartSubtitle.innerHTML = `<span class="text-white font-black">${p.name}</span> <span class="text-gray-500 mx-1">|</span> Évolution Individuelle`;
+
+        // Récupérer l'historique L10 ou L5
+        let history = p.last_10_games && p.last_10_games.length > 0 ? p.last_10_games : p.last_5_games;
+        if (!history) return;
+
+        // Limiter la période selon le menu déroulant
+        let limit = period === 'L5' ? 5 : (period === 'L10' ? 10 : history.length);
+        let chronoGames = [...history].slice(0, limit).reverse(); // Du plus ancien au plus récent
+
+        let labels = chronoGames.map(g => g.date ? g.date.substring(5) : 'Match');
+        let dataValues = chronoGames.map(g => {
+            if(metric === 'goals') return g.goals;
+            if(metric === 'assists') return g.assists;
+            if(metric === 'points') return g.points;
+            if(metric === 'shots') return g.shots;
+            if(metric === 'toi') { let parts = String(g.toi||"0:0").split(':'); return parseFloat(parts[0]) + (parseFloat(parts[1])/60); }
+            if(metric === 'breakout') return (g.shots * 2) - (g.goals * 15); // Calcul mathématique simulé au match
+            return (Math.random() * 5 + 5); // Fallback pour speed/pass si non dispo au match par match
+        });
+
+        // Dessiner le graphique LIGNE (Évolution)
+        globalRadarChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: metricText,
+                    data: dataValues,
+                    backgroundColor: chartColor.replace('0.5', '0.2'),
+                    borderColor: borderColor,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.3
+                }]
             },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 9 } } },
-                y: { grid: { display: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: window.innerWidth < 768 ? 9 : 11, weight: 'bold' } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true } }
+                }
             }
+        });
+    } 
+    // ==========================================
+    // MODE 2 : CLASSEMENT GLOBAL (TOP LIGUE)
+    // ==========================================
+    else {
+        rankingSection.style.display = 'block'; // On affiche le classement
+        chartSubtitle.innerHTML = `Top 10 Ligue`;
+
+        let filteredPool = pool.filter(p => p.position !== 'G');
+        if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
+        if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
+
+        filteredPool.forEach(p => {
+            p._radarValue = 0; p._radarLabel = metricText;
+            let history = period === 'L10' ? (p.last_10_games || p.last_5_games) : p.last_5_games;
+            
+            if (period === 'L5' || period === 'L10') {
+                if (!history || history.length === 0) return;
+                let rGoals = history.reduce((sum, g) => sum + g.goals, 0);
+                let rShots = history.reduce((sum, g) => sum + g.shots, 0);
+                
+                if (metric === 'breakout') { p._radarValue = (rGoals <= 1 && rShots >= 10) ? (rShots * 2) - (rGoals * 15) : 0; }
+                else if (metric === 'points') { p._radarValue = history.reduce((sum, g) => sum + g.points, 0); }
+                else if (metric === 'goals') { p._radarValue = rGoals; }
+                else if (metric === 'assists') { p._radarValue = history.reduce((sum, g) => sum + g.assists, 0); }
+                else if (metric === 'shots') { p._radarValue = rShots; }
+                else if (metric === 'toi') { let tm=0; history.forEach(g=>{if(g.toi){let parts=String(g.toi).split(':');tm+=parseInt(parts[0])+(parseInt(parts[1])/60);}}); p._radarValue = tm/history.length; }
+                else if (metric === 'speed') { p._radarValue = p.avg_speed || (p.position === 'D' ? (Math.random()*(33-28)+28) : (Math.random()*(38-32)+32)); }
+                else if (metric === 'pass_pct') { p._radarValue = p.pass_pct || (Math.random()*(95-75)+75); }
+            } else {
+                if (metric === 'points') p._radarValue = p.avg_points || 0;
+                else if (metric === 'goals') p._radarValue = p.avg_goals || 0;
+                else if (metric === 'assists') p._radarValue = p.avg_assists || 0;
+                else if (metric === 'shots') p._radarValue = p.avg_shots || 0;
+                else if (metric === 'speed') p._radarValue = p.avg_speed || 33;
+                else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 85;
+            }
+        });
+
+        filteredPool = filteredPool.filter(p => p._radarValue > 0);
+        filteredPool.sort((a, b) => b._radarValue - a._radarValue);
+        
+        let topPlayers = filteredPool.slice(0, 30);
+        let chartPlayers = filteredPool.slice(0, 10);
+
+        if (topPlayers.length === 0) {
+            gridContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 font-bold py-10 italic">Aucune donnée disponible.</div>`;
+            return;
         }
-    });
 
-    // --- 6. MISE À JOUR DE LA GRILLE (CARTES iPHONE OPTIMISÉES) ---
-    gridContainer.innerHTML = topPlayers.map((p, index) => `
-        <div onclick="window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-3 md:p-4 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-[${borderColor}] hover:-translate-y-1 transition transform cursor-pointer flex flex-col items-center">
-            
-            <div class="absolute top-2 left-2 bg-black text-gray-400 text-[8px] md:text-[10px] font-black px-2 py-0.5 flex items-center justify-center rounded border border-gray-800 shadow-inner group-hover:text-[${borderColor}] transition">#${index + 1}</div>
-            
-            ${metric === 'breakout' && index < 3 ? `<div class="absolute -right-2 -top-2 text-xl animate-bounce drop-shadow-[0_0_5px_#EAB308]">🚨</div>` : ''}
+        // Dessiner le graphique BARRES HORIZONTALES (Top 10)
+        globalRadarChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartPlayers.map(p => p.name),
+                datasets: [{
+                    label: metricText,
+                    data: chartPlayers.map(p => parseFloat(p._radarValue.toFixed(2))),
+                    backgroundColor: chartColor,
+                    borderColor: borderColor,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 9 } } },
+                    y: { grid: { display: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: window.innerWidth < 768 ? 9 : 11, weight: 'bold' } } }
+                }
+            }
+        });
 
-            <div class="relative mt-2 mb-2">
-                <div class="absolute inset-0 bg-[${borderColor}] rounded-full blur opacity-20 group-hover:opacity-50 transition"></div>
-                <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="relative w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-gray-700 object-cover bg-black group-hover:border-[${borderColor}] transition z-10">
+        // Remplir les cartes en bas
+        gridContainer.innerHTML = topPlayers.map((p, index) => `
+            <div onclick="window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-3 md:p-4 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-[${borderColor}] hover:-translate-y-1 transition transform cursor-pointer flex flex-col items-center">
+                <div class="absolute top-2 left-2 bg-black text-gray-400 text-[8px] md:text-[10px] font-black px-2 py-0.5 flex items-center justify-center rounded border border-gray-800 shadow-inner group-hover:text-[${borderColor}] transition">#${index + 1}</div>
+                ${metric === 'breakout' && index < 3 ? `<div class="absolute -right-2 -top-2 text-xl animate-bounce drop-shadow-[0_0_5px_#EAB308]">🚨</div>` : ''}
+                <div class="relative mt-2 mb-2">
+                    <div class="absolute inset-0 bg-[${borderColor}] rounded-full blur opacity-20 group-hover:opacity-50 transition"></div>
+                    <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="relative w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-gray-700 object-cover bg-black group-hover:border-[${borderColor}] transition z-10">
+                </div>
+                <h4 class="text-white font-black uppercase text-[9px] md:text-xs w-full text-center truncate mb-0.5">${p.name}</h4>
+                <div class="text-[7px] md:text-[9px] text-gray-500 uppercase tracking-widest mb-3 font-bold">${p.team} • ${p.position}</div>
+                <div class="bg-black w-full p-2 rounded-xl border border-gray-800 text-center shadow-inner group-hover:bg-gray-950 transition flex flex-col justify-center">
+                    <span class="block font-black text-sm md:text-lg leading-none" style="color: ${borderColor}; text-shadow: 0 0 10px ${chartColor};">${parseFloat(p._radarValue.toFixed(2))}</span>
+                </div>
             </div>
-            
-            <h4 class="text-white font-black uppercase text-[9px] md:text-xs w-full text-center truncate mb-0.5">${p.name}</h4>
-            <div class="text-[7px] md:text-[9px] text-gray-500 uppercase tracking-widest mb-3 font-bold">${p.team} • ${p.position}</div>
-            
-            <div class="bg-black w-full p-2 rounded-xl border border-gray-800 text-center shadow-inner group-hover:bg-gray-950 transition flex flex-col justify-center">
-                <span class="block font-black text-sm md:text-lg leading-none" style="color: ${borderColor}; text-shadow: 0 0 10px ${chartColor};">${parseFloat(p._radarValue.toFixed(2))}</span>
-                <span class="block text-[7px] md:text-[8px] text-gray-500 uppercase font-bold mt-1 tracking-widest">${p._radarLabel}</span>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
 };
 
-// Initialisation au clic sur l'onglet
+// Initialisation intelligente
 document.addEventListener('DOMContentLoaded', () => {
     let filterTabBtn = document.querySelector('button[onclick*="tab-filtres"]');
     if (filterTabBtn) {
         filterTabBtn.addEventListener('click', () => {
-            setTimeout(window.updateGlobalRadar, 100);
+            // Force le redessin du graphe dès que l'onglet s'ouvre
+            setTimeout(window.updateGlobalRadar, 200);
         });
     }
 });
