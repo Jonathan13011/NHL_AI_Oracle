@@ -413,43 +413,57 @@
                         <i class="fas fa-radar animate-spin-slow"></i> Market Radar
                     </h2>
                     <p class="text-gray-400 font-bold mt-2 text-[10px] md:text-sm max-w-3xl mx-auto leading-relaxed">
-                        Le terminal de Quant Trading absolu. Visualisez les métriques avancées (Edge) de toute la ligue et laissez l'IA prédire les prochaines explosions offensives.
+                        Le terminal de Quant Trading absolu. Sélectionnez un joueur pour analyser son évolution match par match, ou laissez le champ vide pour afficher le Top 10 de la Ligue.
                     </p>
                 </div>
 
                 <div class="max-w-7xl mx-auto px-2 md:px-0">
                     
-                    <div class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-20 backdrop-blur-md">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                            <div>
+                    <div class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-30 backdrop-blur-md">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                            
+                            <div class="relative lg:col-span-1">
+                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
+                                <div class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
+                                    <input type="text" id="radar-player-search" autocomplete="off" onkeyup="window.searchRadarPlayer()" placeholder="Global (Top 10 Ligue)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
+                                    <button onclick="window.clearRadarPlayer()" class="text-gray-500 hover:text-white transition" id="radar-clear-btn" style="display:none;"><i class="fas fa-times"></i></button>
+                                </div>
+                                <div id="radar-autocomplete" class="absolute z-50 w-full bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar"></div>
+                                <input type="hidden" id="radar-selected-player" value="all">
+                            </div>
+
+                            <div class="lg:col-span-1">
                                 <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
-                                <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl p-3 focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
                                     <optgroup label="Prédictions IA">
-                                        <option value="breakout" selected>🧠 Indice d'Explosion IA (Breakout)</option>
+                                        <option value="breakout" selected>🧠 Indice d'Explosion (Breakout)</option>
                                     </optgroup>
-                                    <optgroup label="Métriques Standard">
+                                    <optgroup label="Performances Réelles">
                                         <option value="points">⭐ Total Points</option>
                                         <option value="goals">🎯 Total Buts</option>
                                         <option value="assists">🏒 Total Passes</option>
                                         <option value="shots">🔥 Volume de Tirs (SOG)</option>
                                         <option value="toi">⏱️ Temps de Glace (TOI)</option>
                                     </optgroup>
-                                    <optgroup label="Métriques Avancées (Edge)">
+                                    <optgroup label="Métriques Edge">
                                         <option value="speed">⚡ Vitesse Moyenne (km/h)</option>
                                         <option value="pass_pct">🎯 Passes Réussies (%)</option>
                                     </optgroup>
                                 </select>
                             </div>
-                            <div>
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-ice mr-1"></i> Période</label>
-                                <select id="radar-period" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl p-3 focus:border-ice outline-none cursor-pointer shadow-inner appearance-none transition">
-                                    <option value="L5" selected>🔥 Dynamique (5 derniers matchs)</option>
+
+                            <div class="lg:col-span-1">
+                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
+                                <select id="radar-period" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-blood outline-none cursor-pointer shadow-inner appearance-none transition">
+                                    <option value="L5">🔥 Dynamique (5 derniers)</option>
+                                    <option value="L10" selected>📈 Tendance (10 derniers)</option>
                                     <option value="season">📊 Moyenne Saison</option>
                                 </select>
                             </div>
-                            <div class="sm:col-span-2 md:col-span-1">
+
+                            <div class="lg:col-span-1">
                                 <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-users text-purple-400 mr-1"></i> Position</label>
-                                <select id="radar-position" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl p-3 focus:border-purple-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                <select id="radar-position" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-purple-500 outline-none cursor-pointer shadow-inner appearance-none transition">
                                     <option value="all" selected>Tous les patineurs</option>
                                     <option value="F">Attaquants (C, LW, RW)</option>
                                     <option value="D">Défenseurs (D)</option>
@@ -458,7 +472,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-gray-950 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all" id="radar-explanation-box">
+                    <div class="bg-gray-950 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20" id="radar-explanation-box">
                         <i class="fas fa-robot text-2xl text-yellow-500 mt-1 animate-pulse"></i>
                         <div>
                             <h4 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs mb-1" id="radar-exp-title">Analyse en cours...</h4>
@@ -466,21 +480,25 @@
                         </div>
                     </div>
 
-                    <div class="bg-gray-950 border border-gray-800 p-3 md:p-6 rounded-2xl shadow-xl mb-6 flex flex-col relative overflow-hidden">
+                    <div class="bg-gray-950 border border-gray-800 p-3 md:p-6 rounded-2xl shadow-xl mb-6 flex flex-col relative overflow-hidden z-10">
                         <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-                        <h3 id="radar-chart-title" class="text-white font-black uppercase tracking-widest text-[10px] md:text-sm mb-4 flex items-center border-b border-gray-800 pb-2 relative z-10">
-                            <i class="fas fa-chart-bar text-yellow-500 mr-2"></i> Visualisation du Top 10
+                        <h3 id="radar-chart-title" class="text-white font-black uppercase tracking-widest text-[10px] md:text-sm mb-4 flex items-center justify-between border-b border-gray-800 pb-2 relative z-10">
+                            <span><i class="fas fa-chart-area text-yellow-500 mr-2"></i> Visualisation IA</span>
+                            <span id="radar-chart-subtitle" class="text-[9px] bg-gray-900 px-2 py-1 rounded text-gray-500">Top 10 Ligue</span>
                         </h3>
                         <div class="relative w-full h-[250px] md:h-[400px] z-10">
                             <canvas id="globalRadarChart"></canvas>
                         </div>
                     </div>
 
-                    <h3 class="text-white font-black uppercase tracking-widest text-xs md:text-sm mb-4 flex items-center gap-2 px-1">
-                        <i class="fas fa-list-ol text-gray-500"></i> Classement Complet
-                    </h3>
-                    <div id="radar-players-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 pb-10">
-                        </div>
+                    <div id="radar-ranking-section">
+                        <h3 class="text-white font-black uppercase tracking-widest text-xs md:text-sm mb-4 flex items-center gap-2 px-1">
+                            <i class="fas fa-list-ol text-gray-500"></i> Classement Complet
+                        </h3>
+                        <div id="radar-players-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 pb-10">
+                            </div>
+                    </div>
+
                 </div>
             </section>
 
@@ -3114,7 +3132,7 @@
     <script src="js/over_under.js?v=1"></script>
     <script src="js/goalies.js?v=1"></script>
     <script src="js/team_predictions.js?v=5"></script>
-    <script src="js/app.js?v=31"></script>
+    <script src="js/app.js?v=32"></script>
 
     <div id="gsax-modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
