@@ -413,130 +413,81 @@
                         class="text-3xl md:text-5xl font-black text-yellow-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] flex items-center justify-center gap-3">
                         <i class="fas fa-radar animate-spin-slow"></i>Smart Screener
                     </h2>
-                    <p class="text-gray-400 font-bold mt-2 text-xs md:text-sm">Détection d'anomalies de marché et de
-                        situations asymétriques (Quant Trading).</p>
-                </div>
-                <div class="max-w-6xl mx-auto mb-6 px-4 md:px-0 relative z-10 fade-in">
-                    <div class="flex flex-col md:flex-row justify-between items-center mb-2 gap-2">
-                        <h3 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs"><i
-                                class="fas fa-crosshairs text-yellow-500 mr-2"></i> 1. Cibler les rencontres</h3>
-                        <div class="flex gap-2">
-                            <button onclick="selectAllScreenerMatches()"
-                                class="text-[9px] bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded border border-gray-600 uppercase font-black transition">Tout
-                                Sélectionner</button>
-                            <button onclick="deselectAllScreenerMatches()"
-                                class="text-[9px] bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded border border-gray-600 uppercase font-black transition">Tout
-                                Effacer</button>
-                        </div>
-                    </div>
-                    <div id="screener-match-selector"
-                        class="flex flex-wrap gap-2 p-3 bg-gray-900 border border-gray-800 rounded-xl shadow-inner min-h-[60px] items-center">
-                        <span class="text-[10px] text-gray-500 italic font-bold">Sélectionnez d'abord une date dans le
-                            calendrier en haut à droite.</span>
-                    </div>
+                    <p class="text-gray-400 font-bold mt-2 text-xs md:text-sm max-w-2xl mx-auto">
+                        Le robot scanne automatiquement l'intégralité des matchs de la nuit pour détecter les anomalies de marché et les situations asymétriques.
+                    </p>
                 </div>
 
-                <div class="max-w-6xl mx-auto mb-4 px-4 md:px-0">
-                    <h3 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs"><i
-                            class="fas fa-bolt text-yellow-500 mr-2"></i> 2. Lancer l'Algorithme</h3>
-                </div>
                 <div id="screener-home"
                     class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 px-2 md:px-0 fade-in">
 
                     <div onclick="runScreener('due_factor')"
-                        class="bg-gray-900 border-t-4 border-ice p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(0,229,255,0.1)] group">
-                        <div class="flex items-center justify-between mb-4">
-                            <div
-                                class="w-12 h-12 rounded-full bg-ice/10 flex items-center justify-center text-ice text-2xl group-hover:scale-110 transition border border-ice/30">
-                                <i class="fas fa-snowflake"></i>
+                        class="bg-gray-900 border-t-4 border-ice p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(0,229,255,0.1)] group relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 opacity-5 text-7xl group-hover:scale-125 transition duration-500"><i class="fas fa-snowflake"></i></div>
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="w-12 h-12 rounded-full bg-ice/10 flex items-center justify-center text-ice text-2xl border border-ice/30">
+                                <i class="fas fa-search-plus"></i>
                             </div>
-                            <span
-                                class="text-[9px] bg-ice/20 text-ice px-3 py-1 rounded font-black tracking-widest uppercase border border-ice/50 shadow-[0_0_10px_#00e5ff]">Rendement
-                                Asymétrique</span>
+                            <span class="text-[9px] bg-ice/20 text-ice px-3 py-1 rounded font-black tracking-widest uppercase border border-ice/50 shadow-[0_0_10px_#00e5ff] animate-pulse">Recommandé</span>
                         </div>
-                        <h3
-                            class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-ice transition">
-                            Régression Positive (Due Factor)</h3>
-                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4">L'algorithme traque les joueurs
-                            accumulant un énorme volume de tirs mais souffrant d'un déficit de réussite temporaire. Le
-                            "plafond de verre" est sur le point de céder.</p>
-                        <div
-                            class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase">
+                        <h3 class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-ice transition relative z-10">Régression Positive</h3>
+                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4 relative z-10">L'algorithme traque les joueurs accumulant un énorme volume de tirs mais souffrant d'un déficit de réussite temporaire. Le "plafond de verre" est sur le point de céder.</p>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase relative z-10">
                             <i class="fas fa-bullseye text-ice"></i> Cible : Cotes Buteurs Élevées
                         </div>
                     </div>
 
-                    <div onclick="runScreener('fatigue')"
-                        class="bg-gray-900 border-t-4 border-orange-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(249,115,22,0.1)] group">
-                        <div class="flex items-center justify-between mb-4">
-                            <div
-                                class="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl group-hover:scale-110 transition border border-orange-500/30">
-                                <i class="fas fa-battery-empty"></i>
+                    <div onclick="runScreener('shot_volume')"
+                        class="bg-gray-900 border-t-4 border-green-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(74,222,128,0.1)] group relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 opacity-5 text-7xl group-hover:scale-125 transition duration-500"><i class="fas fa-shield-alt"></i></div>
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 text-2xl border border-green-500/30">
+                                <i class="fas fa-crosshairs"></i>
                             </div>
-                            <span
-                                class="text-[9px] bg-orange-500/20 text-orange-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-orange-500/50 shadow-[0_0_10px_#F97316]">Avantage
-                                Physique</span>
+                            <span class="text-[9px] bg-green-500/20 text-green-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-green-500/50">Sécurité</span>
                         </div>
-                        <h3
-                            class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-orange-500 transition">
-                            Exploitation de Fatigue (B2B)</h3>
-                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4">Isole les équipes jouant leur
-                            2ème match en 2 soirs avec voyage, favorisant l'alignement du gardien remplaçant
-                            (vulnérable) et une baisse d'énergie défensive.</p>
-                        <div
-                            class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase">
-                            <i class="fas fa-fire text-orange-500"></i> Cible : Points & Buts adverses
+                        <h3 class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-green-500 transition relative z-10">Plancher de Tirs (>2.5)</h3>
+                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4 relative z-10">Exclut la variance des buts. Le réseau identifie les Snipers hyper-stables franchissant la barre des 2.5 tirs dans plus de 80% de leurs matchs récents.</p>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase relative z-10">
+                            <i class="fas fa-arrow-up text-green-500"></i> Cible : Over Tirs Cadrés
                         </div>
                     </div>
 
                     <div onclick="runScreener('mismatch')"
-                        class="bg-gray-900 border-t-4 border-purple-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(168,85,247,0.1)] group">
-                        <div class="flex items-center justify-between mb-4">
-                            <div
-                                class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 text-2xl group-hover:scale-110 transition border border-purple-500/30">
+                        class="bg-gray-900 border-t-4 border-purple-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(168,85,247,0.1)] group relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 opacity-5 text-7xl group-hover:scale-125 transition duration-500"><i class="fas fa-chess-board"></i></div>
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500 text-2xl border border-purple-500/30">
                                 <i class="fas fa-bolt"></i>
                             </div>
-                            <span
-                                class="text-[9px] bg-purple-500/20 text-purple-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-purple-500/50 shadow-[0_0_10px_#C084FC]">Tactique
-                                pure</span>
+                            <span class="text-[9px] bg-purple-500/20 text-purple-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-purple-500/50">Tactique</span>
                         </div>
-                        <h3
-                            class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-purple-500 transition">
-                            Bain de sang (PP vs PK)</h3>
-                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4">Croise les statistiques des
-                            unités spéciales. L'IA détecte les confrontations critiques où un Power Play dominant
-                            affronte le pire Penalty Kill de la ligue.</p>
-                        <div
-                            class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase">
-                            <i class="fas fa-chess-board text-purple-500"></i> Cible : Passeurs & Points PP
+                        <h3 class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-purple-500 transition relative z-10">Bain de sang (PP vs PK)</h3>
+                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4 relative z-10">Croise les statistiques des unités spéciales. L'IA détecte les confrontations critiques où un Power Play dominant affronte le pire Penalty Kill de la ligue.</p>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase relative z-10">
+                            <i class="fas fa-hands-helping text-purple-500"></i> Cible : Passeurs & Points PP
                         </div>
                     </div>
 
-                    <div onclick="runScreener('shot_volume')"
-                        class="bg-gray-900 border-t-4 border-green-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(74,222,128,0.1)] group">
-                        <div class="flex items-center justify-between mb-4">
-                            <div
-                                class="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 text-2xl group-hover:scale-110 transition border border-green-500/30">
-                                <i class="fas fa-bullseye"></i>
+                    <div onclick="runScreener('fatigue')"
+                        class="bg-gray-900 border-t-4 border-orange-500 p-6 rounded-xl cursor-pointer hover:bg-gray-800 transition-all transform hover:-translate-y-1 shadow-[0_0_20px_rgba(249,115,22,0.1)] group relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 opacity-5 text-7xl group-hover:scale-125 transition duration-500"><i class="fas fa-battery-empty"></i></div>
+                        <div class="flex items-center justify-between mb-4 relative z-10">
+                            <div class="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 text-2xl border border-orange-500/30">
+                                <i class="fas fa-bed"></i>
                             </div>
-                            <span
-                                class="text-[9px] bg-green-500/20 text-green-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-green-500/50 shadow-[0_0_10px_#4ADE80]">Sécurité
-                                Maximale</span>
+                            <span class="text-[9px] bg-orange-500/20 text-orange-400 px-3 py-1 rounded font-black tracking-widest uppercase border border-orange-500/50">Physique</span>
                         </div>
-                        <h3
-                            class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-green-500 transition">
-                            Volume de Tirs (Plancher)</h3>
-                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4">Exclut la variance des buts. Le
-                            réseau identifie les Snipers hyper-stables franchissant la barre des 2.5 tirs dans plus de
-                            80% de leurs matchs récents.</p>
-                        <div
-                            class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase">
-                            <i class="fas fa-shield-alt text-green-500"></i> Cible : Over Tirs Cadrés
+                        <h3 class="text-white font-black uppercase tracking-widest text-lg mb-2 group-hover:text-orange-500 transition relative z-10">Exploitation de Fatigue (B2B)</h3>
+                        <p class="text-gray-400 text-xs font-bold leading-relaxed mb-4 relative z-10">Isole les équipes jouant leur 2ème match en 2 soirs avec voyage, favorisant l'alignement du gardien remplaçant et une baisse d'énergie défensive.</p>
+                        <div class="flex items-center gap-2 text-[10px] text-gray-500 font-black tracking-widest uppercase relative z-10">
+                            <i class="fas fa-fire text-orange-500"></i> Cible : Points & Buts adverses
                         </div>
                     </div>
+
                 </div>
 
-                <div id="screener-results" class="hidden max-w-6xl mx-auto flex-col gap-6 px-2 md:px-0">
+                <div id="screener-results" class="hidden max-w-6xl mx-auto flex-col gap-6 px-2 md:px-0 mt-4">
                 </div>
             </section>
 
@@ -578,7 +529,7 @@
 
                         <div class="mb-5">
                             <div class="flex justify-between items-center mb-2">
-                                <label class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Périmètre
+                                <label class="text-[10px] text-gray-500 font-black uppercase tracking-widest">PérimètreSSSSSSS
                                     (Matchs)</label>
                                 <button onclick="selectAllTicketMatches()"
                                     class="text-[9px] text-ice font-black uppercase bg-gray-800 px-2 py-1 rounded">Tous</button>
@@ -3170,7 +3121,7 @@
     <script src="js/over_under.js?v=1"></script>
     <script src="js/goalies.js?v=1"></script>
     <script src="js/team_predictions.js?v=5"></script>
-    <script src="js/app.js?v=28"></script>
+    <script src="js/app.js?v=29"></script>
 
     <div id="gsax-modal"
         class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
