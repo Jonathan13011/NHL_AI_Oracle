@@ -218,13 +218,16 @@ window.updateGlobalRadar = async function() {
 
     let pool = window.globalPredictionsPool;
     
-    // ⚡ FIX CRITIQUE : On détruit l'ancien Canvas et on en recrée un neuf pour éviter les bugs de Chart.js
+    // ⚡ FIX CRITIQUE 1 : Recréation absolue du Canvas via le DOM (évite les bugs d'écran noir)
     const chartContainer = document.getElementById('globalRadarChart').parentElement;
     if (globalRadarChartInstance) {
         globalRadarChartInstance.destroy();
     }
-    chartContainer.innerHTML = '<canvas id="globalRadarChart"></canvas>';
-    const ctx = document.getElementById('globalRadarChart').getContext('2d');
+    chartContainer.innerHTML = ''; 
+    const newCanvas = document.createElement('canvas');
+    newCanvas.id = 'globalRadarChart';
+    chartContainer.appendChild(newCanvas);
+    const ctx = newCanvas.getContext('2d');
 
     // Couleurs dynamiques
     let chartColor = 'rgba(234, 179, 8, 0.5)'; let borderColor = '#EAB308';
@@ -318,13 +321,13 @@ window.updateGlobalRadar = async function() {
             let chronoGames = fullHist.slice(0, recentCount).reverse(); 
             let labels = chronoGames.map(g => g.match || (g.date ? g.date.substring(5) : 'Match'));
             
-            // 🧠 LE GRAPHIQUE INTELLIGENT (Tirs vs Buts) SI "BREAKOUT" EST SÉLECTIONNÉ
+            // 🧠 FIX CRITIQUE 2 : Le graphique mixte DOIT avoir le type 'bar' à la racine pour Chart.js !
             if (metric === 'breakout') {
                 let dataShots = chronoGames.map(g => g.shots || 0);
                 let dataGoals = chronoGames.map(g => g.goals || 0);
 
                 globalRadarChartInstance = new Chart(ctx, {
-                    type: 'line',
+                    type: 'bar', // <- ICI : Obligatoire pour un graphique mixte
                     data: {
                         labels: labels,
                         datasets: [
