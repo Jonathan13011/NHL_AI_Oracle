@@ -462,7 +462,7 @@
                                 
                                 <div id="radar-slider-container" class="bg-black border border-gray-700 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
                                     <span class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
-                                    <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
+                                    <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value; window.updateGlobalRadar();">
                                     <div class="flex items-center gap-1 w-8 justify-end whitespace-nowrap">
                                         <span class="text-gray-600 text-[8px] font-black">L</span>
                                         <span class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" id="radar-slider-val">5</span>
