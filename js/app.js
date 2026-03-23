@@ -58,8 +58,14 @@ window.switchTab = function(tabId, btnElement) {
             screenGardiens.classList.remove('hidden');
             setTimeout(() => screenGardiens.classList.add('hidden'), 2000);
         }
-        // (Si tu as une fonction similaire pour charger les gardiens automatiquement, tu pourras l'ajouter ici plus tard)
+    } else if (tabId === 'tab-filtres') {
+        // ⚡ FIX IOS : On attend 300ms que l'onglet soit TOTALEMENT ouvert sur l'iPhone avant de dessiner
+        setTimeout(() => {
+            if (typeof window.updateGlobalRadar === 'function') window.updateGlobalRadar();
+        }, 300);
     }
+
+    
 
     // 7. Fermeture automatique du menu sur mobile après clic
     if (window.innerWidth < 768) {
@@ -218,16 +224,25 @@ window.updateGlobalRadar = async function() {
 
     let pool = window.globalPredictionsPool;
     
-    // ⚡ FIX CRITIQUE 1 : Recréation absolue du Canvas via le DOM (évite les bugs d'écran noir)
-    const chartContainer = document.getElementById('globalRadarChart').parentElement;
+    // ⚡ FIX CRITIQUE IOS : Destruction propre et recréation absolue du Canvas
+    let oldCanvas = document.getElementById('globalRadarChart');
+    let chartContainer = oldCanvas ? oldCanvas.parentElement : null;
+    
     if (globalRadarChartInstance) {
         globalRadarChartInstance.destroy();
+        globalRadarChartInstance = null;
     }
-    chartContainer.innerHTML = ''; 
-    const newCanvas = document.createElement('canvas');
-    newCanvas.id = 'globalRadarChart';
-    chartContainer.appendChild(newCanvas);
-    const ctx = newCanvas.getContext('2d');
+    
+    if (oldCanvas) {
+        oldCanvas.remove(); // Retire littéralement l'élément HTML pour vider la mémoire Safari
+    }
+    
+    if (chartContainer) {
+        const newCanvas = document.createElement('canvas');
+        newCanvas.id = 'globalRadarChart';
+        chartContainer.appendChild(newCanvas);
+    }
+    const ctx = document.getElementById('globalRadarChart').getContext('2d');
 
     // Couleurs dynamiques
     let chartColor = 'rgba(234, 179, 8, 0.5)'; let borderColor = '#EAB308';
