@@ -135,7 +135,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
 
     try {
         if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) {
-            let res = await fetch(`${API_BASE}/predict_all`);
+            // ☢️ ARME ANTI-CACHE POUR FORCER LES NOUVELLES DONNÉES
+            let res = await fetch(`${API_BASE}/predict_all?nocache=${new Date().getTime()}`);
             let data = await res.json();
             window.globalPredictionsPool = data.global_predictions || [];
         }

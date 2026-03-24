@@ -467,7 +467,13 @@ window.updateGlobalRadar = async function() {
         let periodText = periodMode === 'season' ? 'Saison Complète' : `Prédictions IA du Jour`;
         chartSubtitle.innerHTML = `Top 10 Ligue <span class="text-gray-500 mx-1">|</span> <span class="text-white">${periodText}</span>`;
         
-        let pool = window.globalPredictionsPool;
+        let pool = window.globalPredictionsPool || [];
+        // 🛡️ SÉCURITÉ ANTI-CRASH : Si l'IA n'a pas encore répondu
+        if (pool.length === 0) {
+            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic animate-pulse">L'IA connecte ses neurones... Réessayez dans 15 secondes.</div>`;
+            return;
+        }
+
         let filteredPool = pool.filter(p => p.position !== 'G');
         if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
         if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
@@ -960,7 +966,7 @@ fetchMatches();
 window.renderPerfHomeDashboard = async function () {
     if (typeof window.globalPredictionsPool === 'undefined' || window.globalPredictionsPool.length === 0) {
         try {
-            const res = await fetch(`${API_BASE}/predict_all`);
+            const res = await fetch(`${API_BASE}/predict_all?nocache=${new Date().getTime()}`);
             const data = await res.json();
             window.globalPredictionsPool = data.global_predictions || [];
         } catch (e) { return; }
@@ -1230,7 +1236,7 @@ setInterval(() => {
 window.silentGlobalScan = async function () {
     if (window.hasScannedGlobal) return;
     try {
-        const res = await fetch(`${API_BASE}/predict_all`);
+        const res = await fetch(`${API_BASE}/predict_all?nocache=${new Date().getTime()}`);
         const data = await res.json();
         if (data.status === "success") {
             window.globalPredictionsPool = data.global_predictions || []; 
