@@ -341,7 +341,8 @@ async function executePlayerSearch(playerId) {
             // Mise à jour du Titre au-dessus du radar (Date + Équipes)
             document.getElementById('radar-match-info').innerHTML = `${matchData.date} <span class="text-ice ml-2 border-l border-gray-600 pl-2">${matchData.match}</span>`;
 
-            if (playerChart) playerChart.destroy();
+            // ⚡ CORRECTION : Ajout de window. pour accéder à la variable globale
+            if (window.playerChart) window.playerChart.destroy();
             const ctx = document.getElementById('playerTrendChart').getContext('2d');
 
             // On multiplie artificiellement les données pour qu'elles rentrent joliment dans un radar de 1 à 100
@@ -351,7 +352,40 @@ async function executePlayerSearch(playerId) {
             let radarSht = matchData.shots * 15;
             let radarToi = parseFloat(matchData.toi.replace(':', '.')) * 3; // 20 min = 60/100
 
-            playerChart = new Chart(ctx, {
+            // ⚡ CORRECTION : Utilisation de window.playerChart
+            window.playerChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Points', 'Buts', 'Passes', 'Tirs (SOG)', 'Temps Glace'],
+                    datasets: [{
+                        label: 'Performance du Match',
+                        data: [radarPts, radarGls, radarAst, radarSht, radarToi],
+                        backgroundColor: 'rgba(0, 229, 255, 0.4)',
+                        borderColor: '#00e5ff',
+                        pointBackgroundColor: '#fff',
+                        borderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255,255,255,0.1)' },
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { display: false, min: 0, max: 100 },
+                            pointLabels: { color: '#ccc', font: { size: 10, family: 'Montserrat', weight: 'bold' } }
+                        }
+                    },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } } // Tooltips natifs désactivés car l'échelle est faussée pour le visuel
+                }
+            });
+        };
+
+        // Lancement initial du radar et écouteur sur le slider
+        updateRadar(slider.value);
+        slider.oninput = (e) => updateRadar(e.target.value);
                 type: 'radar',
                 data: {
                     labels: ['Points', 'Buts', 'Passes', 'Tirs (SOG)', 'Temps Glace'],
