@@ -1,5 +1,32 @@
 const API_BASE = "/backend";
 // --- FONCTION DE CHANGEMENT D'ONGLET (AVEC URL DYNAMIQUE & ANIMATIONS) ---
+const API_BASE = "/backend";
+
+// ==========================================
+// 🧠 FONDATIONS DU CERVEAU IA (VARIABLES & UTILITAIRES)
+// ==========================================
+window.hasScannedGlobal = false; 
+window.cachedSearchId = null;
+
+const TEAM_NAMES = { "ANA": "Anaheim Ducks", "BOS": "Boston Bruins", "BUF": "Buffalo Sabres", "CAR": "Carolina Hurricanes", "CBJ": "Columbus Blue Jackets", "CGY": "Calgary Flames", "CHI": "Chicago Blackhawks", "COL": "Colorado Avalanche", "DAL": "Dallas Stars", "DET": "Detroit Red Wings", "EDM": "Edmonton Oilers", "FLA": "Florida Panthers", "LAK": "Los Angeles Kings", "MIN": "Minnesota Wild", "MTL": "Montréal Canadiens", "NJD": "New Jersey Devils", "NSH": "Nashville Predators", "NYI": "New York Islanders", "NYR": "New York Rangers", "OTT": "Ottawa Senators", "PHI": "Philadelphia Flyers", "PIT": "Pittsburgh Penguins", "SEA": "Seattle Kraken", "SJS": "San Jose Sharks", "STL": "St. Louis Blues", "TBL": "Tampa Bay Lightning", "TOR": "Toronto Maple Leafs", "UTA": "Utah Hockey Club", "VAN": "Vancouver Canucks", "VGK": "Vegas Golden Knights", "WPG": "Winnipeg Jets", "WSH": "Washington Capitals" };
+
+window.getFullName = function(abbrev) { return TEAM_NAMES[abbrev] || abbrev; };
+function getFullName(abbrev) { return window.getFullName(abbrev); }
+
+window.getProbColor = function(prob) { if (prob >= 60) return 'bg-blood shadow-[0_0_10px_#ff3333]'; if (prob >= 40) return 'bg-ice shadow-[0_0_10px_#00e5ff]'; return 'bg-gray-500'; };
+function getProbColor(prob) { return window.getProbColor(prob); }
+
+window.getLogoUrl = function(team) { return `https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`; };
+function getLogoUrl(team) { return window.getLogoUrl(team); }
+
+// Horloge en temps réel
+setInterval(function () {
+    const clockEl = document.getElementById('live-clock');
+    if (clockEl) {
+        let now = new Date();
+        clockEl.innerText = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (FR)';
+    }
+}, 1000);
 window.switchTab = function(tabId, btnElement) {
     // 1. Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(el => {
@@ -866,13 +893,13 @@ setInterval(() => {
 
 // Fonction de chargement invisible des données IA
 window.silentGlobalScan = async function () {
-    if (hasScannedGlobal) return;
+    if (window.hasScannedGlobal) return;
     try {
         const res = await fetch(`${API_BASE}/predict_all`);
         const data = await res.json();
         if (data.status === "success") {
-            globalPredictionsPool = data.global_predictions || []; // <-- CORRECTION ICI
-            hasScannedGlobal = true; // Marque le chargement comme terminé
+            window.globalPredictionsPool = data.global_predictions || []; 
+            window.hasScannedGlobal = true; 
         }
     } catch (e) { console.error("Erreur chargement silencieux IA", e); }
 };
