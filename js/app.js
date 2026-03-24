@@ -118,37 +118,51 @@ const RADAR_EXPLANATIONS = {
 };
 
 // 1. GESTION DE LA BARRE DE RECHERCHE INTÉGRÉE
+let searchTimeoutRadar;
 window.searchRadarPlayer = function() {
     const input = document.getElementById('radar-player-search').value.toLowerCase().trim();
     const dropdown = document.getElementById('radar-autocomplete');
     
+    clearTimeout(searchTimeoutRadar);
     if (input.length < 2) {
         dropdown.classList.add('hidden');
         if(input.length === 0) window.clearRadarPlayer();
         return;
     }
 
-    let pool = window.globalPredictionsPool || [];
-    let matchesHtml = "";
-    let count = 0;
-
-    for (let p of pool) {
-        if (count >= 10) break;
-        if (p.name.toLowerCase().includes(input)) {
-            matchesHtml += `
-                <div class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700/50 flex items-center justify-between transition" onclick="window.selectRadarPlayer('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
-                    <div class="flex items-center gap-3">
-                        <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="w-8 h-8 rounded-full border border-gray-600 object-cover bg-black">
-                        <span class="text-white text-xs font-bold">${p.name}</span>
-                    </div>
-                    <span class="text-[9px] text-gray-400 uppercase tracking-widest">${p.team}</span>
-                </div>
-            `;
-            count++;
+    searchTimeoutRadar = setTimeout(async () => {
+        try {
+            // 📡 On interroge le serveur central pour chercher parmi les 800+ joueurs !
+            const res = await fetch(`${API_BASE}/autocomplete?q=${input}`); 
+            const data = await res.json();
+            
+            if (data.status === 'loading') {
+                dropdown.innerHTML = '<div class="p-3 text-ice italic text-center font-bold animate-pulse text-xs">L\'IA mémorise la LNH...</div>';
+                dropdown.classList.remove('hidden');
+            } else if (data.status === 'success' && data.data.length > 0) {
+                let matchesHtml = "";
+                data.data.forEach(p => {
+                    matchesHtml += `
+                        <div class="p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700/50 flex items-center justify-between transition" onclick="window.selectRadarPlayer('${p.id}', '${p.name.replace(/'/g, "\\'")}')">
+                            <div class="flex items-center gap-3">
+                                <img src="${p.headshot || 'assets/logo_hockAI.png'}" onerror="this.src='assets/logo_hockAI.png'" class="w-8 h-8 rounded-full border border-gray-600 object-cover bg-black">
+                                <span class="text-white text-xs font-bold">${p.name}</span>
+                            </div>
+                            <span class="text-[9px] text-gray-400 uppercase tracking-widest">${p.team}</span>
+                        </div>
+                    `;
+                });
+                dropdown.innerHTML = matchesHtml;
+                dropdown.classList.remove('hidden');
+            } else {
+                dropdown.innerHTML = '<div class="p-3 text-xs text-gray-500 font-bold italic">Aucun joueur trouvé.</div>';
+                dropdown.classList.remove('hidden');
+            }
+        } catch(e) {
+            dropdown.innerHTML = '<div class="p-3 text-xs text-red-500 font-bold italic">Serveur hors ligne. Reconnexion...</div>';
+            dropdown.classList.remove('hidden');
         }
-    }
-    dropdown.innerHTML = matchesHtml === "" ? '<div class="p-3 text-xs text-gray-500 font-bold italic">Aucun joueur trouvé.</div>' : matchesHtml;
-    dropdown.classList.remove('hidden');
+    }, 300);
 };
 
 window.selectRadarPlayer = function(id, name) {
@@ -167,436 +181,6 @@ window.clearRadarPlayer = function() {
     window.updateGlobalRadar();
 };
 
-// --- BASCULE DU MODE DE PÉRIODE (Slider vs Saison) ---
-window.toggleRadarMode = function() {
-    const modeInput = document.getElementById('radar-period-mode');
-    const sliderContainer = document.getElementById('radar-slider-container');
-    const seasonContainer = document.getElementById('radar-season-container');
-    const modeBtn = document.getElementById('radar-mode-btn');
-
-    if (modeInput.value === 'recent') {
-        modeInput.value = 'season';
-        sliderContainer.classList.add('opacity-0', 'pointer-events-none');
-        setTimeout(() => { sliderContainer.classList.add('hidden'); seasonContainer.classList.remove('hidden'); seasonContainer.classList.add('flex'); }, 200);
-        modeBtn.innerHTML = 'Voir Récents <i class="fas fa-sync-alt ml-1"></i>';
-        modeBtn.classList.replace('text-gray-400', 'text-ice');
-    } else {
-        modeInput.value = 'recent';
-        seasonContainer.classList.add('hidden');
-        seasonContainer.classList.remove('flex');
-        sliderContainer.classList.remove('hidden');
-        setTimeout(() => sliderContainer.classList.remove('opacity-0', 'pointer-events-none'), 50);
-        modeBtn.innerHTML = 'Voir Saison <i class="fas fa-sync-alt ml-1"></i>';
-        modeBtn.classList.replace('text-ice', 'text-gray-400');
-    }
-    window.updateGlobalRadar();
-};
-
-window.updateGlobalRadar = async function() {
-    const metric = document.getElementById('radar-metric').value;
-    const periodMode = document.getElementById('radar-period-mode').value; 
-    const recentCount = parseInt(document.getElementById('radar-game-slider').value, 10); 
-    const positionSelect = document.getElementById('radar-position');
-    const position = positionSelect.value;
-    const targetPlayerId = document.getElementById('radar-selected-player').value;
-    
-    const gridContainer = document.getElementById('radar-players-grid');
-    const rankingSection = document.getElementById('radar-ranking-section');
-    const chartSubtitle = document.getElementById('radar-chart-subtitle');
-    
-    // 1. GESTION INTELLIGENTE DE L'INTERFACE : Masquer la position si un joueur est ciblé
-    const positionContainer = positionSelect.parentElement;
-    if (targetPlayerId !== 'all') {
-        positionContainer.style.display = 'none';
-    } else {
-        positionContainer.style.display = 'block';
-    }
-
-    // 2. Mise à jour de l'explication IA
-    const exp = RADAR_EXPLANATIONS[metric];
-    document.getElementById('radar-exp-title').innerHTML = exp.title;
-    document.getElementById('radar-exp-text').innerHTML = exp.text;
-    
-    let expColor = exp.color.split('-')[0];
-    document.getElementById('radar-explanation-box').className = `bg-gray-950 border-l-4 border-${expColor}-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20`;
-
-    // 3. ⚡ FIX CRITIQUE IOS : Destruction propre et recréation absolue du Canvas
-    let oldCanvas = document.getElementById('globalRadarChart');
-    let chartContainer = oldCanvas ? oldCanvas.parentElement : null;
-    
-    if (globalRadarChartInstance) {
-        globalRadarChartInstance.destroy();
-        globalRadarChartInstance = null;
-    }
-    if (oldCanvas) {
-        oldCanvas.remove(); // Vide la mémoire cache de Safari sur iPhone
-    }
-    
-    if (chartContainer) {
-        const newCanvas = document.createElement('canvas');
-        newCanvas.id = 'globalRadarChart';
-        chartContainer.appendChild(newCanvas);
-    }
-    const ctx = document.getElementById('globalRadarChart').getContext('2d');
-
-    // Couleurs dynamiques du graphique
-    let chartColor = 'rgba(234, 179, 8, 0.5)'; 
-    let borderColor = '#EAB308';
-    if (metric === 'goals') { chartColor = 'rgba(255, 51, 51, 0.5)'; borderColor = '#ff3333'; }
-    else if (metric === 'shots') { chartColor = 'rgba(74, 222, 128, 0.5)'; borderColor = '#4ADE80'; }
-    else if (metric === 'points' || metric === 'assists') { chartColor = 'rgba(0, 229, 255, 0.5)'; borderColor = '#00e5ff'; }
-    else if (metric === 'speed') { chartColor = 'rgba(168, 85, 247, 0.5)'; borderColor = '#a855f7'; }
-    else if (metric === 'pass_pct') { chartColor = 'rgba(96, 165, 250, 0.5)'; borderColor = '#60a5fa'; }
-    else if (metric === 'toi') { chartColor = 'rgba(156, 163, 175, 0.5)'; borderColor = '#9CA3AF'; }
-    
-    const metricSelect = document.getElementById('radar-metric');
-    let metricText = metricSelect.options[metricSelect.selectedIndex].text.replace(/[^a-zA-Z ()%]/g, "").trim();
-
-    // Parseur de Temps de Glace (TOI) ultra-robuste
-    const parseToi = (t) => {
-        if(!t || t === '-') return 0;
-        let p = String(t).split(':');
-        if(p.length === 2) return parseInt(p[0], 10) + (parseInt(p[1], 10) / 60);
-        return parseFloat(t) || 0;
-    };
-
-    let tickSize = window.innerWidth < 768 ? 9 : 11;
-
-    // ==========================================
-    // MODE 1 : ANALYSE D'UN JOUEUR SPÉCIFIQUE (DONNÉES RÉELLES)
-    // ==========================================
-    if (targetPlayerId !== 'all') {
-        rankingSection.style.display = 'none'; 
-        chartSubtitle.innerHTML = `<i class="fas fa-circle-notch fa-spin text-ice"></i> Synchronisation des données réelles...`;
-
-        try {
-            // 📡 On télécharge le dossier complet du joueur en direct
-            const res = await fetch(`${API_BASE}/player_dashboard/${targetPlayerId}`);
-            const pData = await res.json();
-
-            if (pData.status === "error" || !pData.history || pData.history.length === 0) {
-                chartSubtitle.innerHTML = `<span class="text-red-500 font-bold">Aucun match récent trouvé.</span>`;
-                return;
-            }
-
-            let periodText = periodMode === 'season' ? 'Saison Complète' : `Derniers ${recentCount} Matchs`;
-            chartSubtitle.innerHTML = `<span class="text-white font-black">${pData.player.name}</span> <span class="text-gray-500 mx-1">|</span> ${periodText}`;
-
-            if (periodMode === 'season') {
-                // Graphique en Barres : Comparaison avec la Moyenne de la Ligue
-                let playerVal = 0;
-                if (metric === 'goals') playerVal = pData.player.avg_goals;
-                else if (metric === 'points' || metric === 'assists') playerVal = pData.player.avg_points;
-                else if (metric === 'shots') playerVal = pData.player.avg_shots;
-                else if (metric === 'toi') {
-                    let totalToi = pData.history.reduce((sum, g) => sum + parseToi(g.toi), 0);
-                    playerVal = totalToi / pData.history.length;
-                } else {
-                    playerVal = Math.random() * 10 + 25; // fallback temporaire
-                }
-
-                let leagueAvg = 0;
-                if (metric === 'goals') leagueAvg = 0.3;
-                else if (metric === 'points') leagueAvg = 0.6;
-                else if (metric === 'shots') leagueAvg = 2.1;
-                else if (metric === 'toi') leagueAvg = pData.player.position === 'D' ? 20.5 : 16.0;
-                else leagueAvg = 30.0;
-
-                globalRadarChartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: [pData.player.name, `Moyenne (${pData.player.position === 'D' ? 'Défenseurs' : 'Attaquants'})`],
-                        datasets: [{
-                            label: metricText,
-                            data: [parseFloat(playerVal.toFixed(2)), parseFloat(leagueAvg.toFixed(2))],
-                            backgroundColor: [chartColor.replace('0.5', '0.8'), 'rgba(156, 163, 175, 0.3)'],
-                            borderColor: [borderColor, '#9CA3AF'],
-                            borderWidth: 2,
-                            borderRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true, 
-                        maintainAspectRatio: false,
-                        plugins: { 
-                            legend: { display: false }, 
-                            tooltip: { 
-                                backgroundColor: 'rgba(0,0,0,0.9)', 
-                                titleFont: { family: 'Montserrat' }, 
-                                bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, 
-                                padding: 10, 
-                                borderColor: borderColor, 
-                                borderWidth: 1 
-                            } 
-                        },
-                        scales: {
-                            y: { 
-                                grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' } }, 
-                                beginAtZero: true 
-                            },
-                            x: { 
-                                grid: { display: false }, 
-                                ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: tickSize } } 
-                            }
-                        }
-                    }
-                });
-            } 
-            else {
-                // Graphique Linéaire / Mixte (Match par Match avec le Slider)
-                let chronoGames = pData.history.slice(0, recentCount).reverse(); 
-                let labels = chronoGames.map(g => g.date.substring(0, 5)); 
-                
-                // 🧠 INDICE D'EXPLOSION (GRAPHIQUE MIXTE)
-                if (metric === 'breakout') {
-                    let dataShots = chronoGames.map(g => g.shots);
-                    let dataGoals = chronoGames.map(g => g.goals);
-
-                    globalRadarChartInstance = new Chart(ctx, {
-                        type: 'bar', 
-                        data: {
-                            labels: labels,
-                            datasets: [
-                                {
-                                    type: 'line',
-                                    label: 'Tirs (SOG)',
-                                    data: dataShots,
-                                    borderColor: '#00e5ff',
-                                    backgroundColor: 'rgba(0, 229, 255, 0.1)',
-                                    borderWidth: 3,
-                                    tension: 0.4,
-                                    fill: true,
-                                    yAxisID: 'y'
-                                },
-                                {
-                                    type: 'bar',
-                                    label: 'Buts Marqués',
-                                    data: dataGoals,
-                                    backgroundColor: 'rgba(255, 51, 51, 0.8)',
-                                    borderColor: '#ff3333',
-                                    borderWidth: 1,
-                                    borderRadius: 4,
-                                    yAxisID: 'y1'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true, 
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                legend: { 
-                                    display: true, 
-                                    labels: { color: '#ccc', font: { family: 'Montserrat', size: 10, weight: 'bold' } } 
-                                }, 
-                                tooltip: { 
-                                    mode: 'index', 
-                                    intersect: false, 
-                                    backgroundColor: 'rgba(0,0,0,0.9)', 
-                                    titleFont: { family: 'Montserrat' }, 
-                                    bodyFont: { family: 'Montserrat', size: 12, weight: 'bold' }, 
-                                    padding: 10, 
-                                    borderColor: '#EAB308', 
-                                    borderWidth: 1 
-                                } 
-                            },
-                            scales: {
-                                x: { 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: tickSize }, maxRotation: 45, minRotation: 45 } 
-                                },
-                                y: { 
-                                    type: 'linear', 
-                                    display: true, 
-                                    position: 'left', 
-                                    title: { display: true, text: 'Tirs', color: '#00e5ff', font: { weight: 'bold' } }, 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } 
-                                },
-                                y1: { 
-                                    type: 'linear', 
-                                    display: true, 
-                                    position: 'right', 
-                                    title: { display: true, text: 'Buts', color: '#ff3333', font: { weight: 'bold' } }, 
-                                    grid: { drawOnChartArea: false }, 
-                                    ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } 
-                                }
-                            }
-                        }
-                    });
-                } 
-                // 📈 AUTRES MÉTRIQUES (GRAPHIQUE LINÉAIRE)
-                else {
-                    let dataValues = chronoGames.map(g => {
-                        if(metric === 'goals') return g.goals;
-                        if(metric === 'assists') return g.assists;
-                        if(metric === 'points') return g.points;
-                        if(metric === 'shots') return g.shots;
-                        if(metric === 'toi') return parseToi(g.toi);
-                        return 0; // Fallback
-                    });
-
-                    globalRadarChartInstance = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: metricText,
-                                data: dataValues.map(v => typeof v === 'number' ? parseFloat(v.toFixed(1)) : v),
-                                backgroundColor: chartColor.replace('0.5', '0.2'),
-                                borderColor: borderColor,
-                                borderWidth: 3,
-                                pointBackgroundColor: '#fff',
-                                pointBorderColor: borderColor,
-                                pointRadius: 5,
-                                pointHoverRadius: 8,
-                                fill: true,
-                                tension: 0.3
-                            }]
-                        },
-                        options: {
-                            responsive: true, 
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                legend: { display: false }, 
-                                tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } 
-                            },
-                            scales: {
-                                x: { 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: tickSize }, maxRotation: 45, minRotation: 45 } 
-                                },
-                                y: { 
-                                    grid: { color: 'rgba(255,255,255,0.05)' }, 
-                                    ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true } 
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-        } catch (e) {
-            chartSubtitle.innerHTML = `<span class="text-red-500 font-bold">Erreur : Impossible de charger le joueur.</span>`;
-        }
-    } 
-    // ==========================================
-    // MODE 2 : CLASSEMENT GLOBAL (TOP LIGUE)
-    // ==========================================
-    else {
-        rankingSection.style.display = 'block'; 
-        let periodText = periodMode === 'season' ? 'Saison Complète' : `Prédictions IA du Jour`;
-        chartSubtitle.innerHTML = `Top 10 Ligue <span class="text-gray-500 mx-1">|</span> <span class="text-white">${periodText}</span>`;
-
-        if (!window.globalPredictionsPool || window.globalPredictionsPool.length === 0) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center text-gray-500 font-bold py-10 italic">IA en cours de chargement...</div>`;
-            return;
-        }
-        
-        let pool = window.globalPredictionsPool;
-        let filteredPool = pool.filter(p => p.position !== 'G');
-        if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
-        if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
-
-        filteredPool.forEach(p => {
-            p._radarValue = 0; 
-            p._radarLabel = metricText;
-            if (metric === 'goals' || metric === 'breakout') p._radarValue = p.prob_goal || 0;
-            else if (metric === 'assists') p._radarValue = p.prob_assist || 0;
-            else if (metric === 'points' || metric === 'shots' || metric === 'toi') p._radarValue = p.prob_point || 0;
-            else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
-            else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
-        });
-
-        filteredPool = filteredPool.filter(p => p._radarValue > 0);
-        filteredPool.sort((a, b) => b._radarValue - a._radarValue);
-        
-        let topPlayers = filteredPool.slice(0, 30);
-        let chartPlayers = filteredPool.slice(0, 10);
-
-        if (topPlayers.length === 0) return;
-
-        globalRadarChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: chartPlayers.map(p => p.name),
-                datasets: [{
-                    label: metricText,
-                    data: chartPlayers.map(p => parseFloat(p._radarValue.toFixed(2))),
-                    backgroundColor: chartColor,
-                    borderColor: borderColor,
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true, 
-                maintainAspectRatio: false, 
-                indexAxis: 'y',
-                plugins: { 
-                    legend: { display: false }, 
-                    tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } 
-                },
-                scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 9 } } },
-                    y: { grid: { display: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: tickSize, weight: 'bold' } } }
-                }
-            }
-        });
-
-        gridContainer.innerHTML = topPlayers.map((p, index) => `
-            <div onclick="window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-3 md:p-4 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-[${borderColor}] hover:-translate-y-1 transition transform cursor-pointer flex flex-col items-center">
-                <div class="absolute top-2 left-2 bg-black text-gray-400 text-[8px] md:text-[10px] font-black px-2 py-0.5 flex items-center justify-center rounded border border-gray-800 shadow-inner group-hover:text-[${borderColor}] transition">#${index + 1}</div>
-                ${metric === 'breakout' && index < 3 ? `<div class="absolute -right-2 -top-2 text-xl animate-bounce drop-shadow-[0_0_5px_#EAB308]">🚨</div>` : ''}
-                <div class="relative mt-2 mb-2">
-                    <div class="absolute inset-0 bg-[${borderColor}] rounded-full blur opacity-20 group-hover:opacity-50 transition"></div>
-                    <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="relative w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-gray-700 object-cover bg-black group-hover:border-[${borderColor}] transition z-10">
-                </div>
-                <h4 class="text-white font-black uppercase text-[9px] md:text-xs w-full text-center truncate mb-0.5">${p.name}</h4>
-                <div class="text-[7px] md:text-[9px] text-gray-500 uppercase tracking-widest mb-3 font-bold">${p.team} • ${p.position || 'F'}</div>
-                <div class="bg-black w-full p-2 rounded-xl border border-gray-800 text-center shadow-inner group-hover:bg-gray-950 transition flex flex-col justify-center">
-                    <span class="block font-black text-sm md:text-lg leading-none" style="color: ${borderColor}; text-shadow: 0 0 10px ${chartColor};">${parseFloat(p._radarValue.toFixed(2))}</span>
-                </div>
-            </div>
-        `).join('');
-    }
-};
-
-// Initialisation intelligente
-document.addEventListener('DOMContentLoaded', () => {
-    let filterTabBtn = document.querySelector('button[onclick*="tab-filtres"]');
-    if (filterTabBtn) {
-        filterTabBtn.addEventListener('click', () => {
-            setTimeout(window.updateGlobalRadar, 200);
-        });
-    }
-});
-
-// Fonction pour fermer la page de résultats
-window.closeScreener = function () {
-    document.getElementById('screener-results').classList.add('hidden');
-    document.getElementById('screener-results').classList.remove('flex');
-    document.getElementById('screener-home').classList.remove('hidden');
-};
-let hasScannedGlobal = false; let usedPlayersForTickets = new Set();
-let myChart = null; let playerChart = null; let psModalChart = null; let mcChart = null;
-let scanInterval; let cachedSearchId = null;
-// ==========================================
-// HORLOGE EN TEMPS RÉEL
-// ==========================================
-setInterval(function () {
-    const clockEl = document.getElementById('live-clock');
-    if (clockEl) {
-        let now = new Date();
-        clockEl.innerText = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (FR)';
-    }
-}, 1000);
-
-const TEAM_NAMES = { "ANA": "Anaheim Ducks", "BOS": "Boston Bruins", "BUF": "Buffalo Sabres", "CAR": "Carolina Hurricanes", "CBJ": "Columbus Blue Jackets", "CGY": "Calgary Flames", "CHI": "Chicago Blackhawks", "COL": "Colorado Avalanche", "DAL": "Dallas Stars", "DET": "Detroit Red Wings", "EDM": "Edmonton Oilers", "FLA": "Florida Panthers", "LAK": "Los Angeles Kings", "MIN": "Minnesota Wild", "MTL": "Montréal Canadiens", "NJD": "New Jersey Devils", "NSH": "Nashville Predators", "NYI": "New York Islanders", "NYR": "New York Rangers", "OTT": "Ottawa Senators", "PHI": "Philadelphia Flyers", "PIT": "Pittsburgh Penguins", "SEA": "Seattle Kraken", "SJS": "San Jose Sharks", "STL": "St. Louis Blues", "TBL": "Tampa Bay Lightning", "TOR": "Toronto Maple Leafs", "UTA": "Utah Hockey Club", "VAN": "Vancouver Canucks", "VGK": "Vegas Golden Knights", "WPG": "Winnipeg Jets", "WSH": "Washington Capitals" };
-
-function getFullName(abbrev) { return TEAM_NAMES[abbrev] || abbrev; }
-function getProbColor(prob) { if (prob >= 60) return 'bg-blood shadow-[0_0_10px_#ff3333]'; if (prob >= 40) return 'bg-ice shadow-[0_0_10px_#00e5ff]'; return 'bg-gray-500'; }
-function getLogoUrl(team) { return `https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`; }
-
 let searchTimeoutDashboard;
 document.getElementById('player-search-input').addEventListener('input', function () {
     clearTimeout(searchTimeoutDashboard); const val = this.value.trim();
@@ -604,7 +188,7 @@ document.getElementById('player-search-input').addEventListener('input', functio
     searchTimeoutDashboard = setTimeout(async () => {
         try {
             const res = await fetch(`${API_BASE}/autocomplete?q=${val}`); const data = await res.json();
-            if (data.status === 'loading') { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-ice italic text-center font-bold animate-pulse">L\'IA mémorise les joueurs...</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
+            if (data.status === 'loading') { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-ice italic text-center font-bold animate-pulse text-xs">L\'IA mémorise les joueurs...</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
             else if (data.status === 'success' && data.data.length > 0) {
                 document.getElementById('autocomplete-results').innerHTML = '';
                 data.data.forEach(p => {
@@ -622,9 +206,14 @@ document.getElementById('player-search-input').addEventListener('input', functio
                             });
                         }
                     };
+                    document.getElementById('autocomplete-results').appendChild(div);
                 }); document.getElementById('autocomplete-results').classList.remove('hidden');
-            } else { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-gray-500 italic text-center">Aucun joueur trouvé.</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
-        } catch (e) { }
+            } else { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-gray-500 italic text-center text-xs">Aucun joueur trouvé.</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
+        } catch (e) { 
+            // ⚡ Affichage de l'erreur si le serveur ne répond pas
+            document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-red-500 font-bold italic text-center text-xs">Erreur 502 : Serveur Python injoignable.</div>'; 
+            document.getElementById('autocomplete-results').classList.remove('hidden'); 
+        }
     }, 300);
 });
 
