@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "rewrites": [
     {
@@ -5,4 +6,13 @@
       "destination": "http://178.104.60.150:8000/api/:path*"
     }
   ]
+=======
+{
+  "rewrites": [
+    {
+      "source": "/backend/:path*",
+      "destination": "http://178.104.60.150:8000/api/:path*"
+    }
+  ]
+>>>>>>> 818aa7ce6b36d2b5413a38609f900596f8ac57fd
 }
