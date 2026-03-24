@@ -1,6 +1,4 @@
 const API_BASE = "/backend";
-// --- FONCTION DE CHANGEMENT D'ONGLET (AVEC URL DYNAMIQUE & ANIMATIONS) ---
-const API_BASE = "/backend";
 
 // ==========================================
 // 🧠 FONDATIONS DU CERVEAU IA (VARIABLES & UTILITAIRES)
