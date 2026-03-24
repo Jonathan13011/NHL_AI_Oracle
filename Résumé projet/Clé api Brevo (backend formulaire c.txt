@@ -1,0 +1,74 @@
+Mdp & Clés Hockai
+
+Mot de passe projet Hockai sur Supabase :
+" X3BH3MWttJkhpvrf "
+Projet URL = https://gfmquozjspyuoppunojs.supabase.co
+Publishable key = sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g
+Direct connection string = 
+postgresql://postgres:[YOUR-PASSWORD]@db.gfmquozjspyuoppunojs.supabase.co:5432/postgres
+
+Clé api Brevo (backend formulaire contact) : 
+"xsmtpsib-e053eab47c59d49b2d336d0520ef7d6df9990ae7f97edef417f7ddebadb41238-Taa57nbVZYtUET9d"
+
+
+Test python formulaire : 
+@app.post("/api/signup")
+def signup(data: dict):
+    email_user = data.get("email")
+    # On génère un mot de passe simple pour le test
+    temp_pass = "HOCKAI2026"
+
+
+
+Serveur Hetzner root password : 
+XKbAj9staTVe
+
+
+
+
+Pour relancer le cerveau backend avec uvicorn via PowerShell :
+python -m uvicorn 5_backend_api:app --reload --host 0.0.0.0 --port 8000
+Adresse ip PC :
+
+   Adresse IPv4. . . . . . . . . . . . . .: 192.168.1.172
+
+
+--------------------------------------------------------------------------------------------------
+
+
+🗺️ 2. Notre Plan de Bataille "Section par Section" (Ce soir)
+Pour ne rien casser, on va avancer avec une méthode stricte. On ne passe à la section suivante que si la précédente est 100% fonctionnelle et responsive (sur mobile comme sur PC).
+
+Étape 1 : Le Header & La Navigation. (Recherche fonctionnelle, affichage de l'horloge, design du menu).
+
+Étape 2 : La Section "Performances" (Celle de ce matin). Injection des Tops Buteurs / Tops Pointeurs avec animation propre.
+
+Étape 3 : La Liste des Matchs. Affichage des cartes de matchs, gestion du filtre "Vainqueur / Temps Réglementaire", logos et pourcentages.
+
+Étape 4 : Les Fenêtres Modales (Pop-ups). * Modale Joueur : Affichage du graphique de forme, statistiques L5 (Last 5), probabilités détaillées.
+
+Modale Match : Comparaison des équipes, historique récent.
+
+🧠 3. Les Améliorations Intelligentes pour HOCKAI (À discuter)
+Pendant que tu es au travail, j'ai réfléchi à ce qui pourrait faire passer ton site d'un "bon outil" à un "véritable Oracle incontournable" pour les parieurs NHL. Voici ce qu'on pourra implémenter à court ou moyen terme :
+
+⚡ A. Amélioration des Performances (Vitesse du site)
+Mise en cache locale (LocalStorage) : Actuellement, le site télécharge les 480 pronostics à chaque rafraîchissement. On peut dire au navigateur : "Garde ces résultats en mémoire pendant 1 heure". Le site s'affichera instantanément, sans aucun temps de chargement pour les utilisateurs réguliers.
+
+Lazy Loading des Logos : Ne charger les logos des équipes et les graphiques que lorsque l'utilisateur scrolle vers le bas, pour un affichage immédiat de l'en-tête.
+
+🏒 B. Nouvelles Données Pertinentes (Spécifiques NHL)
+Le Facteur "Gardien Partant" (Goalies) : En NHL, le gardien titulaire change tout. L'IA devrait (à terme) récupérer le gardien confirmé (avec son SV% - Save Percentage et son GAA - Goals Against Average) car affronter Shesterkin ou un gardien remplaçant ne donne pas les mêmes probabilités de marquer pour un joueur.
+
+Temps de Glace en Avantage Numérique (Power Play TOI) : Les joueurs qui jouent sur la 1ère unité de Power Play ont beaucoup plus de chances de faire des points. Intégrer cette statistique isolée est un cheat-code pour les paris "Over Points".
+
+Les "Back-to-Back" (Matchs en 2 jours) : La fatigue est cruciale en NHL. Si une équipe joue son 2ème match en 24h avec un voyage en avion entre les deux, ses joueurs (et son gardien) sont statistiquement plus faibles.
+
+Filtre "Blessures" (Injury Report) : S'assurer qu'un joueur blessé ce matin-là est automatiquement retiré des pronostics pour ne pas fausser l'affichage.
+
+🤖 C. Évolution des Calculs de l'IA (Pronostics)
+Expected Goals (xG) : Au lieu de se baser uniquement sur les tirs (shots) et les buts réels, on pourrait intégrer le "xG" (les buts attendus selon la dangerosité des tirs). C'est la métrique la plus puissante des parieurs pros.
+
+Faiblesse de l'Adversaire par Position : Par exemple, si Boston encaisse statistiquement beaucoup de tirs venant des défenseurs adverses, l'IA augmentera automatiquement la probabilité des défenseurs qui affrontent Boston ce soir-là.
+
+Dynamique (Streak) : Ajouter un multiplicateur de "Hot Streak" (joueur en feu sur les 3 derniers matchs) ou "Cold Streak", car la confiance joue un rôle énorme au hockey.

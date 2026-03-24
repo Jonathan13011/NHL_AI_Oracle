@@ -26,6 +26,10 @@
         };
 
         window.calculateKelly = function () {
+            // 📡 RADAR GOOGLE : Utilisation du Banquier
+            if (typeof gtag === 'function') {
+                gtag('event', 'utilisation_banquier');
+            }
             let capital = parseFloat(document.getElementById('bk-capital').value) || 0;
             let odds = parseFloat(document.getElementById('slider-bk-odds').value);
             let prob = parseFloat(document.getElementById('slider-bk-prob').value) / 100;

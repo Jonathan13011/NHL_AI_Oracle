@@ -1,0 +1,47 @@
+📦 Le Kit de Survie pour la nouvelle conversation
+Copie ce bloc et colle-le tel quel pour commencer la nouvelle discussion :
+
+Objet : Reprise du projet HOCKAI (IA de pronostics NHL)
+
+Salut Gemini ! On reprend un projet complexe. Voici l'état des lieux pour que tu sois à jour immédiatement :
+
+1. Architecture du projet :
+
+Frontend : HTML/Tailwind/JS hébergé sur Vercel.
+
+Backend : API Python (FastAPI) sur serveur Hetzner (IP: 178.104.60.150:8000).
+
+Liaison : Fichier vercel.json avec réécriture /backend/:path* vers http://178.104.60.150:8000/api/:path*.
+
+2. Ce qui est en place (Code source à analyser) :
+
+J'ai un fichier index.html central qui contient la structure et les modals.
+
+J'ai un fichier app.js qui gère la logique globale, les onglets (switchTab), et les recherches de joueurs.
+
+J'ai une douzaine de modules JS spécialisés (smart_tickets.js, duels.js, goalies.js, etc.) qui interrogent le serveur.
+
+3. Design et UI spécifiques :
+
+Écrans de chargement : On utilise deux images (hockai-nhl-chargement-welcome... et hockai-nhl-chargement-perf...) affichées dans un cadre bleu néon avec coins arrondis et flou d'arrière-plan (backdrop-blur).
+
+Fonctions de contrôle : window.showAnalysis() et window.hideAnalysis() pilotent ces écrans.
+
+4. Fichiers joints pour analyse :
+(C'est ici que tu devras uploader à nouveau tes fichiers index.html, app.js et les modules JS les plus importants comme smart_tickets.js ou live.js).
+
+🛠️ Ce que tu dois préparer (Fichiers à envoyer)
+Dans la nouvelle conversation, pour que Gemini ne fasse aucune erreur, envoie-lui en priorité ces 3 fichiers en version "texte" ou "upload" :
+
+index.html (Indispensable pour le design et les IDs).
+
+js/app.js (Le cerveau qui contient la fonction switchTab et showAnalysis).
+
+js/smart_tickets.js (Si tu veux qu'on continue de bosser sur les tickets).
+
+✅ Ce qu'on a déjà corrigé (à garder en tête)
+La fonction switchTab : Elle doit être déclarée en window.switchTab pour être vue par le HTML.
+
+Les proportions d'images : On utilise object-cover et aspect-video pour que les écrans de chargement soient "magnifiques".
+
+Le Backend : Il tourne parfaitement sur Hetzner avec les fichiers .pkl (cerveaux de l'IA).
