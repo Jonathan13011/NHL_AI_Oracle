@@ -386,38 +386,6 @@ async function executePlayerSearch(playerId) {
         // Lancement initial du radar et écouteur sur le slider
         updateRadar(slider.value);
         slider.oninput = (e) => updateRadar(e.target.value);
-                type: 'radar',
-                data: {
-                    labels: ['Points', 'Buts', 'Passes', 'Tirs (SOG)', 'Temps Glace'],
-                    datasets: [{
-                        label: 'Performance du Match',
-                        data: [radarPts, radarGls, radarAst, radarSht, radarToi],
-                        backgroundColor: 'rgba(0, 229, 255, 0.4)',
-                        borderColor: '#00e5ff',
-                        pointBackgroundColor: '#fff',
-                        borderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            angleLines: { color: 'rgba(255,255,255,0.1)' },
-                            grid: { color: 'rgba(255,255,255,0.1)' },
-                            ticks: { display: false, min: 0, max: 100 },
-                            pointLabels: { color: '#ccc', font: { size: 10, family: 'Montserrat', weight: 'bold' } }
-                        }
-                    },
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } } // Tooltips natifs désactivés car l'échelle est faussée pour le visuel
-                }
-            });
-        };
-
-        // Lancement initial du radar et écouteur sur le slider
-        updateRadar(slider.value);
-        slider.oninput = (e) => updateRadar(e.target.value);
 
     } catch (e) { console.error(e); hideFullScreenLoader(); alert("Erreur réseau ou base de données."); }
 }
