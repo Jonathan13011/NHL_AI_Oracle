@@ -1926,6 +1926,7 @@ supabaseClient.auth.onAuthStateChange((event, session) => {
     if (window.isUserLoggedIn) {
         if (typeof window.loadBankroll === 'function') window.loadBankroll();
         if (typeof window.loadBannedPlayers === 'function') window.loadBannedPlayers(); // LIGNE AJOUTÉE
+        if (typeof window.loadBanquierSettings === 'function') window.loadBanquierSettings(); // Charge les paramètres du Banquier
     }
 });
 

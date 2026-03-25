@@ -186,6 +186,8 @@ function updateBankrollDashboard() {
     // On met à jour les deux tableaux en direct
     updateUI('combo', statsCombo);
     updateUI('simple', statsSimple);
+    // ⚡ ON ENVOIE LES NOUVELLES DONNÉES FINANCIÈRES AU BANQUIER IA
+    if (typeof window.syncBankrollToBanquier === 'function') window.syncBankrollToBanquier();
 }
 
 // --- MODULE MONTANTE (CALCULATEUR DE COUVERTURE) ---
