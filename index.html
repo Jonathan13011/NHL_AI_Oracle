@@ -184,7 +184,8 @@
                     <div class="hidden sm:flex flex-col text-left leading-none">
                         <span id="auth-btn-text" class="text-purple-300 group-hover:text-white transition block">Se
                             connecter</span>
-                        <span id="auth-user-email" class="text-[7px] text-gray-400 block mt-0.5 truncate max-w-[120px]">Espace Privé</span>
+                        <span id="auth-user-email"
+                            class="text-[7px] text-gray-400 block mt-0.5 truncate max-w-[120px]">Espace Privé</span>
                     </div>
                 </button>
             </div>
@@ -406,35 +407,51 @@
                 </div>
             </section>
 
-            <section id="tab-filtres" class="tab-content h-full w-full overflow-x-hidden overflow-y-auto pb-32 pr-2 hidden relative">
-                
+            <section id="tab-filtres"
+                class="tab-content h-full w-full overflow-x-hidden overflow-y-auto pb-32 pr-2 hidden relative">
+
                 <div class="text-center mb-6 mt-4 flex-shrink-0 px-4">
-                    <h2 class="text-3xl md:text-5xl font-black text-yellow-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] flex items-center justify-center gap-3">
+                    <h2
+                        class="text-3xl md:text-5xl font-black text-yellow-500 uppercase tracking-widest drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] flex items-center justify-center gap-3">
                         <i class="fas fa-radar animate-spin-slow"></i> Market Radar
                     </h2>
                     <p class="text-gray-400 font-bold mt-2 text-[10px] md:text-sm max-w-3xl mx-auto leading-relaxed">
-                        Le terminal de Quant Trading absolu. Sélectionnez un joueur pour analyser son évolution match par match, ou laissez le champ vide pour afficher le Top 10 de la Ligue.
+                        Le terminal de Quant Trading absolu. Sélectionnez un joueur pour analyser son évolution match
+                        par match, ou laissez le champ vide pour afficher le Top 10 de la Ligue.
                     </p>
                 </div>
 
                 <div class="max-w-7xl mx-auto px-2 md:px-0">
-                    
-                    <div class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-30 backdrop-blur-md">
+
+                    <div
+                        class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-30 backdrop-blur-md">
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                            
+
                             <div class="relative lg:col-span-1">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
-                                <div class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
-                                    <input type="text" id="radar-player-search" autocomplete="off" onkeyup="window.searchRadarPlayer()" placeholder="Global (Top 10 Ligue)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
-                                    <button onclick="window.clearRadarPlayer()" class="text-gray-500 hover:text-white transition" id="radar-clear-btn" style="display:none;"><i class="fas fa-times"></i></button>
+                                <label
+                                    class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                        class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
+                                <div
+                                    class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
+                                    <input type="text" id="radar-player-search" autocomplete="off"
+                                        onkeyup="window.searchRadarPlayer()" placeholder="Global (Top 10 Ligue)..."
+                                        class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
+                                    <button onclick="window.clearRadarPlayer()"
+                                        class="text-gray-500 hover:text-white transition" id="radar-clear-btn"
+                                        style="display:none;"><i class="fas fa-times"></i></button>
                                 </div>
-                                <div id="radar-autocomplete" class="absolute z-50 w-full bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar"></div>
+                                <div id="radar-autocomplete"
+                                    class="absolute z-50 w-full bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar">
+                                </div>
                                 <input type="hidden" id="radar-selected-player" value="all">
                             </div>
 
                             <div class="lg:col-span-1">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
-                                <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                <label
+                                    class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                        class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
+                                <select id="radar-metric" onchange="window.updateGlobalRadar()"
+                                    class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
                                     <optgroup label="Prédictions IA">
                                         <option value="breakout" selected>🧠 Indice d'Explosion (Breakout)</option>
                                     </optgroup>
@@ -454,31 +471,46 @@
 
                             <div class="lg:col-span-1 flex flex-col justify-between relative">
                                 <div class="flex justify-between items-center mb-1.5">
-                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
-                                    <button id="radar-mode-btn" onclick="window.toggleRadarMode()" class="text-[8px] md:text-[9px] bg-gray-800 text-gray-400 px-2 py-1 rounded font-black uppercase tracking-widest transition hover:text-white hover:bg-gray-700 border border-gray-600 shadow-lg">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest"><i
+                                            class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
+                                    <button id="radar-mode-btn" onclick="window.toggleRadarMode()"
+                                        class="text-[8px] md:text-[9px] bg-gray-800 text-gray-400 px-2 py-1 rounded font-black uppercase tracking-widest transition hover:text-white hover:bg-gray-700 border border-gray-600 shadow-lg">
                                         Voir Saison <i class="fas fa-sync-alt ml-1"></i>
                                     </button>
                                 </div>
-                                
-                                <div id="radar-slider-container" class="bg-black border border-gray-700 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
-                                    <span class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
-                                    <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
+
+                                <div id="radar-slider-container"
+                                    class="bg-black border border-gray-700 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
+                                    <span
+                                        class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
+                                    <input type="range" id="radar-game-slider" min="1" max="10" value="5"
+                                        class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10"
+                                        oninput="document.getElementById('radar-slider-val').innerText = this.value;"
+                                        onchange="window.updateGlobalRadar()">
                                     <div class="flex items-center gap-1 w-8 justify-end whitespace-nowrap">
                                         <span class="text-gray-600 text-[8px] font-black">L</span>
-                                        <span class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" id="radar-slider-val">5</span>
+                                        <span
+                                            class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]"
+                                            id="radar-slider-val">5</span>
                                     </div>
                                 </div>
 
-                                <div id="radar-season-container" class="bg-gray-900 border border-ice/50 rounded-xl p-3 h-[46px] shadow-inner items-center justify-center transition-all hidden absolute bottom-0 left-0 w-full cursor-not-allowed">
-                                    <span class="text-ice text-[10px] md:text-xs font-black uppercase tracking-widest animate-pulse"><i class="fas fa-chart-pie mr-2"></i> Moyennes Annuelles</span>
+                                <div id="radar-season-container"
+                                    class="bg-gray-900 border border-ice/50 rounded-xl p-3 h-[46px] shadow-inner items-center justify-center transition-all hidden absolute bottom-0 left-0 w-full cursor-not-allowed">
+                                    <span
+                                        class="text-ice text-[10px] md:text-xs font-black uppercase tracking-widest animate-pulse"><i
+                                            class="fas fa-chart-pie mr-2"></i> Moyennes Annuelles</span>
                                 </div>
-                                
+
                                 <input type="hidden" id="radar-period-mode" value="recent">
                             </div>
 
                             <div class="lg:col-span-1">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-users text-purple-400 mr-1"></i> Position</label>
-                                <select id="radar-position" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-purple-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                <label
+                                    class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                        class="fas fa-users text-purple-400 mr-1"></i> Position</label>
+                                <select id="radar-position" onchange="window.updateGlobalRadar()"
+                                    class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-purple-500 outline-none cursor-pointer shadow-inner appearance-none transition">
                                     <option value="all" selected>Tous les patineurs</option>
                                     <option value="F">Attaquants (C, LW, RW)</option>
                                     <option value="D">Défenseurs (D)</option>
@@ -487,19 +519,28 @@
                         </div>
                     </div>
 
-                    <div class="bg-gray-950 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20" id="radar-explanation-box">
+                    <div class="bg-gray-950 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20"
+                        id="radar-explanation-box">
                         <i class="fas fa-robot text-2xl text-yellow-500 mt-1 animate-pulse"></i>
                         <div>
-                            <h4 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs mb-1" id="radar-exp-title">Analyse en cours...</h4>
-                            <p class="text-gray-400 text-[10px] md:text-xs font-bold leading-relaxed" id="radar-exp-text">Sélectionnez une métrique pour voir comment l'utiliser dans vos paris.</p>
+                            <h4 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs mb-1"
+                                id="radar-exp-title">Analyse en cours...</h4>
+                            <p class="text-gray-400 text-[10px] md:text-xs font-bold leading-relaxed"
+                                id="radar-exp-text">Sélectionnez une métrique pour voir comment l'utiliser dans vos
+                                paris.</p>
                         </div>
                     </div>
 
-                    <div class="bg-gray-950 border border-gray-800 p-3 md:p-6 rounded-2xl shadow-xl mb-6 flex flex-col relative overflow-hidden z-10">
-                        <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-[80px] pointer-events-none"></div>
-                        <h3 id="radar-chart-title" class="text-white font-black uppercase tracking-widest text-[10px] md:text-sm mb-4 flex items-center justify-between border-b border-gray-800 pb-2 relative z-10">
+                    <div
+                        class="bg-gray-950 border border-gray-800 p-3 md:p-6 rounded-2xl shadow-xl mb-6 flex flex-col relative overflow-hidden z-10">
+                        <div
+                            class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-[80px] pointer-events-none">
+                        </div>
+                        <h3 id="radar-chart-title"
+                            class="text-white font-black uppercase tracking-widest text-[10px] md:text-sm mb-4 flex items-center justify-between border-b border-gray-800 pb-2 relative z-10">
                             <span><i class="fas fa-chart-area text-yellow-500 mr-2"></i> Visualisation IA</span>
-                            <span id="radar-chart-subtitle" class="text-[9px] bg-gray-900 px-2 py-1 rounded text-gray-500">Top 10 Ligue</span>
+                            <span id="radar-chart-subtitle"
+                                class="text-[9px] bg-gray-900 px-2 py-1 rounded text-gray-500">Top 10 Ligue</span>
                         </h3>
                         <div class="relative w-full h-[250px] md:h-[400px] z-10">
                             <canvas id="globalRadarChart"></canvas>
@@ -507,11 +548,13 @@
                     </div>
 
                     <div id="radar-ranking-section">
-                        <h3 class="text-white font-black uppercase tracking-widest text-xs md:text-sm mb-4 flex items-center gap-2 px-1">
+                        <h3
+                            class="text-white font-black uppercase tracking-widest text-xs md:text-sm mb-4 flex items-center gap-2 px-1">
                             <i class="fas fa-list-ol text-gray-500"></i> Classement Complet
                         </h3>
-                        <div id="radar-players-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 pb-10">
-                            </div>
+                        <div id="radar-players-grid"
+                            class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 pb-10">
+                        </div>
                     </div>
 
                 </div>
@@ -555,7 +598,8 @@
 
                         <div class="mb-5">
                             <div class="flex justify-between items-center mb-2">
-                                <label class="text-[10px] text-gray-500 font-black uppercase tracking-widest">PérimètreSSSSSSS
+                                <label
+                                    class="text-[10px] text-gray-500 font-black uppercase tracking-widest">PérimètreSSSSSSS
                                     (Matchs)</label>
                                 <button onclick="selectAllTicketMatches()"
                                     class="text-[9px] text-ice font-black uppercase bg-gray-800 px-2 py-1 rounded">Tous</button>
@@ -1398,9 +1442,19 @@
                             <div class="absolute -right-4 -top-4 opacity-5 text-7xl text-yellow-500 pointer-events-none">
                                 <i class="fas fa-wallet"></i>
                             </div>
-                            <h3 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs mb-4 border-b border-gray-800 pb-2">
-                                <i class="fas fa-coins text-yellow-500 mr-2"></i>Gestion de votre Bankroll
-                            </h3>
+                            <div class="flex justify-between items-center mb-4 border-b border-gray-800 pb-2 relative z-10">
+                                <h3 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center">
+                                    <i class="fas fa-coins text-yellow-500 mr-2"></i>Gestion Bankroll
+                                </h3>
+                                <div class="flex items-center gap-2">
+                                    <select id="bk-cycle-select" onchange="window.changeCapitalCycle()" class="bg-black border border-gray-700 text-white text-[9px] md:text-[10px] font-bold rounded p-1.5 outline-none cursor-pointer shadow-inner">
+                                        <option value="1">Capital 1</option>
+                                    </select>
+                                    <button onclick="window.createNewCapitalCycle()" class="bg-gray-800 hover:bg-gray-700 text-money px-2.5 py-1.5 rounded border border-gray-600 text-[9px] md:text-[10px] font-black uppercase transition shadow-lg flex items-center gap-1" title="Créer un nouveau capital">
+                                        <i class="fas fa-plus"></i> <span class="hidden md:inline">Nouveau</span>
+                                    </button>
+                                </div>
+                            </div>
 
                             <div class="grid grid-cols-2 gap-3 md:gap-4 mb-4 relative z-10">
                                 <div>
@@ -1427,7 +1481,7 @@
                                 </div>
                             </div>
                             <div id="bk-monthly-warning" class="hidden mt-3 text-[9px] md:text-[10px] font-bold text-orange-400 bg-orange-500/10 p-2 md:p-3 rounded-lg border border-orange-500/30 text-center relative z-10 shadow-lg">
-                                <i class="fas fa-exclamation-triangle mr-1 animate-pulse"></i> Attention : Vous avez dépassé votre budget d'investissement mensuel.
+                                <i class="fas fa-exclamation-triangle mr-1 animate-pulse"></i> Attention : Budget mensuel dépassé.
                             </div>
                         </div>
 
@@ -1666,12 +1720,18 @@
                                 </div>
                             </div>
 
-                            <div
-                                class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 md:p-5 shadow-lg flex flex-col min-h-[250px]">
-                                <h3
-                                    class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs mb-4 flex items-center">
-                                    <i class="fas fa-chart-line text-green-400 mr-2"></i>Évolution Réelle
-                                </h3>
+                            <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 md:p-5 shadow-lg flex flex-col min-h-[300px]">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-gray-800 pb-2 gap-3">
+                                    <h3 class="text-white font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center">
+                                        <i class="fas fa-chart-line text-green-400 mr-2"></i>Évolution Réelle
+                                    </h3>
+                                    <div class="flex bg-black border border-gray-700 rounded p-1 shadow-inner w-full sm:w-auto overflow-x-auto">
+                                        <button onclick="window.setChartFilter('7D', this)" class="chart-filter-btn flex-1 sm:flex-none text-[8px] md:text-[9px] text-gray-400 hover:text-white uppercase font-black tracking-widest px-3 py-1.5 rounded transition">7J</button>
+                                        <button onclick="window.setChartFilter('30D', this)" class="chart-filter-btn flex-1 sm:flex-none text-[8px] md:text-[9px] text-gray-400 hover:text-white uppercase font-black tracking-widest px-3 py-1.5 rounded transition">30J</button>
+                                        <button onclick="window.setChartFilter('1Y', this)" class="chart-filter-btn flex-1 sm:flex-none text-[8px] md:text-[9px] text-gray-400 hover:text-white uppercase font-black tracking-widest px-3 py-1.5 rounded transition">1 AN</button>
+                                        <button onclick="window.setChartFilter('ALL', this)" class="chart-filter-btn active flex-1 sm:flex-none text-[8px] md:text-[9px] text-black bg-ice uppercase font-black tracking-widest px-3 py-1.5 rounded transition shadow-[0_0_10px_rgba(0,229,255,0.4)]">TOUT</button>
+                                    </div>
+                                </div>
                                 <div class="relative w-full flex-1 min-h-[200px]">
                                     <canvas id="realBankrollChart"></canvas>
                                 </div>
@@ -3529,74 +3589,102 @@
             </div>
         </div>
     </div>
-    <div id="user-dashboard-modal" class="fixed inset-0 bg-black/95 z-[3000] hidden flex-col items-center justify-start md:justify-center p-0 md:p-4 backdrop-blur-md overflow-y-auto">
-        <div class="bg-gray-950 border-0 md:border border-purple-500/50 md:rounded-2xl shadow-[0_0_40px_rgba(168,85,247,0.3)] w-full max-w-5xl flex flex-col min-h-screen md:min-h-[85vh] md:max-h-[90vh] relative overflow-hidden">
-            
-            <div class="bg-gray-900 border-b border-gray-800 p-4 md:p-6 flex justify-between items-center sticky top-0 z-50 shadow-md">
+    <div id="user-dashboard-modal"
+        class="fixed inset-0 bg-black/95 z-[3000] hidden flex-col items-center justify-start md:justify-center p-0 md:p-4 backdrop-blur-md overflow-y-auto">
+        <div
+            class="bg-gray-950 border-0 md:border border-purple-500/50 md:rounded-2xl shadow-[0_0_40px_rgba(168,85,247,0.3)] w-full max-w-5xl flex flex-col min-h-screen md:min-h-[85vh] md:max-h-[90vh] relative overflow-hidden">
+
+            <div
+                class="bg-gray-900 border-b border-gray-800 p-4 md:p-6 flex justify-between items-center sticky top-0 z-50 shadow-md">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                    <div
+                        class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-purple-500/20 border border-purple-500 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]">
                         <i class="fas fa-user-astronaut text-xl md:text-2xl"></i>
                     </div>
                     <div>
-                        <h2 class="text-white font-black uppercase tracking-widest text-base md:text-xl leading-none mb-1">Mon Espace Privé</h2>
-                        <span id="dashboard-user-email" class="text-[10px] md:text-xs text-gray-400 font-bold tracking-widest bg-black px-2 py-0.5 rounded border border-gray-800"></span>
+                        <h2
+                            class="text-white font-black uppercase tracking-widest text-base md:text-xl leading-none mb-1">
+                            Mon Espace Privé</h2>
+                        <span id="dashboard-user-email"
+                            class="text-[10px] md:text-xs text-gray-400 font-bold tracking-widest bg-black px-2 py-0.5 rounded border border-gray-800"></span>
                     </div>
                 </div>
-                <button onclick="window.closeUserDashboard()" class="text-gray-500 hover:text-white bg-black w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition border border-gray-700 shadow-lg hover:rotate-90">
+                <button onclick="window.closeUserDashboard()"
+                    class="text-gray-500 hover:text-white bg-black w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition border border-gray-700 shadow-lg hover:rotate-90">
                     <i class="fas fa-times text-lg"></i>
                 </button>
             </div>
-            
+
             <div class="flex flex-col md:flex-row flex-1 min-h-0">
-                
-                <div class="w-full md:w-64 bg-black/80 border-b md:border-b-0 md:border-r border-gray-800 p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible custom-scrollbar shrink-0 z-40 shadow-inner">
-                    <button onclick="window.switchDashboardTab('overview')" id="btn-dash-overview" class="dash-tab-btn bg-gray-900 border border-purple-500 text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal shadow-lg">
+
+                <div
+                    class="w-full md:w-64 bg-black/80 border-b md:border-b-0 md:border-r border-gray-800 p-4 flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible custom-scrollbar shrink-0 z-40 shadow-inner">
+                    <button onclick="window.switchDashboardTab('overview')" id="btn-dash-overview"
+                        class="dash-tab-btn bg-gray-900 border border-purple-500 text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal shadow-lg">
                         <i class="fas fa-chart-pie text-purple-400 text-base"></i> Synthèse
                     </button>
-                    <button onclick="window.switchDashboardTab('history')" id="btn-dash-history" class="dash-tab-btn bg-black border border-transparent text-gray-500 hover:text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
+                    <button onclick="window.switchDashboardTab('history')" id="btn-dash-history"
+                        class="dash-tab-btn bg-black border border-transparent text-gray-500 hover:text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
                         <i class="fas fa-ticket-alt text-base"></i> Mes Paris
                     </button>
-                    <button onclick="window.switchDashboardTab('infirmary')" id="btn-dash-infirmary" class="dash-tab-btn bg-black border border-transparent text-gray-500 hover:text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
+                    <button onclick="window.switchDashboardTab('infirmary')" id="btn-dash-infirmary"
+                        class="dash-tab-btn bg-black border border-transparent text-gray-500 hover:text-white px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
                         <i class="fas fa-ambulance text-base"></i> Infirmerie
                     </button>
-                    
+
                     <div class="md:mt-auto hidden md:block w-full h-px bg-gray-800 my-2"></div>
-                    
-                    <button onclick="window.logoutUser()" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
+
+                    <button onclick="window.logoutUser()"
+                        class="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-4 py-3.5 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest text-left flex items-center justify-center md:justify-start gap-3 transition whitespace-nowrap md:whitespace-normal">
                         <i class="fas fa-power-off text-base"></i> Déconnexion
                     </button>
                 </div>
-                
-                <div class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-br from-gray-950 to-black relative">
-                    <div class="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+                <div
+                    class="flex-1 p-4 md:p-8 overflow-y-auto custom-scrollbar bg-gradient-to-br from-gray-950 to-black relative">
+                    <div
+                        class="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none">
+                    </div>
 
                     <div id="dash-tab-overview" class="dash-content-panel flex flex-col gap-6 animate-fade-in-up">
-                         <h3 class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2"><i class="fas fa-satellite-dish text-purple-400 mr-2"></i> Tableau de Bord IA</h3>
-                         
-                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dash-overview-stats">
-                             </div>
+                        <h3
+                            class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2">
+                            <i class="fas fa-satellite-dish text-purple-400 mr-2"></i> Tableau de Bord IA</h3>
+
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="dash-overview-stats">
+                        </div>
                     </div>
-                    
+
                     <div id="dash-tab-history" class="dash-content-panel hidden flex-col gap-4 animate-fade-in-up">
-                        <h3 class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2"><i class="fas fa-list text-ice mr-2"></i> Tous mes tickets</h3>
+                        <h3
+                            class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2">
+                            <i class="fas fa-list text-ice mr-2"></i> Tous mes tickets</h3>
                         <div id="dash-history-list" class="flex flex-col gap-3">
-                            </div>
+                        </div>
                     </div>
-                    
+
                     <div id="dash-tab-infirmary" class="dash-content-panel hidden flex-col gap-4 animate-fade-in-up">
-                        <h3 class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2"><i class="fas fa-user-injured text-blood mr-2"></i> Mes joueurs exclus</h3>
-                        <p class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">L'IA n'inclura jamais ces joueurs dans le générateur de tickets.</p>
-                        
+                        <h3
+                            class="text-white font-black uppercase tracking-widest text-sm border-b border-gray-800 pb-2">
+                            <i class="fas fa-user-injured text-blood mr-2"></i> Mes joueurs exclus</h3>
+                        <p class="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-widest">L'IA
+                            n'inclura jamais ces joueurs dans le générateur de tickets.</p>
+
                         <div class="relative w-full mt-2 z-50">
-                            <div class="flex items-center bg-black border border-gray-700 rounded-xl px-4 py-1 shadow-inner focus-within:border-blood transition">
+                            <div
+                                class="flex items-center bg-black border border-gray-700 rounded-xl px-4 py-1 shadow-inner focus-within:border-blood transition">
                                 <i class="fas fa-search text-gray-500"></i>
-                                <input type="text" id="infirmary-search-input" onkeyup="window.filterInfirmarySearch()" placeholder="Rechercher un joueur à exclure (ex: McDavid)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold p-3 outline-none placeholder-gray-600 autocomplete-off">
+                                <input type="text" id="infirmary-search-input" onkeyup="window.filterInfirmarySearch()"
+                                    placeholder="Rechercher un joueur à exclure (ex: McDavid)..."
+                                    class="w-full bg-transparent text-white text-xs md:text-sm font-bold p-3 outline-none placeholder-gray-600 autocomplete-off">
                             </div>
-                            <div id="infirmary-search-results" class="absolute left-0 top-full mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto hidden custom-scrollbar"></div>
+                            <div id="infirmary-search-results"
+                                class="absolute left-0 top-full mt-2 w-full bg-gray-900 border border-gray-700 rounded-xl shadow-2xl max-h-56 overflow-y-auto hidden custom-scrollbar">
+                            </div>
                         </div>
 
                         <div id="dash-infirmary-list" class="flex flex-wrap gap-3 mt-4">
-                            </div>
+                        </div>
                     </div>
 
                 </div>
