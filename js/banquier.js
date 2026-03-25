@@ -208,3 +208,153 @@ window.syncBankrollToBanquier = function() {
             ];
             window.bankrollChartInstance.update();
         };
+
+        // ==========================================
+// 🔌 CONNEXION DU PORTEFEUILLE AU COFFRE-FORT (SUPABASE)
+// ==========================================
+
+// On demande à la fonction de synchronisation de mettre aussi à jour le Portefeuille
+const originalSyncBankroll = window.syncBankrollToBanquier;
+window.syncBankrollToBanquier = function() {
+    if (originalSyncBankroll) originalSyncBankroll(); // Calcule le capital en haut
+    if (typeof window.updatePortfolioUI === 'function') window.updatePortfolioUI(); // Met à jour les graphiques en bas
+};
+
+window.updatePortfolioUI = function() {
+    let totalInvested = 0;
+    let totalReturned = 0;
+    let wonBets = 0;
+    let finishedBets = 0;
+    
+    // Initialisation du graphique
+    let chartLabels = ["Départ"];
+    let startCap = parseFloat(document.getElementById('bk-start-capital')?.value) || 100;
+    let chartData = [startCap];
+    let currentCap = startCap;
+
+    let bets = window.globalBankroll || [];
+    let sortedBets = [...bets].reverse(); // On inverse pour le graphique (du plus vieux au plus récent)
+
+    // Calcul des statistiques
+    sortedBets.forEach((b) => {
+        if (b.status !== "PENDING") {
+            totalInvested += b.stake;
+            finishedBets++;
+            
+            if (b.status === "WON") {
+                totalReturned += (b.stake * b.odds);
+                wonBets++;
+                currentCap += (b.stake * b.odds) - b.stake; // Ajout du bénéfice net
+            } else if (b.status === "LOST") {
+                currentCap -= b.stake; // Retrait de la mise
+            }
+            
+            chartLabels.push("Pari " + finishedBets);
+            chartData.push(currentCap);
+        }
+    });
+
+    // 1. Mise à jour des KPI (Bénéfice, ROI, Réussite)
+    let profit = totalReturned - totalInvested;
+    let roi = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
+    let hitrate = finishedBets > 0 ? (wonBets / finishedBets) * 100 : 0;
+
+    let elProfit = document.getElementById('pf-profit');
+    if(elProfit) {
+        elProfit.innerText = profit.toFixed(2) + " €";
+        elProfit.className = `text-sm md:text-2xl font-black truncate ${profit >= 0 ? 'text-money drop-shadow-[0_0_5px_#22c55e]' : 'text-blood drop-shadow-[0_0_5px_#ff3333]'}`;
+    }
+    if(document.getElementById('pf-roi')) document.getElementById('pf-roi').innerText = roi.toFixed(1) + "%";
+    if(document.getElementById('pf-hitrate')) document.getElementById('pf-hitrate').innerText = hitrate.toFixed(1) + "%";
+
+    // 2. Mise à jour de la liste historique
+    let listContainer = document.getElementById('pf-bets-list');
+    if (listContainer) {
+        if (bets.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-gray-600 font-bold text-xs italic py-10">Aucun pari enregistré dans le Coffre-Fort.</div>`;
+        } else {
+            let listHtml = "";
+            bets.forEach(b => {
+                let dateStr = new Date(b.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                let statusColor = b.status === 'WON' ? 'text-money' : (b.status === 'LOST' ? 'text-blood' : 'text-yellow-500');
+                let statusText = b.status === 'WON' ? 'GAGNÉ' : (b.status === 'LOST' ? 'PERDU' : 'EN COURS');
+                
+                listHtml += `
+                    <div class="bg-black/50 p-3 rounded-lg border border-gray-800 flex justify-between items-center mb-2 hover:border-gray-600 transition">
+                        <div>
+                            <div class="text-[9px] text-gray-500 font-bold tracking-widest uppercase mb-0.5">${dateStr}</div>
+                            <div class="text-white text-xs font-black truncate max-w-[150px] md:max-w-[250px]">${b.description}</div>
+                        </div>
+                        <div class="text-right flex flex-col items-end">
+                            <div class="text-[10px] font-black ${statusColor} bg-gray-900 px-2 py-0.5 rounded shadow-inner mb-1">${statusText}</div>
+                            <div class="text-[10px] text-gray-400 font-bold">@${b.odds.toFixed(2)} | ${b.stake.toFixed(2)}€</div>
+                        </div>
+                    </div>
+                `;
+            });
+            listContainer.innerHTML = listHtml;
+        }
+    }
+
+    // 3. Mise à jour du Graphique Linéaire
+    if (window.realBankrollChartInstance) {
+        window.realBankrollChartInstance.data.labels = chartLabels;
+        window.realBankrollChartInstance.data.datasets[0].data = chartData;
+        window.realBankrollChartInstance.update();
+    } else {
+        const ctx = document.getElementById('realBankrollChart');
+        if (ctx) {
+            window.realBankrollChartInstance = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Capital Réel',
+                        data: chartData,
+                        borderColor: '#4ADE80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#fff',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', font: {family: 'Montserrat', weight: 'bold'} } }
+                    }
+                }
+            });
+        }
+    }
+};
+
+// 4. On modifie le bouton "Nouveau Pari" pour qu'il envoie la donnée dans le Coffre-Fort Supabase
+window.submitPortfolioBet = function() {
+    let target = document.getElementById('pf-target').value;
+    let market = document.getElementById('pf-market').value;
+    let odds = parseFloat(document.getElementById('pf-odds').value);
+    let stake = parseFloat(document.getElementById('pf-stake').value);
+
+    if (!target || !market || isNaN(odds) || isNaN(stake)) {
+        alert("Action requise : Veuillez remplir tous les champs du pari.");
+        return;
+    }
+
+    let desc = target + " - " + market + " (1 Sélection)";
+    
+    if (typeof window.addBetToBankroll === 'function') {
+        window.addBetToBankroll('MANUEL', desc, odds, stake, [{target_name: target, market: market}]);
+        
+        // Nettoyage des champs après envoi
+        document.getElementById('pf-target').value = '';
+        document.getElementById('pf-odds').value = '';
+        document.getElementById('pf-stake').value = '';
+    } else {
+        alert("Erreur de connexion avec le Coffre-Fort.");
+    }
+};
