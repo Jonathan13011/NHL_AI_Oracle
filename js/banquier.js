@@ -1,64 +1,220 @@
 // ==========================================
-        // MOTEUR BANQUIER IA (KELLY CRITERION & CHART)
-        // ==========================================
-        window.bankrollChartInstance = null;
+// MOTEUR BANQUIER IA & GESTION DE PORTEFEUILLE
+// ==========================================
+window.bankrollChartInstance = null;
+window.realBankrollChartInstance = null;
 
-        // --- ⚡ LE CERVEAU DU BANQUIER ⚡ ---
-window.currentCalculatedCapital = 100; // Variable globale pour le capital dynamique
-
-// Sauvegarde les paramètres dans le navigateur de l'utilisateur
-window.saveBanquierSettings = function() {
-    let startCap = parseFloat(document.getElementById('bk-start-capital').value) || 0;
-    let monthly = parseFloat(document.getElementById('bk-monthly-budget').value) || 0;
-    let userKey = window.currentUserEmail ? 'banquier_' + window.currentUserEmail : 'banquier_guest';
-    localStorage.setItem(userKey, JSON.stringify({ startCapital: startCap, monthlyBudget: monthly }));
-    window.syncBankrollToBanquier(); // Recalcul instantané
+window.initBankrollChart = function () {
+    if (!window.bankrollChartInstance) {
+        const ctx = document.getElementById('bankrollChart').getContext('2d');
+        window.bankrollChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'nearest', intersect: true },
+                plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', callback: value => value + ' €' } },
+                    x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 10 } }
+                },
+                elements: { point: { radius: 0, hitRadius: 15, hoverRadius: 6 } }
+            }
+        });
+    }
+    window.calculateKelly();
 };
 
-// Charge les paramètres à la connexion
+window.calculateKelly = function () {
+    if (typeof gtag === 'function') gtag('event', 'utilisation_banquier');
+    
+    // Le Banquier utilise le capital RÉEL dynamique
+    let capital = window.currentCalculatedCapital !== undefined ? window.currentCalculatedCapital : (parseFloat(document.getElementById('bk-start-capital').value) || 100);
+    let odds = parseFloat(document.getElementById('slider-bk-odds').value);
+    let prob = parseFloat(document.getElementById('slider-bk-prob').value) / 100;
+    let fraction = parseFloat(document.getElementById('bk-fraction').value);
+
+    let card = document.getElementById('bk-result-card');
+    let evBadge = document.getElementById('bk-ev-badge');
+    let stakeAmt = document.getElementById('bk-stake-amount');
+    let stakePct = document.getElementById('bk-stake-pct');
+    let advice = document.getElementById('bk-advice-text');
+
+    let ev = (prob * odds) - 1;
+    let edgePct = ev * 100;
+
+    let b = odds - 1;
+    let q = 1 - prob;
+    let kellyFraction = (b * prob - q) / b;
+
+    if (ev <= 0 || kellyFraction <= 0) {
+        card.className = "bg-gray-950 border-2 border-red-500 rounded-xl p-4 md:p-6 pt-12 md:pt-12 shadow-[0_0_30px_rgba(239,68,68,0.15)] relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300";
+        evBadge.className = "absolute top-3 right-3 bg-red-500/20 text-red-500 border border-red-500 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest";
+        evBadge.innerText = edgePct.toFixed(2) + "% EV";
+        stakeAmt.innerText = "0.00 €";
+        stakeAmt.className = "text-4xl md:text-5xl font-black text-gray-600 my-2";
+        stakePct.innerText = "(Pari à perte mathématique)";
+        advice.className = "text-[9px] md:text-xs text-red-500 mt-4 md:mt-6 font-bold bg-red-500/10 p-2 md:p-3 rounded-lg border border-red-500/30 w-full";
+        advice.innerHTML = "<i class='fas fa-ban mr-1'></i> Ne pariez jamais sur ce match. Le bookmaker a l'avantage sur vous.";
+        updateBankrollChart(capital, 0, 0, ev);
+        return;
+    }
+
+    let recommendedFraction = kellyFraction * fraction;
+    let recommendedStake = capital * recommendedFraction;
+
+    card.className = "bg-gray-950 border-2 border-green-500 rounded-xl p-4 md:p-6 pt-12 md:pt-12 shadow-[0_0_30px_rgba(74,222,128,0.15)] relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300";
+    evBadge.className = "absolute top-3 right-3 bg-green-500/20 text-green-400 border border-green-500 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest animate-pulse";
+    evBadge.innerText = "+" + edgePct.toFixed(2) + "% EV";
+    stakeAmt.innerText = recommendedStake.toFixed(2) + " €";
+    stakeAmt.className = "text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] my-2";
+    stakePct.innerText = "(Soit " + (recommendedFraction * 100).toFixed(2) + "% de votre capital)";
+    advice.className = "text-[9px] md:text-xs text-green-400 mt-4 md:mt-6 font-bold bg-green-500/10 p-2 md:p-3 rounded-lg border border-green-500/30 w-full";
+    advice.innerHTML = "<i class='fas fa-check-circle mr-1'></i> Pari rentable. Mise optimisée pour faire grandir votre capital sans risquer la faillite.";
+
+    updateBankrollChart(capital, odds, prob, recommendedFraction);
+};
+
+window.updateBankrollChart = function (startCapital, odds, prob, kellyFraction) {
+    if (!window.bankrollChartInstance) return;
+
+    let labels = [], dataExpected = [], dataPessimistic = [], dataOptimistic = [];
+    let currentCap = startCapital, currentPess = startCapital, currentOpt = startCapital;
+    let ev = (prob * odds) - 1;
+
+    for (let i = 0; i <= 100; i++) {
+        labels.push("Pari " + i);
+        dataExpected.push(currentCap);
+        dataPessimistic.push(currentPess);
+        dataOptimistic.push(currentOpt);
+
+        if (ev > 0 && kellyFraction > 0) {
+            let b = odds - 1;
+            let growthFactor = Math.pow(1 + b * kellyFraction, prob) * Math.pow(1 - kellyFraction, 1 - prob);
+            currentCap = currentCap * growthFactor;
+            currentPess = currentPess * (growthFactor * 0.98);
+            currentOpt = currentOpt * (growthFactor * 1.02);
+        }
+    }
+
+    window.bankrollChartInstance.data.labels = labels;
+    window.bankrollChartInstance.data.datasets = [
+        { label: 'Projection Optimiste', data: dataOptimistic, borderColor: 'rgba(0, 229, 255, 0.3)', borderDash: [5, 5], borderWidth: 1, fill: false },
+        { label: 'Croissance Attendue (EV)', data: dataExpected, borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.1)', borderWidth: 3, fill: true, tension: 0.4 },
+        { label: 'Projection Pessimiste', data: dataPessimistic, borderColor: 'rgba(239, 68, 68, 0.3)', borderDash: [5, 5], borderWidth: 1, fill: false }
+    ];
+    window.bankrollChartInstance.update();
+};
+
+// ==========================================
+// ⚡ LE CERVEAU DU BANQUIER (MULTI-CAPITAL & SYNCHRONISATION) ⚡
+// ==========================================
+window.currentCalculatedCapital = 100;
+window.currentCycleId = "1";
+window.capitalCycles = { "1": { name: "Capital 1", start: 100, timestamp: 0 } };
+window.monthlyBudget = 0;
+window.currentChartFilter = 'ALL'; // Filtre de temps par défaut
+
 window.loadBanquierSettings = function() {
-    let userKey = window.currentUserEmail ? 'banquier_' + window.currentUserEmail : 'banquier_guest';
+    let userKey = window.currentUserEmail ? 'banquier_v2_' + window.currentUserEmail : 'banquier_v2_guest';
     let data = localStorage.getItem(userKey);
+    
     if (data) {
         let parsed = JSON.parse(data);
-        if (document.getElementById('bk-start-capital')) document.getElementById('bk-start-capital').value = parsed.startCapital || 100;
-        if (document.getElementById('bk-monthly-budget')) document.getElementById('bk-monthly-budget').value = parsed.monthlyBudget || '';
+        window.capitalCycles = parsed.cycles || window.capitalCycles;
+        window.currentCycleId = parsed.current || "1";
+        window.monthlyBudget = parsed.budget || 0;
     }
+    
+    // Remplir le menu déroulant avec les Capitaux
+    let select = document.getElementById('bk-cycle-select');
+    if (select) {
+        select.innerHTML = '';
+        for (let id in window.capitalCycles) {
+            select.innerHTML += `<option value="${id}">${window.capitalCycles[id].name}</option>`;
+        }
+        select.value = window.currentCycleId;
+    }
+    
+    if (document.getElementById('bk-start-capital')) document.getElementById('bk-start-capital').value = window.capitalCycles[window.currentCycleId].start;
+    if (document.getElementById('bk-monthly-budget')) document.getElementById('bk-monthly-budget').value = window.monthlyBudget || '';
+
     window.syncBankrollToBanquier();
 };
 
-// Calcule le Capital Actuel en lisant le Coffre-Fort
+window.saveBanquierSettings = function() {
+    let startCap = parseFloat(document.getElementById('bk-start-capital').value) || 0;
+    window.monthlyBudget = parseFloat(document.getElementById('bk-monthly-budget').value) || 0;
+    
+    window.capitalCycles[window.currentCycleId].start = startCap;
+    
+    let userKey = window.currentUserEmail ? 'banquier_v2_' + window.currentUserEmail : 'banquier_v2_guest';
+    localStorage.setItem(userKey, JSON.stringify({ 
+        cycles: window.capitalCycles, 
+        current: window.currentCycleId, 
+        budget: window.monthlyBudget 
+    }));
+    
+    window.syncBankrollToBanquier();
+};
+
+// C'est ici que l'utilisateur crée un nouveau profil de Capital
+window.createNewCapitalCycle = function() {
+    let newId = Date.now().toString();
+    let cycleNum = Object.keys(window.capitalCycles).length + 1;
+    window.capitalCycles[newId] = {
+        name: "Capital " + cycleNum,
+        start: 100,
+        timestamp: Date.now() // TRÈS IMPORTANT : Ignore les paris passés !
+    };
+    window.currentCycleId = newId;
+    window.saveBanquierSettings();
+    window.loadBanquierSettings();
+};
+
+window.changeCapitalCycle = function() {
+    window.currentCycleId = document.getElementById('bk-cycle-select').value;
+    if (document.getElementById('bk-start-capital')) {
+        document.getElementById('bk-start-capital').value = window.capitalCycles[window.currentCycleId].start;
+    }
+    window.syncBankrollToBanquier();
+    window.saveBanquierSettings();
+};
+
 window.syncBankrollToBanquier = function() {
-    let startCap = parseFloat(document.getElementById('bk-start-capital')?.value) || 100;
-    let monthlyBudget = parseFloat(document.getElementById('bk-monthly-budget')?.value) || 0;
+    let cycle = window.capitalCycles[window.currentCycleId] || { start: 100, timestamp: 0 };
+    let startCap = cycle.start;
 
     let totalProfit = 0;
     let totalInvestedThisMonth = 0;
     let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
 
-    // LECTURE DU COFFRE-FORT (Pertes et Gains RÉELS)
     if (window.globalBankroll && window.globalBankroll.length > 0) {
         window.globalBankroll.forEach(b => {
-            if (b.status === "PENDING") return; // On ignore ce qui n'est pas fini
-
+            if (b.status === "PENDING") return;
+            
             let betDate = new Date(b.date);
+            let betTimestamp = betDate.getTime();
+            
+            // On ignore totalement les paris faits avant la création de CE capital
+            if (betTimestamp < cycle.timestamp) return;
+
             if (betDate.getMonth() === currentMonth && betDate.getFullYear() === currentYear) {
                 totalInvestedThisMonth += b.stake;
             }
 
             if (b.status === "WON") {
-                totalProfit += (b.stake * b.odds) - b.stake; // Bénéfice net
+                totalProfit += (b.stake * b.odds) - b.stake;
             } else if (b.status === "LOST") {
-                totalProfit -= b.stake; // Perte nette
+                totalProfit -= b.stake;
             }
         });
     }
 
     let currentCap = startCap + totalProfit;
-    if (currentCap < 0) currentCap = 0; // Sécurité anti-négatif
+    if (currentCap < 0) currentCap = 0;
 
-    // MISE A JOUR VISUELLE
     let curCapEl = document.getElementById('bk-current-capital');
     if (curCapEl) {
         curCapEl.innerText = currentCap.toFixed(2);
@@ -67,176 +223,60 @@ window.syncBankrollToBanquier = function() {
         else curCapEl.className = "text-xl md:text-3xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] transition-all";
     }
 
-    // ALERTE BUDGET MENSUEL
     let warningEl = document.getElementById('bk-monthly-warning');
     if (warningEl) {
-        if (monthlyBudget > 0 && totalInvestedThisMonth >= monthlyBudget) {
-            warningEl.classList.remove('hidden');
-        } else {
-            warningEl.classList.add('hidden');
-        }
+        if (window.monthlyBudget > 0 && totalInvestedThisMonth >= window.monthlyBudget) warningEl.classList.remove('hidden');
+        else warningEl.classList.add('hidden');
     }
 
     window.currentCalculatedCapital = currentCap; 
     if (typeof window.calculateKelly === 'function') window.calculateKelly();
+    if (typeof window.updatePortfolioUI === 'function') window.updatePortfolioUI();
 };
 
-        window.initBankrollChart = function () {
-            if (!window.bankrollChartInstance) {
-                const ctx = document.getElementById('bankrollChart').getContext('2d');
-                window.bankrollChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels: [], datasets: [] },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        // FIX MOBILE : L'info-bulle s'affiche uniquement au clic exact sur un point
-                        interaction: { mode: 'nearest', intersect: true },
-                        plugins: { legend: { display: false }, tooltip: { enabled: true } },
-                        scales: {
-                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af', callback: value => value + ' €' } },
-                            x: { grid: { display: false }, ticks: { color: '#9ca3af', maxTicksLimit: 10 } }
-                        },
-                        elements: { point: { radius: 0, hitRadius: 15, hoverRadius: 6 } }
-                    }
-                });
-            }
-            window.calculateKelly();
-        };
-
-        window.calculateKelly = function () {
-            // 📡 RADAR GOOGLE : Utilisation du Banquier
-            if (typeof gtag === 'function') {
-                gtag('event', 'utilisation_banquier');
-            }
-            // Le Banquier utilise maintenant le capital RÉEL connecté au coffre-fort
-            let capital = window.currentCalculatedCapital !== undefined ? window.currentCalculatedCapital : (parseFloat(document.getElementById('bk-start-capital').value) || 100);
-            let odds = parseFloat(document.getElementById('slider-bk-odds').value);
-            let prob = parseFloat(document.getElementById('slider-bk-prob').value) / 100;
-            let fraction = parseFloat(document.getElementById('bk-fraction').value);
-
-            let card = document.getElementById('bk-result-card');
-            let evBadge = document.getElementById('bk-ev-badge');
-            let stakeAmt = document.getElementById('bk-stake-amount');
-            let stakePct = document.getElementById('bk-stake-pct');
-            let advice = document.getElementById('bk-advice-text');
-
-            let ev = (prob * odds) - 1;
-            let edgePct = ev * 100;
-
-            let b = odds - 1;
-            let q = 1 - prob;
-            let kellyFraction = (b * prob - q) / b;
-
-            if (ev <= 0 || kellyFraction <= 0) {
-                // FIX MOBILE : Ajout de "pt-12" pour éviter que le badge n'écrase le texte
-                card.className = "bg-gray-950 border-2 border-red-500 rounded-xl p-4 md:p-6 pt-12 md:pt-12 shadow-[0_0_30px_rgba(239,68,68,0.15)] relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300";
-                evBadge.className = "absolute top-3 right-3 bg-red-500/20 text-red-500 border border-red-500 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest";
-                evBadge.innerText = edgePct.toFixed(2) + "% EV";
-                stakeAmt.innerText = "0.00 €";
-                stakeAmt.className = "text-4xl md:text-5xl font-black text-gray-600 my-2";
-                stakePct.innerText = "(Pari à perte mathématique)";
-                advice.className = "text-[9px] md:text-xs text-red-500 mt-4 md:mt-6 font-bold bg-red-500/10 p-2 md:p-3 rounded-lg border border-red-500/30 w-full";
-                advice.innerHTML = "<i class='fas fa-ban mr-1'></i> Ne pariez jamais sur ce match. Le bookmaker a l'avantage sur vous.";
-                updateBankrollChart(capital, 0, 0, ev);
-                return;
-            }
-
-            let recommendedFraction = kellyFraction * fraction;
-            let recommendedStake = capital * recommendedFraction;
-
-            // FIX MOBILE : Ajout de "pt-12" pour donner de l'espace au badge vert
-            card.className = "bg-gray-950 border-2 border-green-500 rounded-xl p-4 md:p-6 pt-12 md:pt-12 shadow-[0_0_30px_rgba(74,222,128,0.15)] relative overflow-hidden flex flex-col justify-center items-center text-center transition-all duration-300";
-            evBadge.className = "absolute top-3 right-3 bg-green-500/20 text-green-400 border border-green-500 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest animate-pulse";
-            evBadge.innerText = "+" + edgePct.toFixed(2) + "% EV";
-            stakeAmt.innerText = recommendedStake.toFixed(2) + " €";
-            stakeAmt.className = "text-4xl md:text-5xl font-black text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] my-2";
-            stakePct.innerText = "(Soit " + (recommendedFraction * 100).toFixed(2) + "% de votre capital)";
-            advice.className = "text-[9px] md:text-xs text-green-400 mt-4 md:mt-6 font-bold bg-green-500/10 p-2 md:p-3 rounded-lg border border-green-500/30 w-full";
-            advice.innerHTML = "<i class='fas fa-check-circle mr-1'></i> Pari rentable. Mise optimisée pour faire grandir votre capital sans risquer la faillite.";
-
-            updateBankrollChart(capital, odds, prob, recommendedFraction);
-        };
-
-        window.updateBankrollChart = function (startCapital, odds, prob, kellyFraction) {
-            if (!window.bankrollChartInstance) return;
-
-            let labels = [];
-            let dataExpected = [];
-            let dataPessimistic = [];
-            let dataOptimistic = [];
-
-            let currentCap = startCapital;
-            let currentPess = startCapital;
-            let currentOpt = startCapital;
-
-            let ev = (prob * odds) - 1;
-
-            // On simule 100 paris identiques
-            for (let i = 0; i <= 100; i++) {
-                labels.push("Pari " + i);
-                dataExpected.push(currentCap);
-                dataPessimistic.push(currentPess);
-                dataOptimistic.push(currentOpt);
-
-                if (ev > 0 && kellyFraction > 0) {
-                    // Croissance théorique avec Kelly : Croissance = (1 + b*f)^p * (1 - f)^q
-                    let b = odds - 1;
-                    let growthFactor = Math.pow(1 + b * kellyFraction, prob) * Math.pow(1 - kellyFraction, 1 - prob);
-                    currentCap = currentCap * growthFactor;
-
-                    // Variante Pessimiste (On subit un peu de malchance par rapport à la théorie)
-                    currentPess = currentPess * (growthFactor * 0.98);
-                    // Variante Optimiste (La variance tourne en notre faveur)
-                    currentOpt = currentOpt * (growthFactor * 1.02);
-                }
-            }
-
-            window.bankrollChartInstance.data.labels = labels;
-            window.bankrollChartInstance.data.datasets = [
-                {
-                    label: 'Projection Optimiste', data: dataOptimistic,
-                    borderColor: 'rgba(0, 229, 255, 0.3)', borderDash: [5, 5], borderWidth: 1, fill: false
-                },
-                {
-                    label: 'Croissance Attendue (EV)', data: dataExpected,
-                    borderColor: '#4ADE80', backgroundColor: 'rgba(74, 222, 128, 0.1)', borderWidth: 3, fill: true, tension: 0.4
-                },
-                {
-                    label: 'Projection Pessimiste', data: dataPessimistic,
-                    borderColor: 'rgba(239, 68, 68, 0.3)', borderDash: [5, 5], borderWidth: 1, fill: false
-                }
-            ];
-            window.bankrollChartInstance.update();
-        };
-
-        // ==========================================
-// 🔌 CONNEXION DU PORTEFEUILLE AU COFFRE-FORT (SUPABASE)
+// ==========================================
+// 🔌 FILTRES ET GESTION DU PORTEFEUILLE
 // ==========================================
 
-// On demande à la fonction de synchronisation de mettre aussi à jour le Portefeuille
-const originalSyncBankroll = window.syncBankrollToBanquier;
-window.syncBankrollToBanquier = function() {
-    if (originalSyncBankroll) originalSyncBankroll(); // Calcule le capital en haut
-    if (typeof window.updatePortfolioUI === 'function') window.updatePortfolioUI(); // Met à jour les graphiques en bas
+window.setChartFilter = function(filterRange, btnElement) {
+    window.currentChartFilter = filterRange;
+    
+    // Design des boutons au clic
+    document.querySelectorAll('.chart-filter-btn').forEach(b => {
+        b.classList.remove('active', 'text-black', 'bg-ice', 'shadow-[0_0_10px_rgba(0,229,255,0.4)]');
+        b.classList.add('text-gray-400');
+    });
+    btnElement.classList.remove('text-gray-400');
+    btnElement.classList.add('active', 'text-black', 'bg-ice', 'shadow-[0_0_10px_rgba(0,229,255,0.4)]');
+    
+    window.updatePortfolioUI();
 };
 
 window.updatePortfolioUI = function() {
-    let totalInvested = 0;
-    let totalReturned = 0;
-    let wonBets = 0;
-    let finishedBets = 0;
+    let cycle = window.capitalCycles[window.currentCycleId] || { start: 100, timestamp: 0 };
+    let startCap = cycle.start;
+
+    let totalInvested = 0, totalReturned = 0, wonBets = 0, finishedBets = 0;
     
-    // Initialisation du graphique
     let chartLabels = ["Départ"];
-    let startCap = parseFloat(document.getElementById('bk-start-capital')?.value) || 100;
     let chartData = [startCap];
-    let currentCap = startCap;
+    let currentCapForChart = startCap;
 
     let bets = window.globalBankroll || [];
-    let sortedBets = [...bets].reverse(); // On inverse pour le graphique (du plus vieux au plus récent)
+    let sortedBets = [...bets].reverse(); // Graphique : du plus vieux au plus récent
 
-    // Calcul des statistiques
+    let now = new Date().getTime();
+    let timeLimit = 0;
+    
+    // Activation des filtres temporels sur le graphique
+    if (window.currentChartFilter === '7D') timeLimit = now - (7 * 24 * 60 * 60 * 1000);
+    else if (window.currentChartFilter === '30D') timeLimit = now - (30 * 24 * 60 * 60 * 1000);
+    else if (window.currentChartFilter === '1Y') timeLimit = now - (365 * 24 * 60 * 60 * 1000);
+
     sortedBets.forEach((b) => {
+        let betTime = new Date(b.date).getTime();
+        if (betTime < cycle.timestamp) return; // Exclu : pari fait sur un ancien capital
+
         if (b.status !== "PENDING") {
             totalInvested += b.stake;
             finishedBets++;
@@ -244,17 +284,20 @@ window.updatePortfolioUI = function() {
             if (b.status === "WON") {
                 totalReturned += (b.stake * b.odds);
                 wonBets++;
-                currentCap += (b.stake * b.odds) - b.stake; // Ajout du bénéfice net
+                currentCapForChart += (b.stake * b.odds) - b.stake;
             } else if (b.status === "LOST") {
-                currentCap -= b.stake; // Retrait de la mise
+                currentCapForChart -= b.stake;
             }
             
-            chartLabels.push("Pari " + finishedBets);
-            chartData.push(currentCap);
+            // Si le pari est dans la fenêtre de temps (7J, 30J...), on l'affiche sur le graphique
+            if (betTime >= timeLimit) {
+                chartLabels.push("Pari " + finishedBets);
+                chartData.push(currentCapForChart);
+            }
         }
     });
 
-    // 1. Mise à jour des KPI (Bénéfice, ROI, Réussite)
+    // 1. Mise à jour des KPI (Chiffres globaux du Capital sélectionné)
     let profit = totalReturned - totalInvested;
     let roi = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
     let hitrate = finishedBets > 0 ? (wonBets / finishedBets) * 100 : 0;
@@ -267,14 +310,16 @@ window.updatePortfolioUI = function() {
     if(document.getElementById('pf-roi')) document.getElementById('pf-roi').innerText = roi.toFixed(1) + "%";
     if(document.getElementById('pf-hitrate')) document.getElementById('pf-hitrate').innerText = hitrate.toFixed(1) + "%";
 
-    // 2. Mise à jour de la liste historique
+    // 2. Historique texte (Toujours visible, filtré par Capital)
+    let validBetsForList = bets.filter(b => new Date(b.date).getTime() >= cycle.timestamp);
     let listContainer = document.getElementById('pf-bets-list');
+    
     if (listContainer) {
-        if (bets.length === 0) {
-            listContainer.innerHTML = `<div class="text-center text-gray-600 font-bold text-xs italic py-10">Aucun pari enregistré dans le Coffre-Fort.</div>`;
+        if (validBetsForList.length === 0) {
+            listContainer.innerHTML = `<div class="text-center text-gray-600 font-bold text-xs italic py-10">Aucun pari enregistré dans ce Capital.</div>`;
         } else {
             let listHtml = "";
-            bets.forEach(b => {
+            validBetsForList.forEach(b => {
                 let dateStr = new Date(b.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 let statusColor = b.status === 'WON' ? 'text-money' : (b.status === 'LOST' ? 'text-blood' : 'text-yellow-500');
                 let statusText = b.status === 'WON' ? 'GAGNÉ' : (b.status === 'LOST' ? 'PERDU' : 'EN COURS');
@@ -296,7 +341,7 @@ window.updatePortfolioUI = function() {
         }
     }
 
-    // 3. Mise à jour du Graphique Linéaire
+    // 3. Mise à jour du Graphique Linéaire filtré
     if (window.realBankrollChartInstance) {
         window.realBankrollChartInstance.data.labels = chartLabels;
         window.realBankrollChartInstance.data.datasets[0].data = chartData;
@@ -333,7 +378,6 @@ window.updatePortfolioUI = function() {
     }
 };
 
-// 4. On modifie le bouton "Nouveau Pari" pour qu'il envoie la donnée dans le Coffre-Fort Supabase
 window.submitPortfolioBet = function() {
     let target = document.getElementById('pf-target').value;
     let market = document.getElementById('pf-market').value;
@@ -349,8 +393,6 @@ window.submitPortfolioBet = function() {
     
     if (typeof window.addBetToBankroll === 'function') {
         window.addBetToBankroll('MANUEL', desc, odds, stake, [{target_name: target, market: market}]);
-        
-        // Nettoyage des champs après envoi
         document.getElementById('pf-target').value = '';
         document.getElementById('pf-odds').value = '';
         document.getElementById('pf-stake').value = '';
