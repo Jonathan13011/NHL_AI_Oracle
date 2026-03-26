@@ -108,6 +108,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
         window.currentTicketPlayers = [];
         window.bannedZappingPlayers = new Set();
         window.lockedTicketPlayers.clear(); // On vide les cadenas !
+        
         window.lastTicketConfig = { type, title, total, matchStr: currentSelectionStr, risk, strategy: zapStrategy };
         isZapping = false;
     } else {
@@ -174,6 +175,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
             if (p.position === 'G') return false;
             if (window.activePlayersToday && window.activePlayersToday.size > 0 && !window.activePlayersToday.has(Number(p.id))) return false;
             if (window.bannedZappingPlayers.has(p.id)) return false; // Exclut les zappés
+            if (window.bannedZappingTeams && window.bannedZappingTeams.has(p.team)) return false; // 🛑 NOUVEAU : Exclut l'équipe complète (Plan B)
             if (window.userBannedPlayers.has(String(p.id))) return false; // Exclut l'infirmerie
 
             if (window.selectedTicketMatches.size > 0) {
@@ -402,9 +404,14 @@ let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3 + trendBoos
                     matchCounts[m]++;
                     matchRoles[m].add(p._ticketRole);
                 } else {
-                    // Si le joueur n'est pas verrouillé, il est mis sur liste noire DÉFINITIVE.
-                    // Impossible qu'il réapparaisse dans les prochains tickets zappés.
+                    // On bannit le joueur pour ne plus jamais le revoir dans ce cycle
                     window.bannedZappingPlayers.add(p.id);
+                    
+                    // 🛑 LE COUP DE GÉNIE : Si c'est le "Plan B", on bannit TOUTE SON ÉQUIPE !
+                    if (zapStrategy === 'plan_b') {
+                        if (!window.bannedZappingTeams) window.bannedZappingTeams = new Set();
+                        window.bannedZappingTeams.add(p.team);
+                    }
                 }
             });
         }
