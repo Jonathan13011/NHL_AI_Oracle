@@ -211,24 +211,105 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
             p._matchStr = exactMatch ? `${exactMatch.home_team} vs ${exactMatch.away_team}` : `Match de ${p.team}`;
             p.ctx_boost = 0; p.ctx_reasons = []; p.has_target_badge = false;
 
-            // ⚡ 1. INTELLIGENCE IA : Analyse de la forme du joueur (L5)
-            let statName = assignedRole === 'Buteur' ? 'Buts' : (assignedRole === 'Passeur' ? 'Passes' : 'Points');
-            if (p.last_5_games && p.last_5_games.length > 0) {
-                let l5 = p.last_5_games.slice(0, 5);
-                let targetL5 = l5.reduce((sum, g) => sum + (assignedRole === 'Buteur' ? g.goals : (assignedRole === 'Passeur' ? g.assists : g.points)), 0);
-                let sL5 = l5.reduce((sum, g) => sum + g.shots, 0);
+            // ⚡ 1. MOTEUR QUANTITATIF V2 : ANALYSE DES TENDANCES (DERIVÉES L2 vs L3)
+            let trendBoost = 0; // Le nouveau score de dynamique
+            p.ctx_reasons = [];
+            
+            const parseToi = (t) => {
+                if(!t || t === '-') return 0;
+                if(typeof t === 'number') return t;
+                let p_parts = String(t).split(':');
+                if(p_parts.length === 2) return parseInt(p_parts[0], 10) + (parseInt(p_parts[1], 10) / 60);
+                return parseFloat(t) || 0;
+            };
 
-                if (targetL5 >= 3) {
-                    p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#ff3333]">🔥</span> <span><b>Dynamique Explosive :</b> Forme exceptionnelle avec ${targetL5} ${statName} (L5).</span></li>`);
-                } else if (sL5 >= 15 && assignedRole === 'Buteur' && targetL5 <= 1) {
-                    p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#00e5ff]">❄️</span> <span><b>Régression Positive :</b> ${sL5} tirs récents sans réussite. Rupture imminente.</span></li>`);
-                } else if (p.avg_toi > 18) {
-                     p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#4ADE80]">⏱️</span> <span><b>Gros Temps de Jeu :</b> Joueur clé sur-utilisé (>18 min/m).</span></li>`);
-                } else {
-                     p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🧠</span> <span><b>Value Mathématique :</b> Avantage algorithmique (+EV) identifié.</span></li>`);
+            if (p.last_5_games && p.last_5_games.length >= 3) {
+                let l5 = p.last_5_games.slice(0, 5);
+                let l2 = l5.slice(0, 2); // 2 Derniers matchs (Micro-Forme en temps réel)
+                let l3 = l5.slice(2, 5); // 3 Matchs précédents (Macro-Forme passée)
+
+                // Calculs des moyennes pour observer les ÉVOLUTIONS POSITIVES
+                let shotsL2 = l2.reduce((s, g) => s + g.shots, 0) / l2.length;
+                let shotsL3 = l3.length > 0 ? l3.reduce((s, g) => s + g.shots, 0) / l3.length : 0;
+                
+                let toiL2 = l2.reduce((s, g) => s + parseToi(g.toi), 0) / l2.length;
+                let toiL3 = l3.length > 0 ? l3.reduce((s, g) => s + parseToi(g.toi), 0) / l3.length : 0;
+                let toiEvol = toiL2 - toiL3;
+
+                let goalsL2 = l2.reduce((s, g) => s + g.goals, 0);
+                let goalsL3 = l3.reduce((s, g) => s + g.goals, 0);
+                let assistsL2 = l2.reduce((s, g) => s + g.assists, 0);
+                let ptsL2 = l2.reduce((s, g) => s + g.points, 0);
+                let ptsL3 = l3.reduce((s, g) => s + g.points, 0);
+
+                // 🎯 ALGORITHME BUTEURS
+                if (assignedRole === 'Buteur') {
+                    // A. Évolution des tirs (Accélération / Mitraillette)
+                    if (shotsL2 > shotsL3 && shotsL2 >= 3.5) {
+                        trendBoost += 8;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#ff3333]">🎯</span> <span><b>Mitraillette :</b> Hausse massive du volume de tirs (${shotsL2.toFixed(1)} SOG/m). But imminent.</span></li>`);
+                    } else if (shotsL2 < 1.5) {
+                        trendBoost -= 25; // LA GUILLOTINE : Ne tire plus, danger absolu.
+                    }
+
+                    // B. Forme actuelle (Confiance croissante)
+                    if (goalsL2 > goalsL3 || goalsL2 >= 2) {
+                        trendBoost += 6;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#ff3333]">🔥</span> <span><b>Main Chaude :</b> Confiance absolue face au filet sur les derniers matchs.</span></li>`);
+                    }
+
+                    // C. Évolution Temps de Glace
+                    if (toiEvol > 1.5) {
+                        trendBoost += 4;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#4ADE80]">⏱️</span> <span><b>Usage Offensif :</b> Temps de glace en nette augmentation (+${toiEvol.toFixed(1)} min).</span></li>`);
+                    }
+                } 
+                // 🏒 ALGORITHME PASSEURS
+                else if (assignedRole === 'Passeur') {
+                    // A. Précision et Zone de Danger (OZS / Pass%)
+                    if (p.pass_pct && p.pass_pct >= 80) {
+                        trendBoost += 5;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#00e5ff]">🎯</span> <span><b>Maestro :</b> Précision de passe Élite repérée (${p.pass_pct}%).</span></li>`);
+                    }
+                    if (p.ozs && p.ozs >= 55) {
+                        trendBoost += 4;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#A855F7]">📍</span> <span><b>Zone Dangereuse :</b> Majorité de ses présences en zone offensive (${p.ozs}% OZS).</span></li>`);
+                    }
+
+                    // B. Évolution Forme (Création)
+                    if (assistsL2 > assistsL3 || assistsL2 >= 2) {
+                        trendBoost += 6;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#00e5ff]">📈</span> <span><b>Caviar :</b> Distribution de palets (Assistances) en forte hausse récemment.</span></li>`);
+                    }
+
+                    // C. Évolution Temps de Glace
+                    if (toiEvol > 1.0) trendBoost += 3;
                 }
+                // ⭐ ALGORITHME POINTEURS
+                else if (assignedRole === 'Pointeur') {
+                    // A. Évolution Globale des Points (G+A)
+                    if (ptsL2 > ptsL3 && ptsL2 >= 2) {
+                        trendBoost += 7;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#EAB308]">⭐</span> <span><b>Rendement Élite :</b> Implication massive sur les derniers buts (${ptsL2} pts / 2 matchs).</span></li>`);
+                    }
+                    
+                    // B. Évolution Temps de Glace
+                    if (toiEvol > 1.5) {
+                        trendBoost += 5;
+                        p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#4ADE80]">⏱️</span> <span><b>Omniprésence :</b> Temps de jeu en pleine croissance (+${toiEvol.toFixed(1)} min).</span></li>`);
+                    }
+
+                    // LA GUILLOTINE POINTEUR
+                    if (ptsL2 === 0 && shotsL2 < 1.5) trendBoost -= 25; 
+                }
+
+                // Filet de sécurité visuel si aucun badge ne "pop"
+                if (p.ctx_reasons.length === 0) {
+                     p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🧠</span> <span><b>Value Mathématique :</b> Avantage algorithmique net (+EV) identifié.</span></li>`);
+                }
+
             } else {
-                p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🤖</span> <span><b>Projection IA :</b> Avantage mathématique historique repéré.</span></li>`);
+                p.ctx_reasons.push(`<li class="flex items-start gap-2"><span class="text-[#C084FC]">🤖</span> <span><b>Projection IA :</b> Basé sur le modèle mathématique (Manque de datas très récentes).</span></li>`);
             }
 
             // ⚡ 2. INTELLIGENCE IA : Analyse du contexte de match (Adversaire)
@@ -265,7 +346,8 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
             let itemOdds = p.odds ? parseFloat(p.odds) : Math.max(1.10, 0.93 / (p._ticketProb / 100));
 
             // ⚡⚡ LE COEUR DE L'INTELLIGENCE (ZAPPING STRATÉGIQUE) ⚡⚡
-            let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3) : p._ticketProb + p.ctx_boost;
+            // On intègre la dynamique de forme mathématique (trendBoost) au score d'évaluation !
+let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3 + trendBoost) : p._ticketProb + p.ctx_boost + trendBoost;
             
             if (isZapping && zapStrategy === 'ev') {
                 // Stratégie VALUE : On favorise ceux qui ont une cote disproportionnée
@@ -292,11 +374,25 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
         let matchCounts = {};
         let matchRoles = {}; 
 
-        // ⚡ NOUVEAU : LA LOGIQUE DES CADENAS
+        // ⚡ NOUVEAU : LA LOGIQUE DES CADENAS ET DU NOYAU DUR
         if (isZapping && window.currentTicketPlayers.length > 0) {
+            
+            // 🧠 STRATÉGIE "NOYAU DUR" : L'IA verrouille automatiquement le Top 50%
+            if (zapStrategy === 'core') {
+                // On trie les joueurs actuels par leur véritable score IA
+                let sortedCurrent = [...window.currentTicketPlayers].sort((a, b) => b._ticketScore - a._ticketScore);
+                // On détermine combien on en garde (la moitié, arrondie au supérieur)
+                let keepCount = Math.ceil(sortedCurrent.length / 2);
+                
+                // On applique les cadenas IA
+                for (let i = 0; i < keepCount; i++) {
+                    window.lockedTicketPlayers.add(String(sortedCurrent[i].id));
+                }
+            }
+
             window.currentTicketPlayers.forEach(p => {
                 if (window.lockedTicketPlayers.has(String(p.id))) {
-                    // C'est un PILIER choisi par l'utilisateur, on le garde !
+                    // C'est un PILIER (choisi par l'utilisateur ou par l'IA "Noyau Dur"), on le garde !
                     selected.push(p);
                     let m = p._matchStr;
                     if (!matchCounts[m]) matchCounts[m] = 0;
@@ -304,7 +400,7 @@ window.generateSmartTicket = async function (type, title, isZapping = false, zap
                     matchCounts[m]++;
                     matchRoles[m].add(p._ticketRole);
                 } else {
-                    // Il n'est pas verrouillé, on le banni pour qu'un NOUVEAU joueur prenne sa place
+                    // Il n'est pas verrouillé, on le bannit pour qu'un NOUVEAU joueur prenne sa place
                     window.bannedZappingPlayers.add(p.id);
                 }
             });
@@ -1385,11 +1481,19 @@ window.openZappingMenu = function(type, title) {
             <div class="p-4 flex flex-col gap-3">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-4">Les joueurs "cadenassés" seront conservés. Choisissez la stratégie pour les autres :</p>
                 
+                <button onclick="executeZapping('${type}', '${title}', 'core')" class="bg-gray-900 hover:bg-gray-800 border border-yellow-500/50 p-4 rounded-xl flex items-center gap-4 transition group text-left shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+                    <div class="bg-yellow-500/20 p-3 rounded-full text-yellow-500 group-hover:scale-110 transition"><i class="fas fa-lock text-xl"></i></div>
+                    <div>
+                        <div class="text-white font-black uppercase tracking-widest text-xs">Le Noyau Dur (Rotation IA)</div>
+                        <div class="text-gray-400 text-[10px] font-bold mt-1">L'IA verrouille automatiquement le Top 50% de votre ticket actuel et remplace les autres.</div>
+                    </div>
+                </button>
+
                 <button onclick="executeZapping('${type}', '${title}', 'standard')" class="bg-gray-900 hover:bg-gray-800 border border-gray-700 p-4 rounded-xl flex items-center gap-4 transition group text-left">
                     <div class="bg-ice/20 p-3 rounded-full text-ice group-hover:scale-110 transition"><i class="fas fa-sync-alt text-xl"></i></div>
                     <div>
                         <div class="text-white font-black uppercase tracking-widest text-xs">Standard (Continuité)</div>
-                        <div class="text-gray-500 text-[10px] font-bold mt-1">Remplace par les meilleurs suivants.</div>
+                        <div class="text-gray-500 text-[10px] font-bold mt-1">Remplace tout par les meilleurs suivants.</div>
                     </div>
                 </button>
 
