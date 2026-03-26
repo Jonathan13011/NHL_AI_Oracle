@@ -374,25 +374,27 @@ let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3 + trendBoos
         let matchCounts = {};
         let matchRoles = {}; 
 
-        // ⚡ NOUVEAU : LA LOGIQUE DES CADENAS ET DU NOYAU DUR
+        // ⚡ NOUVEAU : LA LOGIQUE DES CADENAS, DU NOYAU DUR ET DU PLAN B INFALLIBLE
         if (isZapping && window.currentTicketPlayers.length > 0) {
             
-            // 🧠 STRATÉGIE "NOYAU DUR" : L'IA verrouille automatiquement le Top 50%
+            let sortedCurrent = [...window.currentTicketPlayers].sort((a, b) => b._ticketScore - a._ticketScore);
+            let halfCount = Math.ceil(sortedCurrent.length / 2);
+
+            // 🧠 STRATÉGIE "NOYAU DUR"
             if (zapStrategy === 'core') {
-                // On trie les joueurs actuels par leur véritable score IA
-                let sortedCurrent = [...window.currentTicketPlayers].sort((a, b) => b._ticketScore - a._ticketScore);
-                // On détermine combien on en garde (la moitié, arrondie au supérieur)
-                let keepCount = Math.ceil(sortedCurrent.length / 2);
-                
-                // On applique les cadenas IA
-                for (let i = 0; i < keepCount; i++) {
+                for (let i = 0; i < halfCount; i++) {
                     window.lockedTicketPlayers.add(String(sortedCurrent[i].id));
                 }
+            } 
+            // 🧠 STRATÉGIE "PLAN B" (On fait sauter les cadenas pour un ticket 100% neuf)
+            else if (zapStrategy === 'plan_b') {
+                window.lockedTicketPlayers.clear(); 
             }
 
+            // 🛡️ SÉCURITÉ ANTI-DOUBLON ABSOLUE
             window.currentTicketPlayers.forEach(p => {
                 if (window.lockedTicketPlayers.has(String(p.id))) {
-                    // C'est un PILIER (choisi par l'utilisateur ou par l'IA "Noyau Dur"), on le garde !
+                    // C'est un PILIER, on le garde
                     selected.push(p);
                     let m = p._matchStr;
                     if (!matchCounts[m]) matchCounts[m] = 0;
@@ -400,7 +402,8 @@ let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3 + trendBoos
                     matchCounts[m]++;
                     matchRoles[m].add(p._ticketRole);
                 } else {
-                    // Il n'est pas verrouillé, on le bannit pour qu'un NOUVEAU joueur prenne sa place
+                    // Si le joueur n'est pas verrouillé, il est mis sur liste noire DÉFINITIVE.
+                    // Impossible qu'il réapparaisse dans les prochains tickets zappés.
                     window.bannedZappingPlayers.add(p.id);
                 }
             });
@@ -460,7 +463,22 @@ let baseScore = type === 'mixte' ? (mixteSortScore + p.ctx_boost * 3 + trendBoos
             }
         }
 
-        if (selected.length < total) window.bannedZappingPlayers = new Set();
+        // 🛑 STOP DE SÉCURITÉ : Si l'IA n'a plus assez de joueurs uniques et rentables
+        if (selected.length < total) {
+            container.innerHTML = `
+                <div class="text-orange-500 font-bold text-center py-10 bg-gray-950 border border-orange-500/50 rounded-xl shadow-inner mt-4">
+                    <i class="fas fa-exclamation-triangle text-4xl mb-4 animate-pulse drop-shadow-[0_0_10px_#f97316]"></i><br>
+                    <span class="text-lg uppercase tracking-widest text-white">Le fond du baril est atteint.</span><br>
+                    <span class="text-xs text-gray-400 mt-3 block leading-relaxed max-w-md mx-auto">
+                        Pour garantir qu'aucun ticket ne soit identique, l'IA a mis sur liste noire tous les joueurs précédents. Il n'y a plus assez de profils rentables (+EV) ce soir pour créer une nouvelle combinaison sécurisée.<br><br>
+                        <b class="text-white">Solution :</b> Cliquez sur "Réinitialiser" ou cochez plus de matchs à l'étape 1.
+                    </span>
+                </div>`;
+            window.hideFullScreenLoader();
+            window.hideAnalysis();
+            return; // On stoppe tout, on ne génère pas de ticket frauduleux
+        }
+
         window.currentTicketPlayers = selected;
 
         if (selected.length === 0) {
@@ -1480,7 +1498,13 @@ window.openZappingMenu = function(type, title) {
             </div>
             <div class="p-4 flex flex-col gap-3">
                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest text-center mb-4">Les joueurs "cadenassés" seront conservés. Choisissez la stratégie pour les autres :</p>
-                
+                <button onclick="executeZapping('${type}', '${title}', 'plan_b')" class="bg-gray-900 hover:bg-gray-800 border border-orange-500/50 p-4 rounded-xl flex items-center gap-4 transition group text-left shadow-[0_0_15px_rgba(249,115,22,0.15)] mt-2">
+                    <div class="bg-orange-500/20 p-3 rounded-full text-orange-500 group-hover:scale-110 transition"><i class="fas fa-code-branch text-xl"></i></div>
+                    <div>
+                        <div class="text-white font-black uppercase tracking-widest text-xs">Le Plan B (Anti-Corrélation)</div>
+                        <div class="text-gray-400 text-[10px] font-bold mt-1">L'IA bannit volontairement vos stars actuelles et crée un ticket 100% indépendant pour diversifier les risques.</div>
+                    </div>
+                </button>
                 <button onclick="executeZapping('${type}', '${title}', 'core')" class="bg-gray-900 hover:bg-gray-800 border border-yellow-500/50 p-4 rounded-xl flex items-center gap-4 transition group text-left shadow-[0_0_15px_rgba(234,179,8,0.15)]">
                     <div class="bg-yellow-500/20 p-3 rounded-full text-yellow-500 group-hover:scale-110 transition"><i class="fas fa-lock text-xl"></i></div>
                     <div>
