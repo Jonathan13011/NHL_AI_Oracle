@@ -18,9 +18,10 @@ def signup(data: dict):
     # On génère un mot de passe simple pour le test
     temp_pass = "HOCKAI2026"
 
+- Mot de passe PostGreSQL
+Jo23071993
 
-
-Serveur Hetzner root password : 
+- Serveur Hetzner root password : 
 XKbAj9staTVe
 
 
