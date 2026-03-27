@@ -283,14 +283,6 @@ window.updateGlobalRadar = async function() {
     const gridContainer = document.getElementById('radar-players-grid');
     const rankingSection = document.getElementById('radar-ranking-section');
     const chartSubtitle = document.getElementById('radar-chart-subtitle');
-    
-    // 1. GESTION INTELLIGENTE DE L'INTERFACE : Masquer la position si un joueur est ciblé
-    const positionContainer = positionSelect.parentElement;
-    if (targetPlayerId !== 'all') {
-        positionContainer.style.display = 'none';
-    } else {
-        positionContainer.style.display = 'block';
-    }
 
     // 2. Mise à jour de l'explication IA
     const exp = RADAR_EXPLANATIONS[metric];
@@ -524,8 +516,6 @@ window.updateGlobalRadar = async function() {
         }
 
         let filteredPool = pool.filter(p => p.position !== 'G');
-        if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
-        if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
         // 🛑 NOUVEAU FILTRE : On ne garde que les joueurs du match sélectionné
         if (teamFilter !== 'all') {
             const teams = teamFilter.split('|'); // [home, away]

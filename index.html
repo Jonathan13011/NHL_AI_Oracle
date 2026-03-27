@@ -425,65 +425,66 @@
 
                     <div
                         class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-30 backdrop-blur-md">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 items-end">
-
-                            <div class="relative w-full">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
-                                <div class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
-                                    <input type="text" id="radar-player-search" autocomplete="off" onkeyup="window.searchRadarPlayer()" placeholder="Global (Top Ligue)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
-                                    <button onclick="window.clearRadarPlayer()" class="text-gray-500 hover:text-white transition" id="radar-clear-btn" style="display:none;"><i class="fas fa-times"></i></button>
-                                                                </div>
-                                <div id="radar-autocomplete" class="absolute z-50 w-full bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar"></div>
-                                <input type="hidden" id="radar-selected-player" value="all">
-                            </div>
-
-                            <div class="w-full">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
-                                <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
-                                    <optgroup label="Prédictions IA">
-                                        <option value="breakout" selected>🧠 Indice d'Explosion (Breakout)</option>
-                                    </optgroup>
-                                    <optgroup label="Performances Réelles">
-                                        <option value="points">⭐ Total Points</option>
-                                        <option value="goals">🎯 Total Buts</option>
-                                        <option value="assists">🏒 Total Passes</option>
-                                        <option value="shots">🔥 Volume de Tirs (SOG)</option>
-                                        <option value="toi">⏱️ Temps de Glace (TOI)</option>
-                                    </optgroup>
-                                    <optgroup label="Métriques Edge">
-                                        <option value="speed">⚡ Vitesse Moyenne (km/h)</option>
-                                        <option value="pass_pct">🎯 Passes Réussies (%)</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            <div class="w-full">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-day text-money mr-1"></i> Matchs du Jour</label>
-                                <select id="radar-team-filter" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-money outline-none cursor-pointer shadow-inner appearance-none transition">
-                                    <option value="all" selected>Toute la Ligue</option>
-                                    </select>
-                            </div>
-
-                            <div class="w-full">
-                                <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période (Analyse temporelle)</label>
+                        <div class="flex flex-col gap-3 md:gap-4">
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 items-start">
                                 
-                                <div class="w-full flex flex-col gap-2">
+                                <div class="relative w-full">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
+                                    <div class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
+                                        <input type="text" id="radar-player-search" autocomplete="off" onkeyup="window.searchRadarPlayer()" placeholder="Global (Top Ligue)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
+                                        <button onclick="window.clearRadarPlayer()" class="text-gray-500 hover:text-white transition" id="radar-clear-btn" style="display:none;"><i class="fas fa-times"></i></button>
+                                    </div>
+                                    <div id="radar-autocomplete" class="absolute z-50 w-[calc(100%-2rem)] md:w-full min-w-[250px] bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar"></div>
+                                    <input type="hidden" id="radar-selected-player" value="all">
+                                </div>
+
+                                <div class="w-full">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
+                                    <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                        <optgroup label="Prédictions IA">
+                                            <option value="breakout" selected>🧠 Indice d'Explosion (Breakout)</option>
+                                        </optgroup>
+                                        <optgroup label="Performances Réelles">
+                                            <option value="points">⭐ Total Points</option>
+                                            <option value="goals">🎯 Total Buts</option>
+                                            <option value="assists">🏒 Total Passes</option>
+                                            <option value="shots">🔥 Volume de Tirs (SOG)</option>
+                                            <option value="toi">⏱️ Temps de Glace (TOI)</option>
+                                        </optgroup>
+                                        <optgroup label="Métriques Edge">
+                                            <option value="speed">⚡ Vitesse Moyenne (km/h)</option>
+                                            <option value="pass_pct">🎯 Passes Réussies (%)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <div class="w-full">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-day text-money mr-1"></i> Matchs du Jour</label>
+                                    <select id="radar-team-filter" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-money outline-none cursor-pointer shadow-inner appearance-none transition">
+                                        <option value="all" selected>Toute la Ligue</option>
+                                        </select>
+                                </div>
+
+                                <div class="w-full">
+                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
                                     <div class="w-full flex bg-gray-950 border border-gray-700 rounded-xl p-1 h-[46px] shadow-inner relative overflow-hidden">
                                         <div id="radar-period-segment-indicator" class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-blood rounded-lg shadow-lg transition-all duration-300 transform translate-x-0"></div>
-                                        <button id="radar-mode-btn-recent" onclick="window.setRadarPeriodMode('recent')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-white">Derniers Matchs (Forme)</button>
-                                        <button id="radar-mode-btn-season" onclick="window.setRadarPeriodMode('season')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-gray-500 hover:text-white">Saison (Moyenne)</button>
+                                        <button id="radar-mode-btn-recent" onclick="window.setRadarPeriodMode('recent')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-white">Matchs</button>
+                                        <button id="radar-mode-btn-season" onclick="window.setRadarPeriodMode('season')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-gray-500 hover:text-white">Saison</button>
                                         <input type="hidden" id="radar-period-mode" value="recent">
-                                    </div>
-
-                                    <div id="radar-slider-container" class="bg-black/40 border border-gray-800 rounded-lg p-2.5 h-[34px] shadow-inner flex items-center gap-3 transition-all">
-                                        <span class="text-gray-600 text-[9px] font-black uppercase">L1</span>
-                                        <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
-                                        <div class="flex items-center gap-1 w-6 justify-end whitespace-nowrap">
-                                            <span class="text-gray-700 text-[8px] font-black">L</span><span class="text-blood font-black text-xs" id="radar-slider-val">5</span>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                            <div id="radar-slider-container" class="w-full lg:w-1/4 lg:ml-auto bg-black border border-gray-800 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
+                                <span class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
+                                <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
+                                <div class="flex items-center gap-1 w-8 justify-end whitespace-nowrap">
+                                    <span class="text-gray-600 text-[8px] font-black">L</span><span class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" id="radar-slider-val">5</span>
+                                </div>
+                            </div>
+
                         </div>
 
                         <div class="bg-gray-950 border-l-4 border-yellow-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20"
