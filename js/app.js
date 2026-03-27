@@ -198,28 +198,49 @@ window.selectRadarPlayer = function(id, name) {
     window.updateGlobalRadar();
 };
 
-// --- BASCULE DU MODE DE PÉRIODE (Slider vs Saison) ---
-window.toggleRadarMode = function() {
+// ⚡ NOUVELLE FONCTION : Gère le Segmented Control moderne de la Période (Saison/Ligue)
+window.setRadarPeriodMode = function(mode) {
     const modeInput = document.getElementById('radar-period-mode');
-    const sliderContainer = document.getElementById('radar-slider-container');
-    const seasonContainer = document.getElementById('radar-season-container');
-    const modeBtn = document.getElementById('radar-mode-btn');
+    if (!modeInput || modeInput.value === mode) return; // Évite les calculs inutiles si on clique sur le mode déjà actif
 
-    if (modeInput.value === 'recent') {
-        modeInput.value = 'season';
-        sliderContainer.classList.add('opacity-0', 'pointer-events-none');
-        setTimeout(() => { sliderContainer.classList.add('hidden'); seasonContainer.classList.remove('hidden'); seasonContainer.classList.add('flex'); }, 200);
-        modeBtn.innerHTML = 'Voir Récents <i class="fas fa-sync-alt ml-1"></i>';
-        modeBtn.classList.replace('text-gray-400', 'text-ice');
-    } else {
-        modeInput.value = 'recent';
-        seasonContainer.classList.add('hidden');
-        seasonContainer.classList.remove('flex');
+    const sliderContainer = document.getElementById('radar-slider-container');
+    const indicator = document.getElementById('radar-period-segment-indicator');
+    const btnRecent = document.getElementById('radar-mode-btn-recent');
+    const btnSeason = document.getElementById('radar-mode-btn-season');
+
+    if (!sliderContainer || !indicator || !btnRecent || !btnSeason) return;
+
+    // Mise à jour de la mémoire
+    modeInput.value = mode;
+
+    // Mise à jour visuelle du "Segmented Control" (iPhone Style)
+    if (mode === 'recent') {
+        // Le bouton 'recent' devient actif
+        indicator.classList.remove('translate-x-0', 'translate-x-full'); // Reset
+        indicator.classList.add('translate-x-0'); // L'indicateur va à gauche
+        btnRecent.classList.remove('text-gray-500');
+        btnRecent.classList.add('text-white');
+        btnSeason.classList.remove('text-white');
+        btnSeason.classList.add('text-gray-500');
+
+        // On montre le slider avec une petite animation
         sliderContainer.classList.remove('hidden');
-        setTimeout(() => sliderContainer.classList.remove('opacity-0', 'pointer-events-none'), 50);
-        modeBtn.innerHTML = 'Voir Saison <i class="fas fa-sync-alt ml-1"></i>';
-        modeBtn.classList.replace('text-ice', 'text-gray-400');
+        sliderContainer.classList.add('flex');
+    } else {
+        // Le bouton 'season' devient actif
+        indicator.classList.remove('translate-x-0', 'translate-x-full'); // Reset
+        indicator.classList.add('translate-x-[calc(100%+8px)]'); // L'indicateur va à droite
+        btnRecent.classList.remove('text-white');
+        btnRecent.classList.add('text-gray-500');
+        btnSeason.classList.remove('text-gray-500');
+        btnSeason.classList.add('text-white');
+
+        // On cache le slider proprement
+        sliderContainer.classList.remove('flex');
+        sliderContainer.classList.add('hidden');
     }
+
+    // On relance l'IA avec la nouvelle période
     window.updateGlobalRadar();
 };
 
@@ -244,16 +265,17 @@ window.populateRadarTeamFilter = function() {
 
 window.updateGlobalRadar = async function() {
     const metric = document.getElementById('radar-metric').value;
-    let periodMode = document.getElementById('radar-period-mode').value; // ⚡ CHANGÉ DE const À let
+    let periodMode = document.getElementById('radar-period-mode').value; 
     const recentCount = parseInt(document.getElementById('radar-game-slider').value, 10); 
-    const positionSelect = document.getElementById('radar-position');
-    const position = positionSelect.value;
-    const targetPlayerId = document.getElementById('radar-selected-player').value;
     
-    // 🛑 NOUVEAU : Récupération du filtre d'équipe (Match du jour)
-    const teamFilter = document.getElementById('radar-team-filter') ? document.getElementById('radar-team-filter').value : 'all'; 
+    // 🛑 ATTENTION : On supprime la récupération de la Position puisqu'on a enlevé le menu !
+    // const positionSelect = document.getElementById('radar-position'); // SUPPRIMÉ
+    // const position = positionSelect.value; // SUPPRIMÉ
 
-    // 🛑 CORRECTION LIGNE PLATE : On force la vue "Saison" pour la Vitesse et les Passes d'un joueur
+    const targetPlayerId = document.getElementById('radar-selected-player').value;
+    const teamFilter = document.getElementById('radar-team-filter') ? document.getElementById('radar-team-filter').value : 'all'; 
+    
+    // 🛑 CORRECTION LIGNE PLATE : On force la vue Saison
     if (targetPlayerId !== 'all' && (metric === 'speed' || metric === 'pass_pct')) {
         periodMode = 'season';
     }
