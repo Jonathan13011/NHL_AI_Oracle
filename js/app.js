@@ -920,18 +920,108 @@ function sortMatchPlayers(sortBy, btnElement) {
     });
 }
 window.psModalChart = null;
+window.currentModalPlayer = null; // Mémoire du joueur sélectionné
+
 function openPlayerStatsModal(playerJson) {
     const p = JSON.parse(decodeURIComponent(playerJson));
-    document.getElementById('ps-modal-name').innerText = p.name; document.getElementById('ps-modal-team').innerText = p.team;
-    document.getElementById('player-stats-modal').classList.remove('hidden'); document.getElementById('player-stats-modal').classList.add('flex');
+    window.currentModalPlayer = p; // On sauvegarde les données du joueur
+
+    document.getElementById('ps-modal-name').innerText = p.name; 
+    document.getElementById('ps-modal-team').innerText = p.team;
+    
+    // On force la liste déroulante sur "Points" par défaut à l'ouverture
+    const selectEl = document.getElementById('ps-modal-metric-select');
+    if (selectEl) selectEl.value = 'points';
+    
+    document.getElementById('player-stats-modal').classList.remove('hidden'); 
+    document.getElementById('player-stats-modal').classList.add('flex');
+    
+    // On dessine le graphique de base
+    updateModalChart('points');
+}
+
+// ⚡ LA NOUVELLE FONCTION QUI MET À JOUR LE GRAPHIQUE
+window.updateModalChart = function(metric) {
+    if (!window.currentModalPlayer) return;
+    const p = window.currentModalPlayer;
+
     if (window.psModalChart) { 
-    window.psModalChart.destroy(); 
-    window.psModalChart = null; 
-}
+        window.psModalChart.destroy(); 
+        window.psModalChart = null; 
+    }
+
     const ctx = document.getElementById('ps-modal-chart').getContext('2d');
-    const dates = p.last_5_games.map(g => g.date); const points = p.last_5_games.map(g => g.points); const shots = p.last_5_games.map(g => g.shots);
-    psModalChart = new Chart(ctx, { type: 'line', data: { labels: dates, datasets: [{ label: 'Points', data: points, borderColor: '#00e5ff', backgroundColor: 'rgba(0, 229, 255, 0.2)', tension: 0.3, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff', yAxisID: 'y' }, { label: 'Tirs', data: shots, borderColor: '#4ADE80', backgroundColor: 'transparent', tension: 0.3, borderWidth: 2, borderDash: [5, 5], pointRadius: 4, yAxisID: 'y1' }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Points', color: '#00e5ff' }, ticks: { color: '#ccc', stepSize: 1 } }, y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Tirs', color: '#4ADE80' }, grid: { drawOnChartArea: false }, ticks: { color: '#ccc', stepSize: 1 } }, x: { ticks: { color: '#9CA3AF' } } }, plugins: { legend: { labels: { color: '#fff', font: { family: 'Montserrat', weight: 'bold' } } } } } });
-}
+    const dates = p.last_5_games.map(g => g.date);
+    
+    // Configuration dynamique des couleurs et du titre
+    let dataValues = [];
+    let chartColor = '';
+    let bgColor = '';
+    let metricLabel = '';
+
+    if (metric === 'points') {
+        dataValues = p.last_5_games.map(g => g.points);
+        chartColor = '#00e5ff'; bgColor = 'rgba(0, 229, 255, 0.2)'; metricLabel = 'Points';
+    } else if (metric === 'goals') {
+        dataValues = p.last_5_games.map(g => g.goals);
+        chartColor = '#ff3333'; bgColor = 'rgba(255, 51, 51, 0.2)'; metricLabel = 'Buts';
+    } else if (metric === 'assists') {
+        dataValues = p.last_5_games.map(g => g.assists);
+        chartColor = '#ffffff'; bgColor = 'rgba(255, 255, 255, 0.1)'; metricLabel = 'Passes';
+    } else if (metric === 'shots') {
+        dataValues = p.last_5_games.map(g => g.shots);
+        chartColor = '#4ADE80'; bgColor = 'rgba(74, 222, 128, 0.2)'; metricLabel = 'Tirs (SOG)';
+    } else if (metric === 'toi') {
+        // Le TOI arrive sous forme de texte "18:45", il faut le transformer en nombre décimal
+        dataValues = p.last_5_games.map(g => {
+            if(!g.toi || g.toi === '-') return 0;
+            let parts = String(g.toi).split(':');
+            return parts.length === 2 ? parseInt(parts[0], 10) + (parseInt(parts[1], 10) / 60) : parseFloat(g.toi);
+        });
+        chartColor = '#9CA3AF'; bgColor = 'rgba(156, 163, 175, 0.2)'; metricLabel = 'Minutes jouées';
+    }
+
+    // On prépare toujours les tirs en pointillé pour comparer (sauf si on regarde déjà les tirs)
+    const shotsData = p.last_5_games.map(g => g.shots);
+    
+    let datasets = [{ 
+        label: metricLabel, 
+        data: dataValues, 
+        borderColor: chartColor, 
+        backgroundColor: bgColor, 
+        tension: 0.3, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff', 
+        yAxisID: 'y', fill: true
+    }];
+
+    // Si on ne regarde pas les tirs ou le TOI, on affiche les tirs en fond pour comparer l'efficacité
+    if (metric !== 'shots' && metric !== 'toi') {
+        datasets.push({ 
+            label: 'Tirs', 
+            data: shotsData, 
+            borderColor: '#4ADE80', 
+            backgroundColor: 'transparent', 
+            tension: 0.3, borderWidth: 2, borderDash: [5, 5], pointRadius: 4, 
+            yAxisID: 'y1' 
+        });
+    }
+
+    window.psModalChart = new Chart(ctx, { 
+        type: 'line', 
+        data: { labels: dates, datasets: datasets }, 
+        options: { 
+            responsive: true, maintainAspectRatio: false, 
+            scales: { 
+                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: metricLabel, color: chartColor, font: {weight: 'bold'} }, ticks: { color: '#ccc', stepSize: metric === 'toi' ? 2 : 1 } }, 
+                y1: { type: 'linear', display: metric !== 'shots' && metric !== 'toi', position: 'right', title: { display: true, text: 'Tirs', color: '#4ADE80' }, grid: { drawOnChartArea: false }, ticks: { color: '#ccc', stepSize: 1 } }, 
+                x: { ticks: { color: '#9CA3AF', font: {family: 'Montserrat', size: 10} } } 
+            }, 
+            plugins: { 
+                legend: { labels: { color: '#fff', font: { family: 'Montserrat', weight: 'bold' } } },
+                tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 13, weight: 'bold' }, borderColor: chartColor, borderWidth: 1 }
+            } 
+        } 
+    });
+};
 
 function openTicketArgumentModal(playerJson, type) {
     const p = JSON.parse(decodeURIComponent(playerJson));

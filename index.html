@@ -2638,10 +2638,21 @@
                 <div class="p-8">
                     <h2 class="text-center text-3xl font-black text-white mb-2 uppercase tracking-widest border-b border-gray-800 pb-4"
                         id="ps-modal-name">Nom du Joueur</h2>
-                    <p class="text-center text-gray-400 text-sm mb-6"><span id="ps-modal-team"
+                    <p class="text-center text-gray-400 text-sm mb-4"><span id="ps-modal-team"
                             class="bg-gray-800 px-2 py-1 rounded text-ice font-bold">EQU</span> - Analyse de Forme
                         (L5)
                     </p>
+                    
+                    <div class="w-full flex justify-end mb-3">
+                        <select id="ps-modal-metric-select" onchange="window.updateModalChart(this.value)" class="bg-gray-900 text-white text-[10px] md:text-xs font-bold uppercase tracking-widest border border-gray-700 rounded px-3 py-2 outline-none focus:border-ice shadow-inner cursor-pointer">
+                            <option value="points">Total Points</option>
+                            <option value="goals">Buts Uniquement</option>
+                            <option value="assists">Passes Uniquement</option>
+                            <option value="shots">Volume de Tirs</option>
+                            <option value="toi">Temps de Glace</option>
+                        </select>
+                    </div>
+
                     <div class="relative w-full h-80 bg-gray-950/50 rounded-lg p-4 border border-gray-800"><canvas
                             id="ps-modal-chart"></canvas></div>
                 </div>
