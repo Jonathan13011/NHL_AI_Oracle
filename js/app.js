@@ -223,14 +223,41 @@ window.toggleRadarMode = function() {
     window.updateGlobalRadar();
 };
 
+// ⚡ NOUVEAU : Remplit le filtre des matchs du jour
+window.populateRadarTeamFilter = function() {
+    const select = document.getElementById('radar-team-filter');
+    if (!select || !window.fetchedMatchesPool) return;
+    
+    // Garde l'option "Toute la Ligue"
+    select.innerHTML = '<option value="all" selected>Toute la Ligue</option>';
+    
+    window.fetchedMatchesPool.forEach(m => {
+        if (m.state !== 'FINAL' && m.state !== 'OFF') {
+            const matchStr = `${m.away_team} @ ${m.home_team}`;
+            const option = document.createElement('option');
+            option.value = `${m.home_team}|${m.away_team}`;
+            option.text = matchStr;
+            select.appendChild(option);
+        }
+    });
+};
+
 window.updateGlobalRadar = async function() {
     const metric = document.getElementById('radar-metric').value;
-    const periodMode = document.getElementById('radar-period-mode').value; 
+    let periodMode = document.getElementById('radar-period-mode').value; // ⚡ CHANGÉ DE const À let
     const recentCount = parseInt(document.getElementById('radar-game-slider').value, 10); 
     const positionSelect = document.getElementById('radar-position');
     const position = positionSelect.value;
     const targetPlayerId = document.getElementById('radar-selected-player').value;
     
+    // 🛑 NOUVEAU : Récupération du filtre d'équipe (Match du jour)
+    const teamFilter = document.getElementById('radar-team-filter') ? document.getElementById('radar-team-filter').value : 'all'; 
+
+    // 🛑 CORRECTION LIGNE PLATE : On force la vue "Saison" pour la Vitesse et les Passes d'un joueur
+    if (targetPlayerId !== 'all' && (metric === 'speed' || metric === 'pass_pct')) {
+        periodMode = 'season';
+    }
+
     const gridContainer = document.getElementById('radar-players-grid');
     const rankingSection = document.getElementById('radar-ranking-section');
     const chartSubtitle = document.getElementById('radar-chart-subtitle');
@@ -477,6 +504,11 @@ window.updateGlobalRadar = async function() {
         let filteredPool = pool.filter(p => p.position !== 'G');
         if (position === 'F') filteredPool = filteredPool.filter(p => ['C', 'LW', 'RW', 'F'].includes(p.position));
         if (position === 'D') filteredPool = filteredPool.filter(p => p.position === 'D');
+        // 🛑 NOUVEAU FILTRE : On ne garde que les joueurs du match sélectionné
+        if (teamFilter !== 'all') {
+            const teams = teamFilter.split('|'); // [home, away]
+            filteredPool = filteredPool.filter(p => teams.includes(p.team));
+        }
 
         filteredPool.forEach(p => {
             p._radarValue = 0; 
@@ -853,6 +885,10 @@ window.fetchMatches = async function (silent = false) {
         // Mise à jour Tickets Fiables si actif
         if (document.getElementById('tab-tickets') && document.getElementById('tab-tickets').classList.contains('active') && typeof window.updateTicketMatchSelector === 'function') {
             window.updateTicketMatchSelector();
+        }
+        // Mise à jour de la liste des matchs dans le Market Radar
+        if (typeof window.populateRadarTeamFilter === 'function') {
+            window.populateRadarTeamFilter();
         }
 
     } catch (e) {
