@@ -198,6 +198,15 @@ window.selectRadarPlayer = function(id, name) {
     window.updateGlobalRadar();
 };
 
+// ⚡ NOUVEAU : Fonction pour effacer le joueur ciblé et revenir au Top Ligue
+window.clearRadarPlayer = function() {
+    document.getElementById('radar-selected-player').value = 'all'; // On remet la cible sur "Toute la ligue"
+    document.getElementById('radar-player-search').value = ''; // On vide le champ de texte
+    document.getElementById('radar-clear-btn').style.display = 'none'; // On cache la petite croix
+    document.getElementById('radar-autocomplete').classList.add('hidden'); // On cache la liste déroulante au cas où
+    window.updateGlobalRadar(); // On relance l'IA pour rafraîchir le graphique
+};
+
 // ⚡ NOUVELLE FONCTION : Gère le Segmented Control (Force le CSS Inline anti-purge)
 window.setRadarPeriodMode = function(mode) {
     const modeInput = document.getElementById('radar-period-mode');
