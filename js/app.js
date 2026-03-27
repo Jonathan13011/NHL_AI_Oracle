@@ -198,10 +198,10 @@ window.selectRadarPlayer = function(id, name) {
     window.updateGlobalRadar();
 };
 
-// ⚡ NOUVELLE FONCTION : Gère le Segmented Control moderne de la Période (Saison/Ligue)
+// ⚡ NOUVELLE FONCTION : Gère le Segmented Control (Force le CSS Inline anti-purge)
 window.setRadarPeriodMode = function(mode) {
     const modeInput = document.getElementById('radar-period-mode');
-    if (!modeInput || modeInput.value === mode) return; // Évite les calculs inutiles si on clique sur le mode déjà actif
+    if (!modeInput || modeInput.value === mode) return;
 
     const sliderContainer = document.getElementById('radar-slider-container');
     const indicator = document.getElementById('radar-period-segment-indicator');
@@ -210,37 +210,21 @@ window.setRadarPeriodMode = function(mode) {
 
     if (!sliderContainer || !indicator || !btnRecent || !btnSeason) return;
 
-    // Mise à jour de la mémoire
     modeInput.value = mode;
 
-    // Mise à jour visuelle du "Segmented Control" (iPhone Style)
+    // Mise à jour avec style CSS direct (Protégé contre le Purge Tailwind)
     if (mode === 'recent') {
-        // Le bouton 'recent' devient actif
-        indicator.classList.remove('translate-x-0', 'translate-x-full'); // Reset
-        indicator.classList.add('translate-x-0'); // L'indicateur va à gauche
-        btnRecent.classList.remove('text-gray-500');
-        btnRecent.classList.add('text-white');
-        btnSeason.classList.remove('text-white');
-        btnSeason.classList.add('text-gray-500');
-
-        // On montre le slider avec une petite animation
-        sliderContainer.classList.remove('hidden');
-        sliderContainer.classList.add('flex');
+        indicator.style.transform = 'translateX(0%)';
+        btnRecent.classList.remove('text-gray-500'); btnRecent.classList.add('text-white');
+        btnSeason.classList.remove('text-white'); btnSeason.classList.add('text-gray-500');
+        sliderContainer.classList.remove('hidden'); sliderContainer.classList.add('flex');
     } else {
-        // Le bouton 'season' devient actif
-        indicator.classList.remove('translate-x-0', 'translate-x-full'); // Reset
-        indicator.classList.add('translate-x-[calc(100%+8px)]'); // L'indicateur va à droite
-        btnRecent.classList.remove('text-white');
-        btnRecent.classList.add('text-gray-500');
-        btnSeason.classList.remove('text-gray-500');
-        btnSeason.classList.add('text-white');
-
-        // On cache le slider proprement
-        sliderContainer.classList.remove('flex');
-        sliderContainer.classList.add('hidden');
+        indicator.style.transform = 'translateX(100%)';
+        btnRecent.classList.remove('text-white'); btnRecent.classList.add('text-gray-500');
+        btnSeason.classList.remove('text-gray-500'); btnSeason.classList.add('text-white');
+        sliderContainer.classList.remove('flex'); sliderContainer.classList.add('hidden');
     }
 
-    // On relance l'IA avec la nouvelle période
     window.updateGlobalRadar();
 };
 
@@ -522,14 +506,37 @@ window.updateGlobalRadar = async function() {
             filteredPool = filteredPool.filter(p => teams.includes(p.team));
         }
 
+        // ⚡ FIX : Agrégation mathématique selon la période (Saison ou L1..L10)
         filteredPool.forEach(p => {
             p._radarValue = 0; 
             p._radarLabel = metricText;
-            if (metric === 'goals' || metric === 'breakout') p._radarValue = p.prob_goal || 0;
-            else if (metric === 'assists') p._radarValue = p.prob_assist || 0;
-            else if (metric === 'points' || metric === 'shots' || metric === 'toi') p._radarValue = p.prob_point || 0;
-            else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
-            else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
+            
+            // Si on demande la prédiction IA de Breakout, on garde la probabilité globale
+            if (metric === 'breakout') {
+                p._radarValue = p.prob_goal || 0; 
+            } 
+            // Si on est en vue "Saison Moyenne"
+            else if (periodMode === 'season') {
+                if (metric === 'goals') p._radarValue = p.avg_goals || 0;
+                else if (metric === 'points' || metric === 'assists') p._radarValue = p.avg_points || 0; 
+                else if (metric === 'shots') p._radarValue = p.avg_shots || 0;
+                else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
+                else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
+            } 
+            // Si on est en vue "Derniers Matchs" (Slider Actif)
+            else {
+                // On prend l'historique récent et on le coupe au nombre demandé par le slider (L1, L2, etc.)
+                let gamesToCount = p.last_5_games ? p.last_5_games.slice(0, recentCount) : [];
+                
+                if (metric === 'goals') p._radarValue = gamesToCount.reduce((s, g) => s + (g.goals || 0), 0);
+                else if (metric === 'points') p._radarValue = gamesToCount.reduce((s, g) => s + (g.points || 0), 0);
+                else if (metric === 'assists') p._radarValue = gamesToCount.reduce((s, g) => s + (g.assists || 0), 0);
+                else if (metric === 'shots') p._radarValue = gamesToCount.reduce((s, g) => s + (g.shots || 0), 0);
+                else if (metric === 'toi') {
+                    let totalToi = gamesToCount.reduce((s, g) => s + parseToi(g.toi), 0);
+                    p._radarValue = gamesToCount.length > 0 ? (totalToi / gamesToCount.length) : 0;
+                }
+            }
         });
 
         filteredPool = filteredPool.filter(p => p._radarValue > 0);
@@ -555,7 +562,24 @@ window.updateGlobalRadar = async function() {
             },
             options: {
                 responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 14, weight: 'bold' }, padding: 10, borderColor: borderColor, borderWidth: 1 } },
+                plugins: { 
+                    legend: { display: false }, 
+                    // ⚡ FIX : UX Mobile épurée (suppression du carré de couleur, police réduite)
+                    tooltip: { 
+                        backgroundColor: 'rgba(0,0,0,0.95)', 
+                        titleFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 10 : 13 }, 
+                        bodyFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 12 : 14, weight: 'bold' }, 
+                        padding: window.innerWidth < 768 ? 8 : 12, 
+                        borderColor: borderColor, 
+                        borderWidth: 1,
+                        displayColors: false, // 🛑 Supprime le gros carré de couleur inutile
+                        callbacks: {
+                            label: function(context) {
+                                return metricText + ' : ' + context.parsed.x;
+                            }
+                        }
+                    } 
+                },
                 scales: {
                     x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 9 } } },
                     y: { grid: { display: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: tickSize, weight: 'bold' } } }
