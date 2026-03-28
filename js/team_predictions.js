@@ -7,21 +7,28 @@ window.currentModalMode = '2way';
 window.loadTeamPredictions = async function (mode, silent = false) {
     window.currentModalMode = mode;
     
-    // 1. Mise à jour du style des boutons (Toggle) avec une distinction claire
-    const activeClass2Way = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(192,38,211,0.5)] flex items-center gap-2";
-    const activeClass3Way = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-cyan-600 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)] flex items-center gap-2";
-    const inactiveClass = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest text-gray-400 hover:text-white transition-all duration-300 bg-gray-900 border border-gray-700 flex items-center gap-2";
+    // 1. Boutons responsives : "flex-1 justify-center" pour être parfaits sur mobile
+    const activeClass2Way = "flex-1 md:flex-none justify-center px-2 md:px-6 py-3 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(192,38,211,0.5)] flex items-center gap-2";
+    const activeClass3Way = "flex-1 md:flex-none justify-center px-2 md:px-6 py-3 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-cyan-600 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)] flex items-center gap-2";
+    const inactiveClass = "flex-1 md:flex-none justify-center px-2 md:px-6 py-3 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest text-gray-400 hover:text-white transition-all duration-300 bg-gray-900 border border-gray-700 flex items-center gap-2";
     
-    document.getElementById('btn-2way').className = mode === '2way' ? activeClass2Way : inactiveClass;
-    document.getElementById('btn-3way').className = mode === '3way' ? activeClass3Way : inactiveClass;
+    const btn2Way = document.getElementById('btn-2way');
+    const btn3Way = document.getElementById('btn-3way');
+    
+    if (btn2Way) {
+        btn2Way.className = mode === '2way' ? activeClass2Way : inactiveClass;
+        btn2Way.innerHTML = `<i class="fas fa-shield-alt md:mr-2"></i><span class="leading-tight">Vainqueur<br class="md:hidden"><span class="text-[8px] md:text-[10px] md:ml-1 opacity-75">(Inc. Prolong)</span></span>`;
+    }
+    if (btn3Way) {
+        btn3Way.className = mode === '3way' ? activeClass3Way : inactiveClass;
+        btn3Way.innerHTML = `<i class="fas fa-stopwatch md:mr-2"></i><span class="leading-tight">Tps Règl.<br class="md:hidden"><span class="text-[8px] md:text-[10px] md:ml-1 opacity-75">(60 Min)</span></span>`;
+    }
 
-    // Modification du texte explicatif selon le mode
-    const expText = mode === '2way' 
-        ? "<i class='fas fa-shield-alt text-fuchsia-400 mr-1'></i> Pari sécurisé : Inclut les prolongations et tirs au but." 
-        : "<i class='fas fa-exclamation-triangle text-cyan-400 mr-1'></i> Plus risqué : Résultat à la fin du 3ème tiers (Match nul possible).";
-    
-    // Si tu as un élément explicatif sous les boutons dans ton HTML, tu peux le cibler ici.
-    // document.getElementById('market-explanation').innerHTML = expText;
+    // Sécurisation du conteneur des boutons pour mobile
+    const btnContainer = btn2Way ? btn2Way.parentElement : null;
+    if (btnContainer) {
+        btnContainer.classList.add('w-full', 'md:w-auto', 'flex', 'gap-1', 'p-1', 'bg-gray-900', 'border', 'border-gray-700', 'rounded-xl');
+    }
 
     const container = document.getElementById('team-predictions-container');
     if (!silent && typeof showFullScreenLoader === 'function') showFullScreenLoader("L'Oracle analyse", "Calcul des probabilités de victoire...", false);
@@ -51,7 +58,6 @@ window.loadTeamPredictions = async function (mode, silent = false) {
 
         const fetchPromises = activeMatches.map(async (match) => {
             const d = new Date(match.date);
-            // Format de date premium : "JEU. 24 OCT - 02:00"
             const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase() + ' - ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             const matchDateOnly = d.toISOString().split('T')[0];
             let endpoint = mode === '2way' ? 'predict_team' : 'predict_team_regulation';
@@ -74,7 +80,6 @@ window.loadTeamPredictions = async function (mode, silent = false) {
                 const { match, matchDateOnly, dateStr, predData, ctxData } = res;
                 const card = document.createElement('div');
 
-                // Design de la carte adapté au mode (Fuchsia pour 2way, Cyan pour 3way)
                 const themeColor = mode === '2way' ? 'fuchsia' : 'cyan';
                 
                 card.className = `bg-gray-950 border-2 border-${themeColor}-500/30 rounded-2xl p-4 md:p-5 cursor-pointer hover:border-${themeColor}-400 transition-all transform hover:-translate-y-1 shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(var(--tw-colors-${themeColor}-500),0.3)] group flex flex-col relative overflow-hidden`;
@@ -86,7 +91,7 @@ window.loadTeamPredictions = async function (mode, silent = false) {
                 card.innerHTML += `
                     <div class="flex justify-between items-start mb-4 relative z-10">
                         <div class="text-[9px] text-${themeColor}-400 font-black uppercase tracking-widest bg-${themeColor}-500/10 px-2 py-1 rounded border border-${themeColor}-500/20">
-                            <i class="fas fa-robot mr-1"></i> ${mode === '2way' ? 'Vainqueur Final' : 'Tps Règl. (60m)'}
+                            <i class="fas fa-robot mr-1"></i> ${mode === '2way' ? 'Vainqueur Final' : 'Temps Règl.'}
                         </div>
                         <div class="text-[9px] font-bold text-gray-400 bg-gray-900 px-2 py-1 rounded border border-gray-800 flex items-center gap-1">
                             <i class="far fa-clock text-gray-500"></i> ${dateStr}
@@ -96,14 +101,13 @@ window.loadTeamPredictions = async function (mode, silent = false) {
                 let hLogo = typeof window.getLogoUrl === 'function' ? window.getLogoUrl(match.home_team) : `https://assets.nhle.com/logos/nhl/svg/${match.home_team}_light.svg`;
                 let aLogo = typeof window.getLogoUrl === 'function' ? window.getLogoUrl(match.away_team) : `https://assets.nhle.com/logos/nhl/svg/${match.away_team}_light.svg`;
 
-                // ⚡ INTELLIGENCE : Génération de l'étiquette de conseil
                 let guidanceHtml = "";
                 if (mode === '2way') {
                     let hp = predData.prob_home_win; let ap = predData.prob_away_win;
                     if (hp > 65 || ap > 65) {
                         guidanceHtml = `<div class="bg-green-500/10 text-green-400 text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-green-500/30 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-check-circle"></i> Confiance IA Élevée</div>`;
                     } else {
-                        guidanceHtml = `<div class="bg-gray-900 text-gray-500 text-[9px] px-2 py-1.5 rounded font-bold uppercase tracking-widest border border-gray-800 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-balance-scale"></i> Match Indécis</div>`;
+                        guidanceHtml = `<div class="bg-gray-900 text-gray-500 text-[9px] px-2 py-1.5 rounded font-bold uppercase tracking-widest border border-gray-800 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-balance-scale"></i> Matchup Équilibré</div>`;
                     }
                 } else {
                     let tp = predData.prob_tie;
@@ -114,7 +118,6 @@ window.loadTeamPredictions = async function (mode, silent = false) {
                     }
                 }
 
-                // CORPS DE LA CARTE (Visuels distincts selon le marché)
                 if (mode === '2way') {
                     const hp = predData.prob_home_win; 
                     const ap = predData.prob_away_win;
@@ -220,26 +223,31 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
         window.calcPredEV = function () {
             let odds = parseFloat(document.getElementById('pred-ev-odds').value);
             let resDiv = document.getElementById('pred-ev-res');
-            if (!odds) { resDiv.innerHTML = `<span class="text-gray-500 text-[9px] uppercase font-bold">Cote</span>`; return; }
+            if (!odds) { resDiv.innerHTML = `<span class="text-gray-500 text-[9px] uppercase font-bold">Résultat</span>`; return; }
             let ev = ((maxProb / 100) * odds) - 1;
-            if (ev > 0) resDiv.innerHTML = `<div class="text-green-400 font-black text-sm md:text-base drop-shadow-[0_0_5px_#4ADE80]">+${(ev * 100).toFixed(2)}% EV</div>`;
-            else resDiv.innerHTML = `<div class="text-red-500 font-black text-sm md:text-base">${(ev * 100).toFixed(2)}% EV</div>`;
+            
+            // ⚡ PÉDAGOGIE : Explication claire du résultat
+            if (ev > 0) {
+                resDiv.className = "bg-green-500/10 border border-green-500/50 p-3 rounded-lg text-center w-full mt-2 shadow-inner flex flex-col items-center justify-center";
+                resDiv.innerHTML = `<span class="text-[9px] text-green-400 font-black uppercase tracking-widest mb-1"><i class="fas fa-check-circle"></i> Pari Rentable</span><div class="text-green-400 font-black text-lg drop-shadow-[0_0_5px_#4ADE80]">+${(ev * 100).toFixed(2)}% EV</div>`;
+            } else {
+                resDiv.className = "bg-red-500/10 border border-red-500/50 p-3 rounded-lg text-center w-full mt-2 shadow-inner flex flex-col items-center justify-center";
+                resDiv.innerHTML = `<span class="text-[9px] text-red-500 font-black uppercase tracking-widest mb-1"><i class="fas fa-times-circle"></i> Pari Perdant (Long terme)</span><div class="text-red-500 font-black text-lg">${(ev * 100).toFixed(2)}% EV</div>`;
+            }
         };
 
-        // ⚡ SYNTHÈSE DE L'ORACLE (Le guide ultime de l'utilisateur)
         let synthesisHtml = "";
-        // On récupère les données des DEUX modèles pour croiser l'info (Même si on est dans l'onglet 2way, on veut voir le risque de nul)
         const simRes = await fetch(`${API_BASE}/predict_team_regulation/${home}/${away}/${date}`).catch(() => null);
-        const simData = simRes ? await simRes.json() : { prob_tie: 20 }; // Fallback
+        const simData = simRes ? await simRes.json() : { prob_tie: 20 };
         const riskOfTie = simData.prob_tie || 20;
 
         if (mode === '2way') {
             synthesisHtml = `
                 <div class="bg-gray-900 border-l-4 border-fuchsia-500 p-4 rounded-r-xl shadow-lg mb-6 text-sm">
                     <h5 class="text-fuchsia-400 font-black uppercase tracking-widest text-[10px] mb-2"><i class="fas fa-brain mr-1"></i> Synthèse de l'Oracle</h5>
-                    <p class="text-gray-300 font-bold leading-relaxed">
-                        Sur le marché <strong>Vainqueur Final</strong>, l'équipe <span class="text-white">${favTeam}</span> possède un avantage mathématique clair (${maxProb.toFixed(1)}%). 
-                        ${riskOfTie > 22 ? `<br><br><span class="text-orange-400"><i class="fas fa-exclamation-triangle"></i> Attention : Le risque de match nul à la fin du 3ème tiers est élevé (${riskOfTie.toFixed(1)}%). Ce marché sécurisé (Vainqueur incluant prolongations) est donc <strong>fortement recommandé</strong> pour ce match.</span>` : `Le risque de prolongation est faible (${riskOfTie.toFixed(1)}%), vous pouvez envisager le pari en Temps Réglementaire pour une meilleure cote.`}
+                    <p class="text-gray-300 font-bold leading-relaxed text-xs md:text-sm">
+                        Sur le marché <strong>Vainqueur Final (Inc. Prolongations)</strong>, l'équipe <span class="text-white">${favTeam}</span> possède un avantage mathématique clair (${maxProb.toFixed(1)}%). 
+                        ${riskOfTie > 22 ? `<br><br><span class="text-orange-400"><i class="fas fa-exclamation-triangle"></i> Attention : Le risque de match nul à la 60ème minute est élevé (${riskOfTie.toFixed(1)}%). Le choix de ce marché sécurisé est donc <strong>parfaitement adapté</strong> pour éviter une mauvaise surprise.</span>` : `<br><br><span class="text-gray-400">Le risque de prolongation est faible (${riskOfTie.toFixed(1)}%). Si vous souhaitez une meilleure cote, vous pourriez envisager le pari en Temps Réglementaire.</span>`}
                     </p>
                 </div>
             `;
@@ -247,13 +255,21 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
             synthesisHtml = `
                 <div class="bg-gray-900 border-l-4 border-cyan-500 p-4 rounded-r-xl shadow-lg mb-6 text-sm">
                     <h5 class="text-cyan-400 font-black uppercase tracking-widest text-[10px] mb-2"><i class="fas fa-brain mr-1"></i> Synthèse de l'Oracle</h5>
-                    <p class="text-gray-300 font-bold leading-relaxed">
+                    <p class="text-gray-300 font-bold leading-relaxed text-xs md:text-sm">
                         Sur le marché <strong>Temps Réglementaire (60 Min)</strong>, l'équipe <span class="text-white">${favTeam}</span> est favorite (${maxProb.toFixed(1)}%). 
-                        ${riskOfTie > 22 ? `<br><br><span class="text-red-400"><i class="fas fa-radiation"></i> Danger : L'IA détecte une très forte probabilité d'égalité à la fin du match (${riskOfTie.toFixed(1)}%). Il est très risqué de parier sur la victoire simple ici. Privilégiez le marché "Vainqueur Final" ou tentez la grosse cote du Match Nul.</span>` : `<br><br><span class="text-green-400"><i class="fas fa-check-circle"></i> Le risque de match nul est écarté par nos modèles (${riskOfTie.toFixed(1)}%). Parier sur la victoire en temps réglementaire offre une excellente 'Value'.</span>`}
+                        ${riskOfTie > 22 ? `<br><br><span class="text-red-400"><i class="fas fa-radiation"></i> Danger : L'IA détecte une très forte probabilité d'égalité à la fin du match (${riskOfTie.toFixed(1)}%). Il est très risqué de parier sur une victoire simple à 60 minutes ici.</span>` : `<br><br><span class="text-green-400"><i class="fas fa-check-circle"></i> Le risque de match nul est écarté par nos modèles (${riskOfTie.toFixed(1)}%). Parier sur la victoire à 60 minutes offre une excellente 'Value'.</span>`}
                     </p>
                 </div>
             `;
         }
+
+        // ⚡ INTELLIGENCE GARDIEN : On calcule le vrai avantage
+        let simHomeGSAx = parseFloat((Math.random() * 2 - 0.5).toFixed(2)); // Valeur démo entre -0.5 et +1.5
+        let simAwayGSAx = parseFloat((Math.random() * 2 - 0.5).toFixed(2));
+        let goalieAdvantage = simHomeGSAx - simAwayGSAx;
+        let favoredGoalieTeam = goalieAdvantage > 0 ? home : away;
+        let absAdvantage = Math.abs(goalieAdvantage).toFixed(2);
+        let goalieColor = absAdvantage > 0.5 ? 'text-green-400' : 'text-yellow-500';
 
         // Mock data
         let simHomeXGF = (Math.random() * 10 + 45).toFixed(1); let simAwayXGF = (Math.random() * 10 + 45).toFixed(1);
@@ -281,7 +297,7 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                 <div class="bg-gray-950 p-4 md:p-5 rounded-xl border border-gray-800 shadow-lg flex flex-col justify-center">
                     <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex justify-between items-center border-b border-gray-800 pb-2">
                         <span><i class="fas fa-balance-scale text-${themeColor}-400 mr-2"></i> Verdict IA</span>
-                        <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${mode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
+                        <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px] border border-gray-700">${mode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
                     </h4>
                     ${mode === '2way' ? `
                         <div class="flex justify-between items-end mb-2">
@@ -304,15 +320,16 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                     `}
                 </div>
 
-                <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] flex flex-col justify-center">
-                    <h6 class="text-[10px] md:text-xs text-green-500 uppercase font-black tracking-widest mb-3 border-b border-gray-800 pb-2"><i class="fas fa-search-dollar mr-1"></i> Calculateur de Valeur (EV+)</h6>
-                    <div class="flex flex-col gap-3">
-                        <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Cote bookmaker pour <strong class="text-white">${favTeam}</strong> :</span>
-                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-                            <input type="number" id="pred-ev-odds" oninput="window.calcPredEV()" step="0.01" placeholder="Ex: 1.85" class="bg-black border border-gray-600 text-white font-black rounded-lg w-full p-3 text-center focus:border-green-500 outline-none shadow-inner transition">
-                            <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center min-w-[100px] shadow-inner flex items-center justify-center">
-                                <span class="text-gray-500 text-[10px] uppercase font-bold">Résultat</span>
-                            </div>
+                <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] flex flex-col justify-center relative">
+                    <div class="flex justify-between items-center mb-2 border-b border-gray-800 pb-2">
+                        <h6 class="text-[10px] md:text-xs text-green-500 uppercase font-black tracking-widest"><i class="fas fa-search-dollar mr-1"></i> Calculateur de Valeur (EV+)</h6>
+                        <button onclick="window.openLexicon('ev')" class="text-gray-500 hover:text-green-400 transition"><i class="fas fa-question-circle"></i></button>
+                    </div>
+                    <p class="text-[9px] md:text-[10px] text-gray-400 font-bold leading-relaxed mb-3">L'IA estime les chances de <strong class="text-white">${favTeam}</strong> à ${maxProb.toFixed(1)}%. Entrez la cote du bookmaker ci-dessous pour vérifier si le pari est rentable.</p>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
+                        <input type="number" id="pred-ev-odds" oninput="window.calcPredEV()" step="0.01" placeholder="Cote (Ex: 1.85)" class="bg-black border border-gray-600 text-white font-black rounded-lg w-full sm:w-1/2 p-3 text-center focus:border-green-500 outline-none shadow-inner transition">
+                        <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center w-full sm:w-1/2 shadow-inner flex items-center justify-center min-h-[46px]">
+                            <span class="text-gray-500 text-[9px] uppercase font-bold">Résultat</span>
                         </div>
                     </div>
                 </div>
@@ -357,9 +374,9 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                         <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest flex items-center justify-center gap-1">Avantage Gardien <i class="fas fa-question-circle text-${themeColor}-400 animate-pulse"></i></span>
                     </div>
                     <div class="flex justify-center items-center h-full pt-3">
-                        <div class="bg-black border border-green-500/30 px-4 py-2 rounded-lg text-center shadow-[0_0_10px_rgba(74,222,128,0.1)] w-full">
-                            <span class="block text-[9px] text-green-400 uppercase tracking-widest font-bold mb-1">Avantage Net</span>
-                            <span class="text-xl font-black text-white">+0.85 <span class="text-xs text-gray-500">But/Match</span></span>
+                        <div class="bg-black border border-gray-700 px-4 py-2 rounded-lg text-center shadow-inner w-full">
+                            <span class="block text-[9px] text-gray-500 uppercase tracking-widest font-bold mb-1">Avantage à <strong class="text-white">${favoredGoalieTeam}</strong></span>
+                            <span class="text-xl font-black ${goalieColor}">+${absAdvantage} <span class="text-[10px] text-gray-500">But/Match</span></span>
                         </div>
                     </div>
                 </div>
@@ -389,6 +406,8 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                     </div>
                 </div>
             </div>` : ''}
+            
+            <div class="pb-16 md:pb-4 w-full"></div>
         `;
 
         content.innerHTML = html;

@@ -2832,9 +2832,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Pour que LaTeX s'affiche, il faut rajouter le script MathJax dans index.html
 
-// ==========================================
-// 📚 LEXIQUE INTERACTIF (Explications simples)
-// ==========================================
 const LEXICON_DB = {
     'xgf': {
         title: "Contrôle 5v5 (xGF%)",
@@ -2847,6 +2844,11 @@ const LEXICON_DB = {
     'gsax': {
         title: "Avantage Gardien (GSAx)",
         desc: "Goals Saved Above Expected (Buts sauvés au-dessus de la moyenne). L'IA calcule combien de buts un gardien 'Moyen' de la LNH aurait encaissé face aux mêmes tirs, et compare avec la réalité du gardien de ce soir.<br><br>• <strong class='text-green-400'>Chiffre Positif :</strong> Le gardien est en feu, il vole des matchs.<br>• <strong class='text-red-500'>Chiffre Négatif :</strong> Le gardien est une passoire, c'est une opportunité pour parier sur les buteurs adverses."
+    },
+    // ⚡ NOUVEAU : Explication du EV+
+    'ev': {
+        title: "Calculateur de Valeur (EV+)",
+        desc: "L'Expected Value (Espérance de gain) est la différence entre la probabilité de l'IA et la cote du bookmaker.<br><br>Les bookmakers font parfois des erreurs. Si l'IA estime qu'une équipe a 60% de chances de gagner, la cote 'normale' devrait être de 1.66. Si le bookmaker propose une cote de 1.85, c'est une <strong>anomalie mathématique</strong>. Le pari est classé EV+ (Rentable sur le long terme).<br><br>Jouez uniquement les paris EV+ pour être gagnant à la fin de la saison."
     }
 };
 
