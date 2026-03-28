@@ -32,7 +32,7 @@ window.loadTeamPredictions = async function (mode, silent = false) {
             if (['FINAL', 'OFF'].includes(match.state)) return false;
             let mDate = new Date(match.date);
             let hoursDiff = (mDate - now) / (1000 * 60 * 60);
-            return hoursDiff >= -10 && hoursDiff <= 240; // Fenêtre élargie à 10 jours
+            return hoursDiff >= -10 && hoursDiff <= 48; // ⚡ FIX : Limité aux prochaines 48 heures
         });
 
         if (activeMatches.length === 0) {
@@ -284,9 +284,8 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 
                 <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div class="text-center mb-3 tooltip-container cursor-help border-b border-gray-800 pb-2">
-                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Contrôle 5v5 (xGF%) <i class="fas fa-info-circle text-gray-600"></i></span>
-                        <span class="tooltip-text">Pourcentage de buts attendus à 5 contre 5. >50% = Domination territoriale.</span>
+                    <div onclick="window.openLexicon('xgf')" class="text-center mb-3 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Contrôle 5v5 (xGF%) <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
                     </div>
                     <div class="flex justify-between items-end mb-1">
                         <span class="text-xl font-black text-white">${simAwayXGF}%</span>
@@ -300,9 +299,8 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                 </div>
 
                 <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div class="text-center mb-2 tooltip-container cursor-help border-b border-gray-800 pb-2">
-                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Facteur Chance (PDO) <i class="fas fa-info-circle text-gray-600"></i></span>
-                        <span class="tooltip-text">Moyenne à 100. >101.5 = Surchauffe (Va perdre). <98.5 = Malchanceux (Va gagner).</span>
+                    <div onclick="window.openLexicon('pdo')" class="text-center mb-2 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Facteur Chance (PDO) <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
                     </div>
                     <div class="flex justify-between items-center h-full pb-2">
                         <div class="text-center">
@@ -317,9 +315,8 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                 </div>
 
                 <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div class="text-center mb-2 tooltip-container cursor-help border-b border-gray-800 pb-2">
-                        <span class="text-[10px] text-gray-400 uppercase font-black tracking-widest">Avantage Gardien <i class="fas fa-info-circle text-gray-600"></i></span>
-                        <span class="tooltip-text">Différence de Goals Saved Above Expected (GSAx) entre les deux gardiens probables.</span>
+                    <div onclick="window.openLexicon('gsax')" class="text-center mb-2 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Avantage Gardien <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
                     </div>
                     <div class="flex justify-center items-center h-full pb-2">
                         <div class="bg-black border border-green-500/30 px-4 py-2 rounded-lg text-center shadow-[0_0_10px_rgba(74,222,128,0.1)]">

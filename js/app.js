@@ -67,14 +67,13 @@ window.switchTab = function(tabId, btnElement) {
     // ⚡ 6. DÉCLENCHEMENT DES ANIMATIONS ET CHARGEMENTS AUTOMATIQUES
     if (tabId === 'tab-predictions') {
         const screenEquipes = document.getElementById('equipes-screen');
-        if (screenEquipes) {
-            screenEquipes.classList.remove('hidden');
-            setTimeout(() => screenEquipes.classList.add('hidden'), 2000);
-        }
+        if (screenEquipes) screenEquipes.classList.remove('hidden'); // On affiche l'image
         
-        // AUTO-LOAD : On charge les données "Vainqueur Final" en mode silencieux !
         if (typeof window.loadTeamPredictions === 'function') {
-            window.loadTeamPredictions('2way', true);
+            // On attend VRAIMENT que la fonction ait fini de charger les matchs
+            window.loadTeamPredictions('2way', true).then(() => {
+                if (screenEquipes) screenEquipes.classList.add('hidden'); // On cache seulement quand c'est prêt
+            });
         }
         
     } else if (tabId === 'tab-formes') {
@@ -2832,3 +2831,37 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Pour que LaTeX s'affiche, il faut rajouter le script MathJax dans index.html
+
+// ==========================================
+// 📚 LEXIQUE INTERACTIF (Explications simples)
+// ==========================================
+const LEXICON_DB = {
+    'xgf': {
+        title: "Contrôle 5v5 (xGF%)",
+        desc: "C'est le pourcentage de 'Buts Attendus' (Expected Goals) générés par une équipe à forces égales (5 contre 5).<br><br>Si une équipe a <strong>plus de 50%</strong>, cela signifie qu'elle domine le jeu, contrôle le palet et génère plus de chances dangereuses que son adversaire. C'est l'indicateur n°1 des parieurs pro pour prédire les victoires à long terme."
+    },
+    'pdo': {
+        title: "Facteur Chance (PDO)",
+        desc: "Le PDO est l'addition du pourcentage d'arrêts du gardien et du pourcentage de réussite aux tirs de l'équipe. La moyenne est TOUJOURS 100.<br><br>• <strong class='text-red-500'>Au-dessus de 101.5 :</strong> L'équipe a eu énormément de chance récemment (sur-performance) et va bientôt s'effondrer.<br>• <strong class='text-green-400'>En dessous de 98.5 :</strong> L'équipe joue bien mais a été malchanceuse. C'est le moment idéal pour parier sur son rebond !"
+    },
+    'gsax': {
+        title: "Avantage Gardien (GSAx)",
+        desc: "Goals Saved Above Expected (Buts sauvés au-dessus de la moyenne). L'IA calcule combien de buts un gardien 'Moyen' de la LNH aurait encaissé face aux mêmes tirs, et compare avec la réalité du gardien de ce soir.<br><br>• <strong class='text-green-400'>Chiffre Positif :</strong> Le gardien est en feu, il vole des matchs.<br>• <strong class='text-red-500'>Chiffre Négatif :</strong> Le gardien est une passoire, c'est une opportunité pour parier sur les buteurs adverses."
+    }
+};
+
+window.openLexicon = function(term) {
+    const data = LEXICON_DB[term];
+    if(!data) return;
+    document.getElementById('lexicon-title').innerHTML = data.title;
+    document.getElementById('lexicon-desc').innerHTML = data.desc;
+    const modal = document.getElementById('lexicon-modal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+};
+
+window.closeLexicon = function() {
+    const modal = document.getElementById('lexicon-modal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+};

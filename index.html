@@ -3705,6 +3705,22 @@
             </div>
         </div>
     </div>
+    <div id="lexicon-modal" class="fixed inset-0 bg-black/90 z-[4000] hidden items-center justify-center p-4 backdrop-blur-sm transition-all fade-in">
+        <div class="bg-gray-900 border-2 border-purple-500 rounded-2xl w-full max-w-sm shadow-[0_0_30px_rgba(168,85,247,0.4)] overflow-hidden relative">
+            <div class="bg-gray-950 p-4 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="text-white font-black text-sm tracking-widest uppercase flex items-center gap-2">
+                    <i class="fas fa-book text-purple-500"></i> Lexique HOCKAI
+                </h3>
+                <button onclick="closeLexicon()" class="text-gray-500 hover:text-white transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <h4 id="lexicon-title" class="text-purple-400 font-black text-xl mb-3 uppercase tracking-widest">Titre</h4>
+                <p id="lexicon-desc" class="text-gray-300 text-xs md:text-sm leading-relaxed font-bold">Description...</p>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
