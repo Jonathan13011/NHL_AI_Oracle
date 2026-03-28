@@ -7,55 +7,59 @@ window.currentModalMode = '2way';
 window.loadTeamPredictions = async function (mode, silent = false) {
     window.currentModalMode = mode;
     
-    // 1. Mise à jour du style des boutons (Toggle)
-    const activeClass = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.5)]";
-    const inactiveClass = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest text-gray-400 hover:text-white transition-all duration-300 bg-gray-900 border border-gray-700";
+    // 1. Mise à jour du style des boutons (Toggle) avec une distinction claire
+    const activeClass2Way = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-fuchsia-600 text-white shadow-[0_0_15px_rgba(192,38,211,0.5)] flex items-center gap-2";
+    const activeClass3Way = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest transition-all duration-300 bg-cyan-600 text-white shadow-[0_0_15px_rgba(8,145,178,0.5)] flex items-center gap-2";
+    const inactiveClass = "px-4 md:px-6 py-2.5 rounded-lg text-[10px] md:text-sm font-black uppercase tracking-widest text-gray-400 hover:text-white transition-all duration-300 bg-gray-900 border border-gray-700 flex items-center gap-2";
     
-    document.getElementById('btn-2way').className = mode === '2way' ? activeClass : inactiveClass;
-    document.getElementById('btn-3way').className = mode === '3way' ? activeClass : inactiveClass;
+    document.getElementById('btn-2way').className = mode === '2way' ? activeClass2Way : inactiveClass;
+    document.getElementById('btn-3way').className = mode === '3way' ? activeClass3Way : inactiveClass;
+
+    // Modification du texte explicatif selon le mode
+    const expText = mode === '2way' 
+        ? "<i class='fas fa-shield-alt text-fuchsia-400 mr-1'></i> Pari sécurisé : Inclut les prolongations et tirs au but." 
+        : "<i class='fas fa-exclamation-triangle text-cyan-400 mr-1'></i> Plus risqué : Résultat à la fin du 3ème tiers (Match nul possible).";
+    
+    // Si tu as un élément explicatif sous les boutons dans ton HTML, tu peux le cibler ici.
+    // document.getElementById('market-explanation').innerHTML = expText;
 
     const container = document.getElementById('team-predictions-container');
-    // On n'affiche l'ancienne animation QUE si on n'est pas en mode silencieux
-    if (!silent && typeof showFullScreenLoader === 'function') showFullScreenLoader("L'Oracle analyse", "Recherche des avantages (Key Edges)...", false);
+    if (!silent && typeof showFullScreenLoader === 'function') showFullScreenLoader("L'Oracle analyse", "Calcul des probabilités de victoire...", false);
 
     try {
-        // Chargement du calendrier si vide
         if (!window.fetchedMatchesPool || window.fetchedMatchesPool.length === 0) {
             const res = await fetch(`${API_BASE}/upcoming_matches`);
             const data = await res.json();
             window.fetchedMatchesPool = data.matches || [];
         }
         
-        // ⚡ FILTRE TEMPOREL AJUSTÉ : On garde les matchs des 10 jours à venir
         let now = new Date();
         let activeMatches = window.fetchedMatchesPool.filter(match => {
             if (['FINAL', 'OFF'].includes(match.state)) return false;
             let mDate = new Date(match.date);
             let hoursDiff = (mDate - now) / (1000 * 60 * 60);
-            return hoursDiff >= -10 && hoursDiff <= 48; // ⚡ FIX : Limité aux prochaines 48 heures
+            return hoursDiff >= -10 && hoursDiff <= 48; // Filtre 48h
         });
 
         if (activeMatches.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center text-gray-500 font-bold italic py-10">Aucun match programmé aujourd\'hui.</div>';
+            container.innerHTML = '<div class="col-span-full text-center text-gray-500 font-bold italic py-10">Aucun match programmé dans les prochaines 48h.</div>';
             if (typeof hideFullScreenLoader === 'function') hideFullScreenLoader();
             return;
         }
         
         container.innerHTML = '';
 
-        // ⚡ Double requête en parallèle (sur la liste activeMatches)
         const fetchPromises = activeMatches.map(async (match) => {
             const d = new Date(match.date);
-            const dateStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            // Format de date premium : "JEU. 24 OCT - 02:00"
+            const dateStr = d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase() + ' - ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
             const matchDateOnly = d.toISOString().split('T')[0];
             let endpoint = mode === '2way' ? 'predict_team' : 'predict_team_regulation';
 
             try {
-                // Requête 1: Prédictions
                 const predRes = await fetch(`${API_BASE}/${endpoint}/${match.home_team}/${match.away_team}/${matchDateOnly}`);
                 const predData = await predRes.json();
                 
-                // Requête 2: Contexte (pour le Key Edge)
                 const ctxRes = await fetch(`${API_BASE}/team_comparison/${match.home_team}/${match.away_team}/${matchDateOnly}`).catch(() => null);
                 const ctxData = ctxRes ? await ctxRes.json() : null;
 
@@ -70,41 +74,47 @@ window.loadTeamPredictions = async function (mode, silent = false) {
                 const { match, matchDateOnly, dateStr, predData, ctxData } = res;
                 const card = document.createElement('div');
 
-                // NOUVEAU DESIGN NÉON ROSE/VIOLET
-card.className = "bg-gray-950 border-2 border-fuchsia-500/60 rounded-2xl p-4 md:p-5 cursor-pointer hover:border-fuchsia-400 transition-all transform hover:-translate-y-1 shadow-[0_0_15px_rgba(217,70,239,0.3)] hover:shadow-[0_0_25px_rgba(217,70,239,0.6)] group flex flex-col relative overflow-hidden";
-                card.onclick = () => window.openTeamModal(match.home_team, match.away_team, matchDateOnly, predData, ctxData);
-
-                // Effet de lueur au survol
-                card.innerHTML += `<div class="absolute -top-10 -right-10 w-32 h-32 bg-purple-500 opacity-0 group-hover:opacity-10 rounded-full blur-3xl transition-opacity duration-500"></div>`;
+                // Design de la carte adapté au mode (Fuchsia pour 2way, Cyan pour 3way)
+                const themeColor = mode === '2way' ? 'fuchsia' : 'cyan';
                 
-                // En-tête
+                card.className = `bg-gray-950 border-2 border-${themeColor}-500/30 rounded-2xl p-4 md:p-5 cursor-pointer hover:border-${themeColor}-400 transition-all transform hover:-translate-y-1 shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_25px_rgba(var(--tw-colors-${themeColor}-500),0.3)] group flex flex-col relative overflow-hidden`;
+                card.onclick = () => window.openTeamModal(match.home_team, match.away_team, matchDateOnly, predData, ctxData, mode);
+
+                card.innerHTML += `<div class="absolute -top-10 -right-10 w-32 h-32 bg-${themeColor}-500 opacity-0 group-hover:opacity-10 rounded-full blur-3xl transition-opacity duration-500"></div>`;
+                
+                // En-tête avec Date en haut à droite
                 card.innerHTML += `
-                    <div class="flex justify-between items-center mb-4 border-b border-gray-800/60 pb-3 relative z-10">
-                        <div class="text-[9px] text-purple-400 font-black uppercase tracking-widest bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">
-                            <i class="fas fa-robot mr-1"></i> ${mode === '2way' ? 'Vainqueur' : 'Tps Règl.'}
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <div class="text-[9px] text-${themeColor}-400 font-black uppercase tracking-widest bg-${themeColor}-500/10 px-2 py-1 rounded border border-${themeColor}-500/20">
+                            <i class="fas fa-robot mr-1"></i> ${mode === '2way' ? 'Vainqueur Final' : 'Tps Règl. (60m)'}
                         </div>
-                        <span class="text-[10px] font-bold text-gray-500 flex items-center gap-1"><i class="far fa-clock"></i> ${dateStr}</span>
+                        <div class="text-[9px] font-bold text-gray-400 bg-gray-900 px-2 py-1 rounded border border-gray-800 flex items-center gap-1">
+                            <i class="far fa-clock text-gray-500"></i> ${dateStr}
+                        </div>
                     </div>`;
 
                 let hLogo = typeof window.getLogoUrl === 'function' ? window.getLogoUrl(match.home_team) : `https://assets.nhle.com/logos/nhl/svg/${match.home_team}_light.svg`;
                 let aLogo = typeof window.getLogoUrl === 'function' ? window.getLogoUrl(match.away_team) : `https://assets.nhle.com/logos/nhl/svg/${match.away_team}_light.svg`;
 
-                // ⚡ LOGIQUE DU "KEY EDGE" (Avantage Clé)
-                let edgeHtml = `<div class="bg-gray-900 text-gray-500 text-[9px] px-2 py-1.5 rounded font-bold uppercase tracking-widest border border-gray-800 flex items-center justify-center gap-2 mt-2 shadow-inner"><i class="fas fa-balance-scale"></i> Matchup Équilibré</div>`;
-                
-                if (ctxData && ctxData.status === 'success') {
-                    if (ctxData.away.b2b) {
-                        edgeHtml = `<div class="bg-orange-500/10 text-orange-500 text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-orange-500/30 flex items-center justify-center gap-2 mt-2 shadow-inner"><i class="fas fa-battery-empty animate-pulse"></i> Alerte Fatigue : ${match.away_team} (B2B)</div>`;
-                    } else if (ctxData.home.b2b) {
-                        edgeHtml = `<div class="bg-orange-500/10 text-orange-500 text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-orange-500/30 flex items-center justify-center gap-2 mt-2 shadow-inner"><i class="fas fa-battery-empty animate-pulse"></i> Alerte Fatigue : ${match.home_team} (B2B)</div>`;
-                    } else if (ctxData.home.pp > 22 && ctxData.away.pk < 78) {
-                        edgeHtml = `<div class="bg-ice/10 text-ice text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-ice/30 flex items-center justify-center gap-2 mt-2 shadow-inner"><i class="fas fa-bolt"></i> Mismatch Spécial (${match.home_team} PP)</div>`;
-                    } else if (ctxData.away.pp > 22 && ctxData.home.pk < 78) {
-                        edgeHtml = `<div class="bg-ice/10 text-ice text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-ice/30 flex items-center justify-center gap-2 mt-2 shadow-inner"><i class="fas fa-bolt"></i> Mismatch Spécial (${match.away_team} PP)</div>`;
+                // ⚡ INTELLIGENCE : Génération de l'étiquette de conseil
+                let guidanceHtml = "";
+                if (mode === '2way') {
+                    let hp = predData.prob_home_win; let ap = predData.prob_away_win;
+                    if (hp > 65 || ap > 65) {
+                        guidanceHtml = `<div class="bg-green-500/10 text-green-400 text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-green-500/30 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-check-circle"></i> Confiance IA Élevée</div>`;
+                    } else {
+                        guidanceHtml = `<div class="bg-gray-900 text-gray-500 text-[9px] px-2 py-1.5 rounded font-bold uppercase tracking-widest border border-gray-800 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-balance-scale"></i> Match Indécis</div>`;
+                    }
+                } else {
+                    let tp = predData.prob_tie;
+                    if (tp > 23) {
+                        guidanceHtml = `<div class="bg-orange-500/10 text-orange-400 text-[9px] px-2 py-1.5 rounded font-black uppercase tracking-widest border border-orange-500/30 flex items-center justify-center gap-2 mt-3 shadow-inner animate-pulse"><i class="fas fa-exclamation-triangle"></i> Risque élevé de Prolongation</div>`;
+                    } else {
+                        guidanceHtml = `<div class="bg-gray-900 text-gray-500 text-[9px] px-2 py-1.5 rounded font-bold uppercase tracking-widest border border-gray-800 flex items-center justify-center gap-2 mt-3 shadow-inner"><i class="fas fa-shield-alt"></i> Nul peu probable</div>`;
                     }
                 }
 
-                // CORPS DE LA CARTE (2way ou 3way)
+                // CORPS DE LA CARTE (Visuels distincts selon le marché)
                 if (mode === '2way') {
                     const hp = predData.prob_home_win; 
                     const ap = predData.prob_away_win;
@@ -112,73 +122,73 @@ card.className = "bg-gray-950 border-2 border-fuchsia-500/60 rounded-2xl p-4 md:
                     
                     card.innerHTML += `
                         <div class="flex justify-between items-center relative mb-3 z-10">
-                            <div class="flex flex-col items-center w-[40%] ${!isHomeFav ? 'scale-110 drop-shadow-[0_0_15px_rgba(192,132,252,0.4)]' : 'opacity-60'} transition-all">
+                            <div class="flex flex-col items-center w-[40%] ${!isHomeFav ? 'scale-110 drop-shadow-[0_0_15px_rgba(217,70,239,0.4)]' : 'opacity-60'} transition-all">
                                 <img src="${aLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-12 h-12 md:w-14 md:h-14 object-contain mb-2">
                                 <span class="text-[11px] md:text-xs font-black text-white uppercase">${match.away_team}</span>
-                                <span class="text-sm md:text-base font-black ${!isHomeFav ? 'text-purple-400' : 'text-gray-500'} mt-1">${ap.toFixed(1)}%</span>
+                                <span class="text-sm md:text-base font-black ${!isHomeFav ? 'text-fuchsia-400' : 'text-gray-500'} mt-1">${ap.toFixed(1)}%</span>
                             </div>
                             <div class="text-xs font-black text-gray-700 italic">VS</div>
-                            <div class="flex flex-col items-center w-[40%] ${isHomeFav ? 'scale-110 drop-shadow-[0_0_15px_rgba(192,132,252,0.4)]' : 'opacity-60'} transition-all">
+                            <div class="flex flex-col items-center w-[40%] ${isHomeFav ? 'scale-110 drop-shadow-[0_0_15px_rgba(217,70,239,0.4)]' : 'opacity-60'} transition-all">
                                 <img src="${hLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-12 h-12 md:w-14 md:h-14 object-contain mb-2">
                                 <span class="text-[11px] md:text-xs font-black text-white uppercase">${match.home_team}</span>
-                                <span class="text-sm md:text-base font-black ${isHomeFav ? 'text-purple-400' : 'text-gray-500'} mt-1">${hp.toFixed(1)}%</span>
+                                <span class="text-sm md:text-base font-black ${isHomeFav ? 'text-fuchsia-400' : 'text-gray-500'} mt-1">${hp.toFixed(1)}%</span>
                             </div>
                         </div>
-                        <div class="w-full h-1.5 bg-gray-900 rounded-full flex overflow-hidden border border-gray-800 mb-2 relative z-10 shadow-inner">
-                            <div class="h-full transition-all duration-1000 ${!isHomeFav ? 'bg-purple-500 shadow-[0_0_8px_#a855f7]' : 'bg-gray-600'}" style="width: ${ap}%"></div>
-                            <div class="h-full transition-all duration-1000 ${isHomeFav ? 'bg-purple-500 shadow-[0_0_8px_#a855f7]' : 'bg-gray-600'}" style="width: ${hp}%"></div>
+                        <div class="w-full h-2 bg-gray-900 rounded-full flex overflow-hidden border border-gray-800 mb-2 relative z-10 shadow-inner">
+                            <div class="h-full transition-all duration-1000 ${!isHomeFav ? 'bg-fuchsia-500 shadow-[0_0_8px_#d946ef]' : 'bg-gray-600'}" style="width: ${ap}%"></div>
+                            <div class="h-full transition-all duration-1000 ${isHomeFav ? 'bg-fuchsia-500 shadow-[0_0_8px_#d946ef]' : 'bg-gray-600'}" style="width: ${hp}%"></div>
                         </div>
-                        ${edgeHtml}
+                        ${guidanceHtml}
                     `;
                 } else {
                     const hp = predData.prob_home_reg; const tp = predData.prob_tie; const ap = predData.prob_away_reg;
                     card.innerHTML += `
                         <div class="flex justify-between items-end mb-3 z-10 relative">
-                            <div class="flex flex-col items-center w-1/3">
+                            <div class="flex flex-col items-center w-[30%]">
                                 <img src="${aLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-8 h-8 md:w-10 md:h-10 mb-2 drop-shadow-md">
-                                <span class="text-[10px] md:text-xs font-black text-white">${match.away_team}</span>
-                                <span class="text-xs md:text-sm font-black text-blood mt-1">${ap.toFixed(1)}%</span>
+                                <span class="text-[10px] md:text-xs font-black text-white uppercase">${match.away_team}</span>
+                                <span class="text-xs md:text-sm font-black text-cyan-400 mt-1">${ap.toFixed(1)}%</span>
                             </div>
-                            <div class="flex flex-col items-center w-1/3 pb-1 border-x border-gray-800/50">
-                                <span class="text-[8px] md:text-[9px] font-black text-gray-500 uppercase mb-1">Nul</span>
-                                <span class="text-sm md:text-base font-black text-tie">${tp.toFixed(1)}%</span>
+                            <div class="flex flex-col items-center w-[40%] pb-2 border-x border-gray-800/50 bg-gray-900/30 rounded-lg">
+                                <span class="text-[9px] md:text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1"><i class="fas fa-equals"></i> Nul</span>
+                                <span class="text-sm md:text-lg font-black text-yellow-500">${tp.toFixed(1)}%</span>
                             </div>
-                            <div class="flex flex-col items-center w-1/3">
+                            <div class="flex flex-col items-center w-[30%]">
                                 <img src="${hLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-8 h-8 md:w-10 md:h-10 mb-2 drop-shadow-md">
-                                <span class="text-[10px] md:text-xs font-black text-white">${match.home_team}</span>
-                                <span class="text-xs md:text-sm font-black text-ice mt-1">${hp.toFixed(1)}%</span>
+                                <span class="text-[10px] md:text-xs font-black text-white uppercase">${match.home_team}</span>
+                                <span class="text-xs md:text-sm font-black text-cyan-400 mt-1">${hp.toFixed(1)}%</span>
                             </div>
                         </div>
-                        <div class="w-full h-1.5 bg-gray-900 rounded-full flex overflow-hidden border border-gray-800 mb-2 relative z-10 shadow-inner">
-                            <div class="bg-blood h-full" style="width: ${ap}%"></div>
-                            <div class="bg-tie h-full" style="width: ${tp}%"></div>
-                            <div class="bg-ice h-full" style="width: ${hp}%"></div>
+                        <div class="w-full h-2 bg-gray-900 rounded-full flex overflow-hidden border border-gray-800 mb-2 relative z-10 shadow-inner">
+                            <div class="bg-cyan-600 h-full" style="width: ${ap}%"></div>
+                            <div class="bg-yellow-500 h-full shadow-[0_0_5px_#eab308] z-10" style="width: ${tp}%"></div>
+                            <div class="bg-cyan-400 h-full" style="width: ${hp}%"></div>
                         </div>
-                        ${edgeHtml}
+                        ${guidanceHtml}
                     `;
                 }
 
-                // Pied de carte
-                card.innerHTML += `<div class="mt-4 pt-3 border-t border-gray-800/60 text-center relative z-10"><span class="text-[9px] text-gray-400 group-hover:text-purple-400 uppercase tracking-widest font-bold transition flex items-center justify-center gap-2">Deep Dive Analyst <i class="fas fa-chevron-right text-[8px]"></i></span></div>`;
+                card.innerHTML += `<div class="mt-4 pt-3 border-t border-gray-800/60 text-center relative z-10"><span class="text-[9px] text-gray-400 group-hover:text-${themeColor}-400 uppercase tracking-widest font-bold transition flex items-center justify-center gap-2">Analyse Approfondie <i class="fas fa-chevron-right text-[8px]"></i></span></div>`;
                 
                 container.appendChild(card);
             }
         });
     } catch (e) { 
         console.error("Erreur chargement des équipes:", e); 
-        container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Erreur de connexion.</div>';
+        container.innerHTML = '<div class="col-span-full text-center text-red-500 py-10 font-bold">Erreur de connexion à l\'Oracle.</div>';
     } finally { 
         if (!silent && typeof hideFullScreenLoader === 'function') hideFullScreenLoader(); 
     }
 };
 
-window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded) {
+window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded, mode) {
     const modal = document.getElementById('team-modal');
     const content = document.getElementById('team-modal-content');
+    const themeColor = mode === '2way' ? 'fuchsia' : 'cyan';
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    content.innerHTML = `<div class="text-center py-32"><i class="fas fa-circle-notch fa-spin text-5xl text-fuchsia-500 mb-6 drop-shadow-[0_0_15px_rgba(217,70,239,0.8)]"></i><p class="text-fuchsia-400 font-black uppercase tracking-widest text-[10px] animate-pulse">L'Oracle génère le rapport Quantitatif...</p></div>`;
+    content.innerHTML = `<div class="text-center py-32"><i class="fas fa-circle-notch fa-spin text-5xl text-${themeColor}-500 mb-6"></i><p class="text-${themeColor}-400 font-black uppercase tracking-widest text-[10px] animate-pulse">Synthèse de l'Intelligence en cours...</p></div>`;
 
     try {
         let tData = ctxDataLoaded;
@@ -194,7 +204,7 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
         let homeProb = 0, awayProb = 0, tieProb = 0;
         let maxProb = 0, favTeam = "";
 
-        if (window.currentModalMode === '2way') {
+        if (mode === '2way') {
             homeProb = predData.prob_home_win; awayProb = predData.prob_away_win;
             isHomeFav = homeProb >= 50;
             maxProb = Math.max(homeProb, awayProb);
@@ -216,63 +226,91 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
             else resDiv.innerHTML = `<div class="text-red-500 font-black text-sm md:text-base">${(ev * 100).toFixed(2)}% EV</div>`;
         };
 
-        // --- GÉNÉRATION DE DONNÉES SIMULÉES POUR LA DÉMO VISUELLE ---
-        // (À remplacer par les vraies données de ton backend plus tard)
-        let simHomeXGF = (Math.random() * 10 + 45).toFixed(1);
-        let simAwayXGF = (Math.random() * 10 + 45).toFixed(1);
-        let simHomePDO = (Math.random() * 5 + 97.5).toFixed(1);
-        let simAwayPDO = (Math.random() * 5 + 97.5).toFixed(1);
+        // ⚡ SYNTHÈSE DE L'ORACLE (Le guide ultime de l'utilisateur)
+        let synthesisHtml = "";
+        // On récupère les données des DEUX modèles pour croiser l'info (Même si on est dans l'onglet 2way, on veut voir le risque de nul)
+        const simRes = await fetch(`${API_BASE}/predict_team_regulation/${home}/${away}/${date}`).catch(() => null);
+        const simData = simRes ? await simRes.json() : { prob_tie: 20 }; // Fallback
+        const riskOfTie = simData.prob_tie || 20;
+
+        if (mode === '2way') {
+            synthesisHtml = `
+                <div class="bg-gray-900 border-l-4 border-fuchsia-500 p-4 rounded-r-xl shadow-lg mb-6 text-sm">
+                    <h5 class="text-fuchsia-400 font-black uppercase tracking-widest text-[10px] mb-2"><i class="fas fa-brain mr-1"></i> Synthèse de l'Oracle</h5>
+                    <p class="text-gray-300 font-bold leading-relaxed">
+                        Sur le marché <strong>Vainqueur Final</strong>, l'équipe <span class="text-white">${favTeam}</span> possède un avantage mathématique clair (${maxProb.toFixed(1)}%). 
+                        ${riskOfTie > 22 ? `<br><br><span class="text-orange-400"><i class="fas fa-exclamation-triangle"></i> Attention : Le risque de match nul à la fin du 3ème tiers est élevé (${riskOfTie.toFixed(1)}%). Ce marché sécurisé (Vainqueur incluant prolongations) est donc <strong>fortement recommandé</strong> pour ce match.</span>` : `Le risque de prolongation est faible (${riskOfTie.toFixed(1)}%), vous pouvez envisager le pari en Temps Réglementaire pour une meilleure cote.`}
+                    </p>
+                </div>
+            `;
+        } else {
+            synthesisHtml = `
+                <div class="bg-gray-900 border-l-4 border-cyan-500 p-4 rounded-r-xl shadow-lg mb-6 text-sm">
+                    <h5 class="text-cyan-400 font-black uppercase tracking-widest text-[10px] mb-2"><i class="fas fa-brain mr-1"></i> Synthèse de l'Oracle</h5>
+                    <p class="text-gray-300 font-bold leading-relaxed">
+                        Sur le marché <strong>Temps Réglementaire (60 Min)</strong>, l'équipe <span class="text-white">${favTeam}</span> est favorite (${maxProb.toFixed(1)}%). 
+                        ${riskOfTie > 22 ? `<br><br><span class="text-red-400"><i class="fas fa-radiation"></i> Danger : L'IA détecte une très forte probabilité d'égalité à la fin du match (${riskOfTie.toFixed(1)}%). Il est très risqué de parier sur la victoire simple ici. Privilégiez le marché "Vainqueur Final" ou tentez la grosse cote du Match Nul.</span>` : `<br><br><span class="text-green-400"><i class="fas fa-check-circle"></i> Le risque de match nul est écarté par nos modèles (${riskOfTie.toFixed(1)}%). Parier sur la victoire en temps réglementaire offre une excellente 'Value'.</span>`}
+                    </p>
+                </div>
+            `;
+        }
+
+        // Mock data
+        let simHomeXGF = (Math.random() * 10 + 45).toFixed(1); let simAwayXGF = (Math.random() * 10 + 45).toFixed(1);
+        let simHomePDO = (Math.random() * 5 + 97.5).toFixed(1); let simAwayPDO = (Math.random() * 5 + 97.5).toFixed(1);
         let pdoColorH = simHomePDO > 101.5 ? 'text-red-500' : (simHomePDO < 98.5 ? 'text-green-400' : 'text-white');
         let pdoColorA = simAwayPDO > 101.5 ? 'text-red-500' : (simAwayPDO < 98.5 ? 'text-green-400' : 'text-white');
 
         let html = `
-            <div class="flex justify-center items-center gap-6 bg-gray-900/80 p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden mb-6 mt-4 md:mt-0">
-                <div class="absolute inset-0 bg-gradient-to-b from-fuchsia-500/5 to-transparent pointer-events-none"></div>
+            <div class="flex justify-center items-center gap-4 md:gap-8 bg-gray-900/80 p-4 md:p-6 rounded-xl border border-gray-800 shadow-lg relative overflow-hidden mb-6 mt-4 md:mt-0">
+                <div class="absolute inset-0 bg-gradient-to-b from-${themeColor}-500/5 to-transparent pointer-events-none"></div>
                 <div class="flex flex-col items-center w-1/3 z-10">
                     <img src="${aLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-md">
                     <span class="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">${away}</span>
                 </div>
-                <div class="text-fuchsia-500 font-black italic text-2xl md:text-3xl z-10 opacity-50">VS</div>
+                <div class="text-${themeColor}-500 font-black italic text-xl md:text-3xl z-10 opacity-50 px-2">VS</div>
                 <div class="flex flex-col items-center w-1/3 z-10">
                     <img src="${hLogo}" onerror="this.src='assets/logo_hockAI.png'" class="w-16 h-16 md:w-20 md:h-20 object-contain mb-2 drop-shadow-md">
                     <span class="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">${home}</span>
                 </div>
             </div>
 
+            ${synthesisHtml}
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-                <div class="bg-gray-950 p-5 rounded-xl border border-gray-800 shadow-lg flex flex-col justify-center">
+                <div class="bg-gray-950 p-4 md:p-5 rounded-xl border border-gray-800 shadow-lg flex flex-col justify-center">
                     <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex justify-between items-center border-b border-gray-800 pb-2">
-                        <span><i class="fas fa-balance-scale text-fuchsia-400 mr-2"></i> Verdict IA</span>
-                        <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${window.currentModalMode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
+                        <span><i class="fas fa-balance-scale text-${themeColor}-400 mr-2"></i> Verdict IA</span>
+                        <span class="bg-gray-900 text-gray-500 px-2 py-0.5 rounded text-[8px]">${mode === '2way' ? 'PROLONG. INCLUSES' : 'TEMPS RÈGL. (60M)'}</span>
                     </h4>
-                    ${window.currentModalMode === '2way' ? `
+                    ${mode === '2way' ? `
                         <div class="flex justify-between items-end mb-2">
-                            <div class="text-2xl md:text-4xl font-black ${!isHomeFav ? 'text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]' : 'text-gray-600'}">${awayProb.toFixed(1)}%</div>
-                            <div class="text-2xl md:text-4xl font-black ${isHomeFav ? 'text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]' : 'text-gray-600'}">${homeProb.toFixed(1)}%</div>
+                            <div class="text-3xl md:text-4xl font-black ${!isHomeFav ? `text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]` : 'text-gray-600'}">${awayProb.toFixed(1)}%</div>
+                            <div class="text-3xl md:text-4xl font-black ${isHomeFav ? `text-fuchsia-400 drop-shadow-[0_0_10px_rgba(217,70,239,0.5)]` : 'text-gray-600'}">${homeProb.toFixed(1)}%</div>
                         </div>
                         <div class="w-full h-3 md:h-4 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700 shadow-inner">
                             <div class="h-full transition-all duration-1000 ${!isHomeFav ? 'bg-gradient-to-r from-fuchsia-700 to-fuchsia-500' : 'bg-gray-700'}" style="width: ${awayProb}%"></div>
                             <div class="h-full transition-all duration-1000 ${isHomeFav ? 'bg-gradient-to-l from-fuchsia-700 to-fuchsia-500' : 'bg-gray-700'}" style="width: ${homeProb}%"></div>
                         </div>
                     ` : `
-                        <div class="flex justify-between items-center mb-2">
-                            <div class="flex flex-col items-start"><span class="text-[8px] text-gray-500 uppercase font-bold">Ext</span><span class="text-xl font-black text-blood">${awayProb.toFixed(1)}%</span></div>
-                            <div class="flex flex-col items-center"><span class="text-[8px] text-gray-500 uppercase font-bold">Nul</span><span class="text-xl font-black text-tie">${tieProb.toFixed(1)}%</span></div>
-                            <div class="flex flex-col items-end"><span class="text-[8px] text-gray-500 uppercase font-bold">Dom</span><span class="text-xl font-black text-ice">${homeProb.toFixed(1)}%</span></div>
+                        <div class="flex justify-between items-center mb-2 px-2">
+                            <div class="flex flex-col items-center"><span class="text-[8px] text-gray-500 uppercase font-bold">Ext.</span><span class="text-2xl md:text-3xl font-black text-cyan-500">${awayProb.toFixed(1)}%</span></div>
+                            <div class="flex flex-col items-center"><span class="text-[8px] text-gray-500 uppercase font-bold">Nul</span><span class="text-2xl md:text-3xl font-black text-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]">${tieProb.toFixed(1)}%</span></div>
+                            <div class="flex flex-col items-center"><span class="text-[8px] text-gray-500 uppercase font-bold">Dom.</span><span class="text-2xl md:text-3xl font-black text-cyan-400">${homeProb.toFixed(1)}%</span></div>
                         </div>
-                        <div class="w-full h-3 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700">
-                            <div class="bg-blood h-full" style="width: ${awayProb}%"></div><div class="bg-tie h-full" style="width: ${tieProb}%"></div><div class="bg-ice h-full" style="width: ${homeProb}%"></div>
+                        <div class="w-full h-3 md:h-4 bg-gray-900 rounded-full flex overflow-hidden border border-gray-700">
+                            <div class="bg-cyan-600 h-full" style="width: ${awayProb}%"></div><div class="bg-yellow-500 h-full" style="width: ${tieProb}%"></div><div class="bg-cyan-400 h-full" style="width: ${homeProb}%"></div>
                         </div>
                     `}
                 </div>
 
-                <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-5 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] flex flex-col justify-center">
+                <div class="bg-gradient-to-br from-gray-900 to-black border border-green-500/50 p-4 md:p-5 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.1)] flex flex-col justify-center">
                     <h6 class="text-[10px] md:text-xs text-green-500 uppercase font-black tracking-widest mb-3 border-b border-gray-800 pb-2"><i class="fas fa-search-dollar mr-1"></i> Calculateur de Valeur (EV+)</h6>
                     <div class="flex flex-col gap-3">
                         <span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Cote bookmaker pour <strong class="text-white">${favTeam}</strong> :</span>
-                        <div class="flex items-center gap-2 w-full">
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
                             <input type="number" id="pred-ev-odds" oninput="window.calcPredEV()" step="0.01" placeholder="Ex: 1.85" class="bg-black border border-gray-600 text-white font-black rounded-lg w-full p-3 text-center focus:border-green-500 outline-none shadow-inner transition">
-                            <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center min-w-[90px] shadow-inner flex items-center justify-center">
+                            <div id="pred-ev-res" class="bg-gray-950 border border-gray-800 p-3 rounded-lg text-center min-w-[100px] shadow-inner flex items-center justify-center">
                                 <span class="text-gray-500 text-[10px] uppercase font-bold">Résultat</span>
                             </div>
                         </div>
@@ -280,14 +318,14 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                 </div>
             </div>
 
-            <h3 class="text-white font-black uppercase text-xs tracking-widest mb-4 mt-2 flex items-center gap-2"><i class="fas fa-microchip text-fuchsia-500"></i> Métriques Quantitatives Avancées</h3>
+            <h3 class="text-white font-black uppercase text-xs tracking-widest mb-4 mt-2 flex items-center gap-2"><i class="fas fa-microchip text-${themeColor}-500"></i> Métriques Quantitatives Avancées</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 
-                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div onclick="window.openLexicon('xgf')" class="text-center mb-3 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
-                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Contrôle 5v5 (xGF%) <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner flex flex-col">
+                    <div onclick="window.openLexicon('xgf')" class="text-center mb-auto cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest flex items-center justify-center gap-1">Contrôle 5v5 (xGF%) <i class="fas fa-question-circle text-${themeColor}-400 animate-pulse"></i></span>
                     </div>
-                    <div class="flex justify-between items-end mb-1">
+                    <div class="flex justify-between items-end mb-1 mt-3">
                         <span class="text-xl font-black text-white">${simAwayXGF}%</span>
                         <span class="text-xl font-black text-white">${simHomeXGF}%</span>
                     </div>
@@ -298,28 +336,28 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                     <div class="flex justify-between text-[8px] text-gray-500 uppercase font-bold mt-1"><span>Ext</span><span>Dom</span></div>
                 </div>
 
-                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div onclick="window.openLexicon('pdo')" class="text-center mb-2 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
-                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Facteur Chance (PDO) <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner flex flex-col">
+                    <div onclick="window.openLexicon('pdo')" class="text-center mb-auto cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest flex items-center justify-center gap-1">Facteur Chance (PDO) <i class="fas fa-question-circle text-${themeColor}-400 animate-pulse"></i></span>
                     </div>
-                    <div class="flex justify-between items-center h-full pb-2">
-                        <div class="text-center">
+                    <div class="flex justify-between items-center h-full pt-3">
+                        <div class="text-center w-1/2">
                             <span class="block text-[8px] text-gray-500 uppercase mb-1">EXT</span>
                             <span class="text-2xl font-black ${pdoColorA}">${simAwayPDO}</span>
                         </div>
-                        <div class="text-center border-l border-gray-800 pl-4 ml-4">
+                        <div class="text-center border-l border-gray-800 pl-2 w-1/2">
                             <span class="block text-[8px] text-gray-500 uppercase mb-1">DOM</span>
                             <span class="text-2xl font-black ${pdoColorH}">${simHomePDO}</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner">
-                    <div onclick="window.openLexicon('gsax')" class="text-center mb-2 cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800/80 rounded transition p-1 group">
-                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest">Avantage Gardien <i class="fas fa-question-circle text-fuchsia-400 ml-1 animate-pulse"></i></span>
+                <div class="bg-gray-900/80 border border-gray-800 rounded-xl p-4 shadow-inner flex flex-col">
+                    <div onclick="window.openLexicon('gsax')" class="text-center mb-auto cursor-pointer border-b border-gray-800 pb-2 hover:bg-gray-800 rounded transition p-1 group">
+                        <span class="text-[10px] text-gray-400 group-hover:text-white transition uppercase font-black tracking-widest flex items-center justify-center gap-1">Avantage Gardien <i class="fas fa-question-circle text-${themeColor}-400 animate-pulse"></i></span>
                     </div>
-                    <div class="flex justify-center items-center h-full pb-2">
-                        <div class="bg-black border border-green-500/30 px-4 py-2 rounded-lg text-center shadow-[0_0_10px_rgba(74,222,128,0.1)]">
+                    <div class="flex justify-center items-center h-full pt-3">
+                        <div class="bg-black border border-green-500/30 px-4 py-2 rounded-lg text-center shadow-[0_0_10px_rgba(74,222,128,0.1)] w-full">
                             <span class="block text-[9px] text-green-400 uppercase tracking-widest font-bold mb-1">Avantage Net</span>
                             <span class="text-xl font-black text-white">+0.85 <span class="text-xs text-gray-500">But/Match</span></span>
                         </div>
@@ -327,92 +365,33 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
                 </div>
             </div>
 
-            <div class="bg-gray-900/80 p-5 rounded-xl border border-gray-800 shadow-lg mb-6 flex flex-col">
-                <h4 class="text-white font-black text-[10px] uppercase tracking-widest mb-4 flex items-center border-b border-gray-800 pb-2">
-                    <i class="fas fa-chart-line text-ice mr-2"></i> Tendance Offensive (xGF L10)
-                </h4>
-                <div class="relative w-full h-48">
-                    <canvas id="teamMomentumChart"></canvas>
-                </div>
-                <div class="text-[8px] text-gray-500 uppercase tracking-widest text-center mt-3">Analyse de la création de danger sur les 10 derniers matchs</div>
-            </div>
-
             ${tData && tData.status === "success" ? `
-            <div class="bg-gray-950 border border-gray-800 rounded-xl p-5 shadow-inner">
+            <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 md:p-5 shadow-inner">
                 <h4 class="text-white font-black text-[10px] md:text-xs uppercase tracking-widest mb-4 border-b border-gray-800 pb-2"><i class="fas fa-chess-board text-yellow-500 mr-2"></i> Tactique & Calendrier</h4>
                 
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="flex flex-col items-center gap-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="flex flex-col items-center gap-2 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${away}</span>
-                        ${tData.away.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
-                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Avantage (PP)</span><span class="text-white font-black">${tData.away.pp.toFixed(1)}%</span></div>
-                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.away.pp}%"></div></div>
-                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Défense (PK)</span><span class="text-white font-black">${tData.away.pk.toFixed(1)}%</span></div>
-                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.away.pk}%"></div></div>
+                        ${tData.away.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back (Fatigué)</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Puissance PP</span><span class="text-white font-black">${tData.away.pp.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.away.pp}%"></div></div>
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Solidité PK</span><span class="text-white font-black">${tData.away.pk.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-gray-500 h-full" style="width: ${tData.away.pk}%"></div></div>
                     </div>
 
-                    <div class="flex flex-col items-center gap-2">
+                    <div class="flex flex-col items-center gap-2 bg-gray-900/50 p-3 rounded-lg border border-gray-800">
                         <span class="text-xs font-black text-white uppercase tracking-widest border-b border-gray-800 w-full text-center pb-2">${home}</span>
-                        ${tData.home.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
-                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Avantage (PP)</span><span class="text-white font-black">${tData.home.pp.toFixed(1)}%</span></div>
+                        ${tData.home.b2b ? `<span class="text-red-500 bg-red-500/10 px-2 py-1 rounded text-[8px] font-black border border-red-500/30 w-full text-center animate-pulse"><i class="fas fa-battery-empty"></i> Back-to-Back (Fatigué)</span>` : `<span class="text-green-400 bg-green-400/10 px-2 py-1 rounded text-[8px] font-black border border-green-400/30 w-full text-center"><i class="fas fa-battery-full"></i> Repos Optimisé</span>`}
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Puissance PP</span><span class="text-white font-black">${tData.home.pp.toFixed(1)}%</span></div>
                         <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-ice h-full" style="width: ${tData.home.pp}%"></div></div>
-                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Défense (PK)</span><span class="text-white font-black">${tData.home.pk.toFixed(1)}%</span></div>
-                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-blood h-full" style="width: ${tData.home.pk}%"></div></div>
+                        <div class="w-full flex justify-between text-[10px] mt-2"><span class="text-gray-500 font-bold">Solidité PK</span><span class="text-white font-black">${tData.home.pk.toFixed(1)}%</span></div>
+                        <div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden mt-1"><div class="bg-gray-500 h-full" style="width: ${tData.home.pk}%"></div></div>
                     </div>
                 </div>
             </div>` : ''}
         `;
 
         content.innerHTML = html;
-
-        // --- GÉNÉRATION DU GRAPHIQUE CHART.JS ---
-        if (window.teamModalChart) window.teamModalChart.destroy();
-        const ctx = document.getElementById('teamMomentumChart').getContext('2d');
-        
-        // Données fictives pour simuler la courbe L10 (À relier à l'API plus tard)
-        let labels = ['M-10', 'M-9', 'M-8', 'M-7', 'M-6', 'M-5', 'M-4', 'M-3', 'M-2', 'M-1'];
-        let dataAway = Array.from({length: 10}, () => (Math.random() * 2 + 1.5).toFixed(2));
-        let dataHome = Array.from({length: 10}, () => (Math.random() * 2 + 1.5).toFixed(2));
-
-        window.teamModalChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: away,
-                        data: dataAway,
-                        borderColor: '#ff3333', // Blood
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        pointRadius: 3,
-                        tension: 0.3
-                    },
-                    {
-                        label: home,
-                        data: dataHome,
-                        borderColor: '#00e5ff', // Ice
-                        backgroundColor: 'rgba(0, 229, 255, 0.1)',
-                        borderWidth: 3,
-                        pointRadius: 4,
-                        fill: true,
-                        tension: 0.3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: true, labels: { color: '#ccc', font: { size: 10, family: 'Montserrat' } } },
-                    tooltip: { mode: 'index', intersect: false }
-                },
-                scales: {
-                    y: { grid: { color: '#1f2937' }, ticks: { color: '#6b7280', font: { size: 9 } } },
-                    x: { grid: { display: false }, ticks: { color: '#6b7280', font: { size: 9 } } }
-                }
-            }
-        });
 
     } catch (e) {
         console.error(e);
@@ -423,5 +402,4 @@ window.openTeamModal = async function (home, away, date, predData, ctxDataLoaded
 window.closeTeamModal = function () {
     document.getElementById('team-modal').classList.add('hidden');
     document.getElementById('team-modal').classList.remove('flex');
-    if (window.teamModalChart) window.teamModalChart.destroy(); // Nettoie la mémoire
 };
