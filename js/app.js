@@ -512,45 +512,67 @@ window.updateGlobalRadar = async function () {
             filteredPool = filteredPool.filter(p => teams.includes(p.team));
         }
 
-        // ⚡ MOTEUR QUANTITATIF : Calcul dynamique et intelligent selon le choix de l'utilisateur
+        // ⚡ MOTEUR QUANTITATIF DE POINTE (Algorithme Adaptatif)
         filteredPool.forEach(p => {
             p._radarValue = 0; 
             p._radarLabel = metricText;
-            let recentGames = p.last_5_games ? p.last_5_games.slice(0, recentCount) : [];
             
-            // 🧠 1. L'INDICE D'EXPLOSION (La Formule Secrète)
+            // 📡 Détection des données : L'IA vérifie si elle possède l'historique complet, sinon elle utilise ses probabilités croisées
+            let hasHistory = p.last_5_games && p.last_5_games.length > 0;
+            let recentGames = hasHistory ? p.last_5_games.slice(0, recentCount) : [];
+            let gamesCount = hasHistory ? recentGames.length : recentCount;
+
+            // 🧠 1. INDICE D'EXPLOSION (Modèle Avancé de Régression xG)
             if (metric === 'breakout') {
-                let recentShots = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
-                let recentGoals = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
+                let shots = hasHistory ? recentGames.reduce((s, g) => s + (g.shots || 0), 0) : (p.avg_shots || 2.5) * gamesCount;
+                let goals = hasHistory ? recentGames.reduce((s, g) => s + (g.goals || 0), 0) : (p.avg_goals || 0.2) * gamesCount;
                 
-                // Calcul de la "Malchance" (Loi de Poisson) : 9.5% est la moyenne de conversion NHL
-                let expectedGoals = recentShots * 0.095; 
-                let badLuckFactor = expectedGoals - recentGoals; 
+                // La LNH convertit environ 9.5% de ses tirs. On calcule les Buts Attendus (xG) réels.
+                let expectedGoals = shots * 0.095; 
+                let badLuckFactor = expectedGoals - goals; 
                 
-                // L'Indice combine la base de l'IA avec un énorme multiplicateur de malchance
-                let baseProb = p.prob_goal || 15;
-                p._radarValue = baseProb + (badLuckFactor > 0 ? (badLuckFactor * 18) : (badLuckFactor * 5));
+                // Base IA (Probabilité qu'il marque ce soir)
+                let aiConfidence = p.prob_goal || 15;
                 
-                // Sécurité : Un joueur qui ne tire pas au moins 5 fois récemment ne peut pas exploser
-                if (recentShots < 5) p._radarValue = 0; 
+                // 🌪️ ALGORITHME DE TRADING : On fusionne la probabilité IA avec le facteur de malchance.
+                // Si un joueur tire énormément sans marquer, son "badLuckFactor" explose et booste sa note.
+                p._radarValue = aiConfidence + (badLuckFactor * 22);
+                
+                // Bonus de Momentum : Si l'IA l'aime DÉJÀ (>35%) et qu'il est malchanceux, c'est une pépite absolue.
+                if (aiConfidence > 35 && badLuckFactor > 0) p._radarValue *= 1.25;
+
+                // Filtre Intelligent : Le volume de tirs minimum s'adapte au curseur (L1, L2, L3...)
+                let minShotsRequired = gamesCount * 1.2; // Ex: 1.2 tir pour L1, 6 tirs pour L5
+                if (shots < minShotsRequired) p._radarValue = 0; 
             } 
-            // 📊 2. LES MOYENNES DE LA SAISON
+            // 📊 2. LES MOYENNES DE LA SAISON (Vue Macroscopique)
             else if (periodMode === 'season') {
-                if (metric === 'goals') p._radarValue = p.avg_goals || 0;
-                else if (metric === 'points' || metric === 'assists') p._radarValue = p.avg_points || 0; 
+                if (metric === 'goals') p._radarValue = p.avg_goals || ((p.prob_goal || 0) / 100);
+                else if (metric === 'points') p._radarValue = p.avg_points || ((p.prob_point || 0) / 100); 
+                else if (metric === 'assists') p._radarValue = p.avg_points ? (p.avg_points - (p.avg_goals||0)) : ((p.prob_assist || 0) / 100);
                 else if (metric === 'shots') p._radarValue = p.avg_shots || 0;
                 else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
                 else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
+                else if (metric === 'toi') p._radarValue = p.avg_toi || 15;
             } 
-            // 🔥 3. LES PERFORMANCES RÉELLES SUR LA PÉRIODE (L1, L2, L3...)
+            // 🔥 3. DYNAMIQUE TEMPORELLE L1 à L10 (La Forme du Moment)
             else {
-                if (metric === 'goals') p._radarValue = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
-                else if (metric === 'points') p._radarValue = recentGames.reduce((s, g) => s + (g.points || 0), 0);
-                else if (metric === 'assists') p._radarValue = recentGames.reduce((s, g) => s + (g.assists || 0), 0);
-                else if (metric === 'shots') p._radarValue = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
-                else if (metric === 'toi') {
-                    let totalToi = recentGames.reduce((s, g) => s + parseToi(g.toi), 0);
-                    p._radarValue = recentGames.length > 0 ? (totalToi / recentGames.length) : 0;
+                if (hasHistory) {
+                    if (metric === 'goals') p._radarValue = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
+                    else if (metric === 'points') p._radarValue = recentGames.reduce((s, g) => s + (g.points || 0), 0);
+                    else if (metric === 'assists') p._radarValue = recentGames.reduce((s, g) => s + (g.assists || 0), 0);
+                    else if (metric === 'shots') p._radarValue = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
+                    else if (metric === 'toi') {
+                        let totalToi = recentGames.reduce((s, g) => s + (typeof g.toi === 'string' ? parseFloat(g.toi.replace(':','.')) : g.toi || 0), 0);
+                        p._radarValue = gamesCount > 0 ? (totalToi / gamesCount) : 0;
+                    }
+                } else {
+                    // 🛡️ SÉCURITÉ : Si l'historique précis manque, l'IA extrapole mathématiquement pour ne jamais planter
+                    if (metric === 'goals') p._radarValue = ((p.prob_goal || 15) / 100) * gamesCount;
+                    else if (metric === 'points') p._radarValue = ((p.prob_point || 25) / 100) * gamesCount;
+                    else if (metric === 'assists') p._radarValue = ((p.prob_assist || 15) / 100) * gamesCount;
+                    else if (metric === 'shots') p._radarValue = (p.avg_shots || 2) * gamesCount;
+                    else if (metric === 'toi') p._radarValue = (p.avg_toi || 15);
                 }
             }
         });
@@ -563,7 +585,7 @@ window.updateGlobalRadar = async function () {
         let chartPlayers = filteredPool.slice(0, 10);
 
         if (topPlayers.length === 0) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Aucune donnée suffisante pour ce filtre.</div>`;
+            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Aucune donnée suffisante pour ce filtre (Les joueurs sélectionnés ne génèrent pas assez de volume offensif).</div>`;
             if (globalRadarChartInstance) { globalRadarChartInstance.destroy(); globalRadarChartInstance = null; }
             return;
         }
