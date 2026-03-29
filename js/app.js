@@ -517,43 +517,36 @@ window.updateGlobalRadar = async function () {
             p._radarValue = 0; 
             p._radarLabel = metricText;
             
-            // 📡 Détection des données : L'IA vérifie si elle possède l'historique complet, sinon elle utilise ses probabilités croisées
+            // 📡 Détection des données : Vraies statistiques envoyées par le serveur
             let hasHistory = p.last_5_games && p.last_5_games.length > 0;
             let recentGames = hasHistory ? p.last_5_games.slice(0, recentCount) : [];
             let gamesCount = hasHistory ? recentGames.length : recentCount;
 
             // 🧠 1. INDICE D'EXPLOSION (Modèle Avancé de Régression xG)
             if (metric === 'breakout') {
-                let shots = hasHistory ? recentGames.reduce((s, g) => s + (g.shots || 0), 0) : (p.avg_shots || 2.5) * gamesCount;
-                let goals = hasHistory ? recentGames.reduce((s, g) => s + (g.goals || 0), 0) : (p.avg_goals || 0.2) * gamesCount;
+                // Pour l'IA, si on a pas l'historique, on utilise la VRAIE moyenne de la saison du joueur (sans inventer de chiffre)
+                let shots = hasHistory ? recentGames.reduce((s, g) => s + (g.shots || 0), 0) : (p.avg_shots || 0) * gamesCount;
+                let goals = hasHistory ? recentGames.reduce((s, g) => s + (g.goals || 0), 0) : (p.avg_goals || 0) * gamesCount;
                 
-                // La LNH convertit environ 9.5% de ses tirs. On calcule les Buts Attendus (xG) réels.
                 let expectedGoals = shots * 0.095; 
                 let badLuckFactor = expectedGoals - goals; 
                 
-                // Base IA (Probabilité qu'il marque ce soir)
                 let aiConfidence = p.prob_goal || 15;
-                
-                // 🌪️ ALGORITHME DE TRADING : On fusionne la probabilité IA avec le facteur de malchance.
-                // Si un joueur tire énormément sans marquer, son "badLuckFactor" explose et booste sa note.
                 p._radarValue = aiConfidence + (badLuckFactor * 22);
-                
-                // Bonus de Momentum : Si l'IA l'aime DÉJÀ (>35%) et qu'il est malchanceux, c'est une pépite absolue.
                 if (aiConfidence > 35 && badLuckFactor > 0) p._radarValue *= 1.25;
 
-                // Filtre Intelligent : Le volume de tirs minimum s'adapte au curseur (L1, L2, L3...)
-                let minShotsRequired = gamesCount * 1.2; // Ex: 1.2 tir pour L1, 6 tirs pour L5
+                let minShotsRequired = gamesCount * 1.2; 
                 if (shots < minShotsRequired) p._radarValue = 0; 
             } 
             // 📊 2. LES MOYENNES DE LA SAISON (Vue Macroscopique)
             else if (periodMode === 'season') {
-                if (metric === 'goals') p._radarValue = p.avg_goals || ((p.prob_goal || 0) / 100);
-                else if (metric === 'points') p._radarValue = p.avg_points || ((p.prob_point || 0) / 100); 
-                else if (metric === 'assists') p._radarValue = p.avg_points ? (p.avg_points - (p.avg_goals||0)) : ((p.prob_assist || 0) / 100);
+                if (metric === 'goals') p._radarValue = p.avg_goals || 0;
+                else if (metric === 'points') p._radarValue = p.avg_points || 0; 
+                else if (metric === 'assists') p._radarValue = p.avg_points ? (p.avg_points - (p.avg_goals||0)) : 0;
                 else if (metric === 'shots') p._radarValue = p.avg_shots || 0;
                 else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
                 else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
-                else if (metric === 'toi') p._radarValue = p.avg_toi || 15;
+                else if (metric === 'toi') p._radarValue = p.avg_toi || 0;
             } 
             // 🔥 3. DYNAMIQUE TEMPORELLE L1 à L10 (La Forme du Moment)
             else {
@@ -567,12 +560,9 @@ window.updateGlobalRadar = async function () {
                         p._radarValue = gamesCount > 0 ? (totalToi / gamesCount) : 0;
                     }
                 } else {
-                    // 🛡️ SÉCURITÉ : Si l'historique précis manque, l'IA extrapole mathématiquement pour ne jamais planter
-                    if (metric === 'goals') p._radarValue = ((p.prob_goal || 15) / 100) * gamesCount;
-                    else if (metric === 'points') p._radarValue = ((p.prob_point || 25) / 100) * gamesCount;
-                    else if (metric === 'assists') p._radarValue = ((p.prob_assist || 15) / 100) * gamesCount;
-                    else if (metric === 'shots') p._radarValue = (p.avg_shots || 2) * gamesCount;
-                    else if (metric === 'toi') p._radarValue = (p.avg_toi || 15);
+                    // 🛑 VÉTO ABSOLU : On n'invente plus de statistiques. 
+                    // Si l'historique de ce joueur n'est pas fourni par l'API, son score reste à 0 et il est exclu du classement.
+                    p._radarValue = 0;
                 }
             }
         });
@@ -585,7 +575,7 @@ window.updateGlobalRadar = async function () {
         let chartPlayers = filteredPool.slice(0, 10);
 
         if (topPlayers.length === 0) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Aucune donnée suffisante pour ce filtre (Les joueurs sélectionnés ne génèrent pas assez de volume offensif).</div>`;
+            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Données historiques insuffisantes pour ces joueurs sur cette période.</div>`;
             if (globalRadarChartInstance) { globalRadarChartInstance.destroy(); globalRadarChartInstance = null; }
             return;
         }
