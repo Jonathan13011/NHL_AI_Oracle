@@ -3,39 +3,39 @@ const API_BASE = "/backend";
 // ==========================================
 // 🧠 FONDATIONS DU CERVEAU IA (VARIABLES & UTILITAIRES)
 // ==========================================
-window.hasScannedGlobal = false; 
+window.hasScannedGlobal = false;
 window.cachedSearchId = null;
 
 const TEAM_NAMES = { "ANA": "Anaheim Ducks", "BOS": "Boston Bruins", "BUF": "Buffalo Sabres", "CAR": "Carolina Hurricanes", "CBJ": "Columbus Blue Jackets", "CGY": "Calgary Flames", "CHI": "Chicago Blackhawks", "COL": "Colorado Avalanche", "DAL": "Dallas Stars", "DET": "Detroit Red Wings", "EDM": "Edmonton Oilers", "FLA": "Florida Panthers", "LAK": "Los Angeles Kings", "MIN": "Minnesota Wild", "MTL": "Montréal Canadiens", "NJD": "New Jersey Devils", "NSH": "Nashville Predators", "NYI": "New York Islanders", "NYR": "New York Rangers", "OTT": "Ottawa Senators", "PHI": "Philadelphia Flyers", "PIT": "Pittsburgh Penguins", "SEA": "Seattle Kraken", "SJS": "San Jose Sharks", "STL": "St. Louis Blues", "TBL": "Tampa Bay Lightning", "TOR": "Toronto Maple Leafs", "UTA": "Utah Hockey Club", "VAN": "Vancouver Canucks", "VGK": "Vegas Golden Knights", "WPG": "Winnipeg Jets", "WSH": "Washington Capitals" };
 
-window.getFullName = function(abbrev) { return TEAM_NAMES[abbrev] || abbrev; };
+window.getFullName = function (abbrev) { return TEAM_NAMES[abbrev] || abbrev; };
 function getFullName(abbrev) { return window.getFullName(abbrev); }
 
-window.getProbColor = function(prob) { if (prob >= 60) return 'bg-blood shadow-[0_0_10px_#ff3333]'; if (prob >= 40) return 'bg-ice shadow-[0_0_10px_#00e5ff]'; return 'bg-gray-500'; };
+window.getProbColor = function (prob) { if (prob >= 60) return 'bg-blood shadow-[0_0_10px_#ff3333]'; if (prob >= 40) return 'bg-ice shadow-[0_0_10px_#00e5ff]'; return 'bg-gray-500'; };
 function getProbColor(prob) { return window.getProbColor(prob); }
 
-window.getLogoUrl = function(team) { return `https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`; };
+window.getLogoUrl = function (team) { return `https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`; };
 function getLogoUrl(team) { return window.getLogoUrl(team); }
 
-window.switchTab = function(tabId, btnElement) {
+window.switchTab = function (tabId, btnElement) {
     // 1. Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(el => {
         el.classList.add('hidden');
         el.classList.remove('active');
     });
-    
+
     // 2. Retirer l'état actif de tous les boutons du menu
     document.querySelectorAll('.nav-item').forEach(el => {
         el.classList.remove('active');
     });
-    
+
     // 3. Afficher l'onglet demandé
     const targetTab = document.getElementById(tabId);
     if (targetTab) {
         targetTab.classList.remove('hidden');
         targetTab.classList.add('active');
     }
-    
+
     // 4. Activer le bouton cliqué (ou le deviner si on vient d'un lien partagé)
     if (btnElement) {
         btnElement.classList.add('active');
@@ -60,14 +60,14 @@ window.switchTab = function(tabId, btnElement) {
     if (tabId === 'tab-predictions') {
         const screenEquipes = document.getElementById('equipes-screen');
         if (screenEquipes) screenEquipes.classList.remove('hidden'); // On affiche l'image
-        
+
         if (typeof window.loadTeamPredictions === 'function') {
             // On attend VRAIMENT que la fonction ait fini de charger les matchs
             window.loadTeamPredictions('2way', true).then(() => {
                 if (screenEquipes) screenEquipes.classList.add('hidden'); // On cache seulement quand c'est prêt
             });
         }
-        
+
     } else if (tabId === 'tab-formes') {
         const screenGardiens = document.getElementById('gardiens-screen');
         if (screenGardiens) {
@@ -81,7 +81,7 @@ window.switchTab = function(tabId, btnElement) {
         }, 300);
     }
 
-    
+
 
     // 7. Fermeture automatique du menu sur mobile après clic
     if (window.innerWidth < 768) {
@@ -97,7 +97,7 @@ window.switchTab = function(tabId, btnElement) {
 // 1. Affichage automatique de "Bienvenue" pendant 2 secondes à l'ouverture du site
 window.addEventListener('load', () => {
     const welcome = document.getElementById('welcome-screen');
-    if(welcome) {
+    if (welcome) {
         welcome.classList.remove('hidden');
         setTimeout(() => {
             welcome.classList.add('hidden');
@@ -108,12 +108,12 @@ window.addEventListener('load', () => {
 // 2. Fonctions pour afficher/cacher l'écran d'analyse (à appeler dans tes autres fichiers)
 window.showAnalysis = () => {
     const screen = document.getElementById('analysis-screen');
-    if(screen) screen.classList.remove('hidden');
+    if (screen) screen.classList.remove('hidden');
 };
 
 window.hideAnalysis = () => {
     const screen = document.getElementById('analysis-screen');
-    if(screen) screen.classList.add('hidden');
+    if (screen) screen.classList.add('hidden');
 };
 let currentMatchPredictions = []; let globalPredictionsPool = []; let fetchedMatchesPool = []; let currentModalData = null;
 // ==========================================
@@ -135,23 +135,23 @@ const RADAR_EXPLANATIONS = {
 
 // 1. GESTION DE LA BARRE DE RECHERCHE INTÉGRÉE
 let searchTimeoutRadar;
-window.searchRadarPlayer = function() {
+window.searchRadarPlayer = function () {
     const input = document.getElementById('radar-player-search').value.toLowerCase().trim();
     const dropdown = document.getElementById('radar-autocomplete');
-    
+
     clearTimeout(searchTimeoutRadar);
     if (input.length < 2) {
         dropdown.classList.add('hidden');
-        if(input.length === 0) window.clearRadarPlayer();
+        if (input.length === 0) window.clearRadarPlayer();
         return;
     }
 
     searchTimeoutRadar = setTimeout(async () => {
         try {
             // 📡 On interroge le serveur central pour chercher parmi les 800+ joueurs !
-            const res = await fetch(`${API_BASE}/autocomplete?q=${input}`); 
+            const res = await fetch(`${API_BASE}/autocomplete?q=${input}`);
             const data = await res.json();
-            
+
             if (data.status === 'loading') {
                 dropdown.innerHTML = '<div class="p-3 text-ice italic text-center font-bold animate-pulse text-xs">L\'IA mémorise la LNH...</div>';
                 dropdown.classList.remove('hidden');
@@ -174,14 +174,14 @@ window.searchRadarPlayer = function() {
                 dropdown.innerHTML = '<div class="p-3 text-xs text-gray-500 font-bold italic">Aucun joueur trouvé.</div>';
                 dropdown.classList.remove('hidden');
             }
-        } catch(e) {
+        } catch (e) {
             dropdown.innerHTML = '<div class="p-3 text-xs text-red-500 font-bold italic">Serveur hors ligne. Reconnexion...</div>';
             dropdown.classList.remove('hidden');
         }
     }, 300);
 };
 
-window.selectRadarPlayer = function(id, name) {
+window.selectRadarPlayer = function (id, name) {
     document.getElementById('radar-selected-player').value = id;
     document.getElementById('radar-player-search').value = name;
     document.getElementById('radar-autocomplete').classList.add('hidden');
@@ -190,7 +190,7 @@ window.selectRadarPlayer = function(id, name) {
 };
 
 // ⚡ NOUVEAU : Fonction pour effacer le joueur ciblé et revenir au Top Ligue
-window.clearRadarPlayer = function() {
+window.clearRadarPlayer = function () {
     document.getElementById('radar-selected-player').value = 'all'; // On remet la cible sur "Toute la ligue"
     document.getElementById('radar-player-search').value = ''; // On vide le champ de texte
     document.getElementById('radar-clear-btn').style.display = 'none'; // On cache la petite croix
@@ -199,7 +199,7 @@ window.clearRadarPlayer = function() {
 };
 
 // ⚡ NOUVELLE FONCTION : Gère le Segmented Control (Force le CSS Inline anti-purge)
-window.setRadarPeriodMode = function(mode) {
+window.setRadarPeriodMode = function (mode) {
     const modeInput = document.getElementById('radar-period-mode');
     if (!modeInput || modeInput.value === mode) return;
 
@@ -229,13 +229,13 @@ window.setRadarPeriodMode = function(mode) {
 };
 
 // ⚡ NOUVEAU : Remplit le filtre des matchs du jour
-window.populateRadarTeamFilter = function() {
+window.populateRadarTeamFilter = function () {
     const select = document.getElementById('radar-team-filter');
     if (!select || !window.fetchedMatchesPool) return;
-    
+
     // Garde l'option "Toute la Ligue"
     select.innerHTML = '<option value="all" selected>Toute la Ligue</option>';
-    
+
     window.fetchedMatchesPool.forEach(m => {
         if (m.state !== 'FINAL' && m.state !== 'OFF') {
             const matchStr = `${m.away_team} @ ${m.home_team}`;
@@ -247,18 +247,18 @@ window.populateRadarTeamFilter = function() {
     });
 };
 
-window.updateGlobalRadar = async function() {
+window.updateGlobalRadar = async function () {
     const metric = document.getElementById('radar-metric').value;
-    let periodMode = document.getElementById('radar-period-mode').value; 
-    const recentCount = parseInt(document.getElementById('radar-game-slider').value, 10); 
-    
+    let periodMode = document.getElementById('radar-period-mode').value;
+    const recentCount = parseInt(document.getElementById('radar-game-slider').value, 10);
+
     // 🛑 ATTENTION : On supprime la récupération de la Position puisqu'on a enlevé le menu !
     // const positionSelect = document.getElementById('radar-position'); // SUPPRIMÉ
     // const position = positionSelect.value; // SUPPRIMÉ
 
     const targetPlayerId = document.getElementById('radar-selected-player').value;
-    const teamFilter = document.getElementById('radar-team-filter') ? document.getElementById('radar-team-filter').value : 'all'; 
-    
+    const teamFilter = document.getElementById('radar-team-filter') ? document.getElementById('radar-team-filter').value : 'all';
+
     // 🛑 CORRECTION LIGNE PLATE : On force la vue Saison
     if (targetPlayerId !== 'all' && (metric === 'speed' || metric === 'pass_pct')) {
         periodMode = 'season';
@@ -272,14 +272,14 @@ window.updateGlobalRadar = async function() {
     const exp = RADAR_EXPLANATIONS[metric];
     document.getElementById('radar-exp-title').innerHTML = exp.title;
     document.getElementById('radar-exp-text').innerHTML = exp.text;
-    
+
     let expColor = exp.color.split('-')[0];
     document.getElementById('radar-explanation-box').className = `bg-gray-950 border-l-4 border-${expColor}-500 p-4 rounded-r-xl shadow-lg mb-6 flex items-start gap-4 transition-all relative z-20`;
 
     // 3. ⚡ FIX CRITIQUE IOS : Destruction propre et recréation absolue du Canvas
     let oldCanvas = document.getElementById('globalRadarChart');
     let chartContainer = oldCanvas ? oldCanvas.parentElement : null;
-    
+
     if (globalRadarChartInstance) {
         globalRadarChartInstance.destroy();
         globalRadarChartInstance = null;
@@ -287,7 +287,7 @@ window.updateGlobalRadar = async function() {
     if (oldCanvas) {
         oldCanvas.remove(); // Vide la mémoire cache de Safari sur iPhone
     }
-    
+
     if (chartContainer) {
         const newCanvas = document.createElement('canvas');
         newCanvas.id = 'globalRadarChart';
@@ -296,7 +296,7 @@ window.updateGlobalRadar = async function() {
     const ctx = document.getElementById('globalRadarChart').getContext('2d');
 
     // Couleurs dynamiques du graphique
-    let chartColor = 'rgba(234, 179, 8, 0.5)'; 
+    let chartColor = 'rgba(234, 179, 8, 0.5)';
     let borderColor = '#EAB308';
     if (metric === 'goals') { chartColor = 'rgba(255, 51, 51, 0.5)'; borderColor = '#ff3333'; }
     else if (metric === 'shots') { chartColor = 'rgba(74, 222, 128, 0.5)'; borderColor = '#4ADE80'; }
@@ -304,15 +304,15 @@ window.updateGlobalRadar = async function() {
     else if (metric === 'speed') { chartColor = 'rgba(168, 85, 247, 0.5)'; borderColor = '#a855f7'; }
     else if (metric === 'pass_pct') { chartColor = 'rgba(96, 165, 250, 0.5)'; borderColor = '#60a5fa'; }
     else if (metric === 'toi') { chartColor = 'rgba(156, 163, 175, 0.5)'; borderColor = '#9CA3AF'; }
-    
+
     const metricSelect = document.getElementById('radar-metric');
     let metricText = metricSelect.options[metricSelect.selectedIndex].text.replace(/[^a-zA-Z ()%]/g, "").trim();
 
     // Parseur de Temps de Glace (TOI) ultra-robuste
     const parseToi = (t) => {
-        if(!t || t === '-') return 0;
+        if (!t || t === '-') return 0;
         let p = String(t).split(':');
-        if(p.length === 2) return parseInt(p[0], 10) + (parseInt(p[1], 10) / 60);
+        if (p.length === 2) return parseInt(p[0], 10) + (parseInt(p[1], 10) / 60);
         return parseFloat(t) || 0;
     };
 
@@ -322,7 +322,7 @@ window.updateGlobalRadar = async function() {
     // MODE 1 : ANALYSE D'UN JOUEUR SPÉCIFIQUE (DONNÉES RÉELLES)
     // ==========================================
     if (targetPlayerId !== 'all') {
-        rankingSection.style.display = 'none'; 
+        rankingSection.style.display = 'none';
         chartSubtitle.innerHTML = `<i class="fas fa-circle-notch fa-spin text-ice"></i> Synchronisation des données réelles...`;
 
         try {
@@ -349,9 +349,9 @@ window.updateGlobalRadar = async function() {
                     playerVal = totalToi / pData.history.length;
                 } else {
                     let poolP = window.globalPredictionsPool.find(x => String(x.id) === String(targetPlayerId));
-                    if(poolP) {
-                        if(metric === 'speed') playerVal = poolP.avg_speed || 34.2;
-                        if(metric === 'pass_pct') playerVal = poolP.pass_pct || 80.0;
+                    if (poolP) {
+                        if (metric === 'speed') playerVal = poolP.avg_speed || 34.2;
+                        if (metric === 'pass_pct') playerVal = poolP.pass_pct || 80.0;
                     } else { playerVal = 0; }
                 }
 
@@ -384,19 +384,19 @@ window.updateGlobalRadar = async function() {
                         }
                     }
                 });
-            } 
+            }
             else {
                 // Graphique Linéaire / Mixte (Match par Match avec le Slider)
-                let chronoGames = pData.history.slice(0, recentCount).reverse(); 
-                let labels = chronoGames.map(g => g.date.substring(0, 5)); 
-                
+                let chronoGames = pData.history.slice(0, recentCount).reverse();
+                let labels = chronoGames.map(g => g.date.substring(0, 5));
+
                 // 🧠 INDICE D'EXPLOSION (GRAPHIQUE MIXTE)
                 if (metric === 'breakout') {
                     let dataShots = chronoGames.map(g => g.shots);
                     let dataGoals = chronoGames.map(g => g.goals);
 
                     globalRadarChartInstance = new Chart(ctx, {
-                        type: 'bar', 
+                        type: 'bar',
                         data: {
                             labels: labels,
                             datasets: [
@@ -428,25 +428,25 @@ window.updateGlobalRadar = async function() {
                             plugins: { legend: { display: true, labels: { color: '#ccc', font: { family: 'Montserrat', size: 10, weight: 'bold' } } }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 12, weight: 'bold' }, padding: 10, borderColor: '#EAB308', borderWidth: 1 } },
                             scales: {
                                 x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: tickSize }, maxRotation: 45, minRotation: 45 } },
-                                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Tirs', color: '#00e5ff', font: {weight: 'bold'} }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } },
-                                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Buts', color: '#ff3333', font: {weight: 'bold'} }, grid: { drawOnChartArea: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } }
+                                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: 'Tirs', color: '#00e5ff', font: { weight: 'bold' } }, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } },
+                                y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Buts', color: '#ff3333', font: { weight: 'bold' } }, grid: { drawOnChartArea: false }, ticks: { color: '#fff', font: { family: 'Montserrat', size: 11, weight: 'bold' }, beginAtZero: true, stepSize: 1 } }
                             }
                         }
                     });
-                } 
+                }
                 // 📈 AUTRES MÉTRIQUES (GRAPHIQUE LINÉAIRE)
                 else {
                     let dataValues = chronoGames.map(g => {
-                        if(metric === 'goals') return g.goals;
-                        if(metric === 'assists') return g.assists;
-                        if(metric === 'points') return g.points;
-                        if(metric === 'shots') return g.shots;
-                        if(metric === 'toi') return parseToi(g.toi);
-                        
+                        if (metric === 'goals') return g.goals;
+                        if (metric === 'assists') return g.assists;
+                        if (metric === 'points') return g.points;
+                        if (metric === 'shots') return g.shots;
+                        if (metric === 'toi') return parseToi(g.toi);
+
                         let poolP = window.globalPredictionsPool.find(x => String(x.id) === String(targetPlayerId));
-                        if(poolP) {
-                            if(metric === 'speed') return poolP.avg_speed || 34.2;
-                            if(metric === 'pass_pct') return poolP.pass_pct || 80.0;
+                        if (poolP) {
+                            if (metric === 'speed') return poolP.avg_speed || 34.2;
+                            if (metric === 'pass_pct') return poolP.pass_pct || 80.0;
                         }
                         return 0; // Fallback
                     });
@@ -483,15 +483,15 @@ window.updateGlobalRadar = async function() {
         } catch (e) {
             chartSubtitle.innerHTML = `<span class="text-red-500 font-bold">Erreur : Impossible de charger le joueur.</span>`;
         }
-    } 
+    }
     // ==========================================
     // MODE 2 : CLASSEMENT GLOBAL (TOP LIGUE)
     // ==========================================
     else {
-        rankingSection.style.display = 'block'; 
+        rankingSection.style.display = 'block';
         let periodText = periodMode === 'season' ? 'Saison Complète' : `Prédictions IA du Jour`;
         chartSubtitle.innerHTML = `Top 10 Ligue <span class="text-gray-500 mx-1">|</span> <span class="text-white">${periodText}</span>`;
-        
+
         let pool = window.globalPredictionsPool || [];
         // 🛡️ SÉCURITÉ ANTI-CRASH : Si l'IA n'a pas encore répondu
         if (pool.length === 0) {
@@ -500,22 +500,41 @@ window.updateGlobalRadar = async function() {
         }
 
         let filteredPool = pool.filter(p => p.position !== 'G');
-        // 🛑 NOUVEAU FILTRE : On ne garde que les joueurs du match sélectionné
+
+        // 🛑 SÉCURITÉ IA : Exclure les joueurs bannis dans l'infirmerie
+        if (window.userBannedPlayers && window.userBannedPlayers.size > 0) {
+            filteredPool = filteredPool.filter(p => !window.userBannedPlayers.has(String(p.id)));
+        }
+
+        // 🛑 FILTRE DE MATCH : On ne garde que les joueurs de la rencontre sélectionnée
         if (teamFilter !== 'all') {
             const teams = teamFilter.split('|'); // [home, away]
             filteredPool = filteredPool.filter(p => teams.includes(p.team));
         }
 
-        // ⚡ FIX : Agrégation mathématique selon la période (Saison ou L1..L10)
+        // ⚡ MOTEUR QUANTITATIF : Calcul dynamique et intelligent selon le choix de l'utilisateur
         filteredPool.forEach(p => {
             p._radarValue = 0; 
             p._radarLabel = metricText;
+            let recentGames = p.last_5_games ? p.last_5_games.slice(0, recentCount) : [];
             
-            // Si on demande la prédiction IA de Breakout, on garde la probabilité globale
+            // 🧠 1. L'INDICE D'EXPLOSION (La Formule Secrète)
             if (metric === 'breakout') {
-                p._radarValue = p.prob_goal || 0; 
+                let recentShots = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
+                let recentGoals = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
+                
+                // Calcul de la "Malchance" (Loi de Poisson) : 9.5% est la moyenne de conversion NHL
+                let expectedGoals = recentShots * 0.095; 
+                let badLuckFactor = expectedGoals - recentGoals; 
+                
+                // L'Indice combine la base de l'IA avec un énorme multiplicateur de malchance
+                let baseProb = p.prob_goal || 15;
+                p._radarValue = baseProb + (badLuckFactor > 0 ? (badLuckFactor * 18) : (badLuckFactor * 5));
+                
+                // Sécurité : Un joueur qui ne tire pas au moins 5 fois récemment ne peut pas exploser
+                if (recentShots < 5) p._radarValue = 0; 
             } 
-            // Si on est en vue "Saison Moyenne"
+            // 📊 2. LES MOYENNES DE LA SAISON
             else if (periodMode === 'season') {
                 if (metric === 'goals') p._radarValue = p.avg_goals || 0;
                 else if (metric === 'points' || metric === 'assists') p._radarValue = p.avg_points || 0; 
@@ -523,29 +542,31 @@ window.updateGlobalRadar = async function() {
                 else if (metric === 'speed') p._radarValue = p.avg_speed || 0;
                 else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
             } 
-            // Si on est en vue "Derniers Matchs" (Slider Actif)
+            // 🔥 3. LES PERFORMANCES RÉELLES SUR LA PÉRIODE (L1, L2, L3...)
             else {
-                // On prend l'historique récent et on le coupe au nombre demandé par le slider (L1, L2, etc.)
-                let gamesToCount = p.last_5_games ? p.last_5_games.slice(0, recentCount) : [];
-                
-                if (metric === 'goals') p._radarValue = gamesToCount.reduce((s, g) => s + (g.goals || 0), 0);
-                else if (metric === 'points') p._radarValue = gamesToCount.reduce((s, g) => s + (g.points || 0), 0);
-                else if (metric === 'assists') p._radarValue = gamesToCount.reduce((s, g) => s + (g.assists || 0), 0);
-                else if (metric === 'shots') p._radarValue = gamesToCount.reduce((s, g) => s + (g.shots || 0), 0);
+                if (metric === 'goals') p._radarValue = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
+                else if (metric === 'points') p._radarValue = recentGames.reduce((s, g) => s + (g.points || 0), 0);
+                else if (metric === 'assists') p._radarValue = recentGames.reduce((s, g) => s + (g.assists || 0), 0);
+                else if (metric === 'shots') p._radarValue = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
                 else if (metric === 'toi') {
-                    let totalToi = gamesToCount.reduce((s, g) => s + parseToi(g.toi), 0);
-                    p._radarValue = gamesToCount.length > 0 ? (totalToi / gamesToCount.length) : 0;
+                    let totalToi = recentGames.reduce((s, g) => s + parseToi(g.toi), 0);
+                    p._radarValue = recentGames.length > 0 ? (totalToi / recentGames.length) : 0;
                 }
             }
         });
 
+        // 🧹 Nettoyage absolu et Tri mathématique implacable
         filteredPool = filteredPool.filter(p => p._radarValue > 0);
         filteredPool.sort((a, b) => b._radarValue - a._radarValue);
         
         let topPlayers = filteredPool.slice(0, 30);
         let chartPlayers = filteredPool.slice(0, 10);
 
-        if (topPlayers.length === 0) return;
+        if (topPlayers.length === 0) {
+            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Aucune donnée suffisante pour ce filtre.</div>`;
+            if (globalRadarChartInstance) { globalRadarChartInstance.destroy(); globalRadarChartInstance = null; }
+            return;
+        }
 
         globalRadarChartInstance = new Chart(ctx, {
             type: 'bar',
@@ -562,23 +583,23 @@ window.updateGlobalRadar = async function() {
             },
             options: {
                 responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                plugins: { 
-                    legend: { display: false }, 
+                plugins: {
+                    legend: { display: false },
                     // ⚡ FIX : UX Mobile épurée (suppression du carré de couleur, police réduite)
-                    tooltip: { 
-                        backgroundColor: 'rgba(0,0,0,0.95)', 
-                        titleFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 10 : 13 }, 
-                        bodyFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 12 : 14, weight: 'bold' }, 
-                        padding: window.innerWidth < 768 ? 8 : 12, 
-                        borderColor: borderColor, 
+                    tooltip: {
+                        backgroundColor: 'rgba(0,0,0,0.95)',
+                        titleFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 10 : 13 },
+                        bodyFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 12 : 14, weight: 'bold' },
+                        padding: window.innerWidth < 768 ? 8 : 12,
+                        borderColor: borderColor,
                         borderWidth: 1,
                         displayColors: false, // 🛑 Supprime le gros carré de couleur inutile
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return metricText + ' : ' + context.parsed.x;
                             }
                         }
-                    } 
+                    }
                 },
                 scales: {
                     x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9CA3AF', font: { family: 'Montserrat', weight: 'bold', size: 9 } } },
@@ -627,12 +648,12 @@ document.getElementById('player-search-input').addEventListener('input', functio
                 document.getElementById('autocomplete-results').innerHTML = '';
                 data.data.forEach(p => {
                     const div = document.createElement('div'); div.className = "p-4 hover:bg-green-500 hover:text-deepblue cursor-pointer text-white transition flex justify-between items-center border-b border-gray-700 font-bold"; div.innerHTML = `<span>${p.name}</span><span class="text-[10px] bg-gray-900 px-2 py-1 rounded text-gray-400 uppercase tracking-widest">${p.team} - ${p.position}</span>`;
-                    div.onclick = () => { 
-                        document.getElementById('player-search-input').value = p.name; 
-                        cachedSearchId = p.id; 
-                        document.getElementById('autocomplete-results').classList.add('hidden'); 
-                        executePlayerSearch(p.id); 
-                        
+                    div.onclick = () => {
+                        document.getElementById('player-search-input').value = p.name;
+                        cachedSearchId = p.id;
+                        document.getElementById('autocomplete-results').classList.add('hidden');
+                        executePlayerSearch(p.id);
+
                         // 📡 RADAR GOOGLE : Joueur recherché
                         if (typeof gtag === 'function') {
                             gtag('event', 'recherche_joueur', {
@@ -643,10 +664,10 @@ document.getElementById('player-search-input').addEventListener('input', functio
                     document.getElementById('autocomplete-results').appendChild(div);
                 }); document.getElementById('autocomplete-results').classList.remove('hidden');
             } else { document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-gray-500 italic text-center text-xs">Aucun joueur trouvé.</div>'; document.getElementById('autocomplete-results').classList.remove('hidden'); }
-        } catch (e) { 
+        } catch (e) {
             // ⚡ Affichage de l'erreur si le serveur ne répond pas
-            document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-red-500 font-bold italic text-center text-xs">Erreur 502 : Serveur Python injoignable.</div>'; 
-            document.getElementById('autocomplete-results').classList.remove('hidden'); 
+            document.getElementById('autocomplete-results').innerHTML = '<div class="p-4 text-red-500 font-bold italic text-center text-xs">Erreur 502 : Serveur Python injoignable.</div>';
+            document.getElementById('autocomplete-results').classList.remove('hidden');
         }
     }, 300);
 });
@@ -998,33 +1019,33 @@ function openPlayerStatsModal(playerJson) {
     const p = JSON.parse(decodeURIComponent(playerJson));
     window.currentModalPlayer = p; // On sauvegarde les données du joueur
 
-    document.getElementById('ps-modal-name').innerText = p.name; 
+    document.getElementById('ps-modal-name').innerText = p.name;
     document.getElementById('ps-modal-team').innerText = p.team;
-    
+
     // On force la liste déroulante sur "Points" par défaut à l'ouverture
     const selectEl = document.getElementById('ps-modal-metric-select');
     if (selectEl) selectEl.value = 'points';
-    
-    document.getElementById('player-stats-modal').classList.remove('hidden'); 
+
+    document.getElementById('player-stats-modal').classList.remove('hidden');
     document.getElementById('player-stats-modal').classList.add('flex');
-    
+
     // On dessine le graphique de base
     updateModalChart('points');
 }
 
 // ⚡ LA NOUVELLE FONCTION QUI MET À JOUR LE GRAPHIQUE
-window.updateModalChart = function(metric) {
+window.updateModalChart = function (metric) {
     if (!window.currentModalPlayer) return;
     const p = window.currentModalPlayer;
 
-    if (window.psModalChart) { 
-        window.psModalChart.destroy(); 
-        window.psModalChart = null; 
+    if (window.psModalChart) {
+        window.psModalChart.destroy();
+        window.psModalChart = null;
     }
 
     const ctx = document.getElementById('ps-modal-chart').getContext('2d');
     const dates = p.last_5_games.map(g => g.date);
-    
+
     // Configuration dynamique des couleurs et du titre
     let dataValues = [];
     let chartColor = '';
@@ -1046,7 +1067,7 @@ window.updateModalChart = function(metric) {
     } else if (metric === 'toi') {
         // Le TOI arrive sous forme de texte "18:45", il faut le transformer en nombre décimal
         dataValues = p.last_5_games.map(g => {
-            if(!g.toi || g.toi === '-') return 0;
+            if (!g.toi || g.toi === '-') return 0;
             let parts = String(g.toi).split(':');
             return parts.length === 2 ? parseInt(parts[0], 10) + (parseInt(parts[1], 10) / 60) : parseFloat(g.toi);
         });
@@ -1055,43 +1076,43 @@ window.updateModalChart = function(metric) {
 
     // On prépare toujours les tirs en pointillé pour comparer (sauf si on regarde déjà les tirs)
     const shotsData = p.last_5_games.map(g => g.shots);
-    
-    let datasets = [{ 
-        label: metricLabel, 
-        data: dataValues, 
-        borderColor: chartColor, 
-        backgroundColor: bgColor, 
-        tension: 0.3, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff', 
+
+    let datasets = [{
+        label: metricLabel,
+        data: dataValues,
+        borderColor: chartColor,
+        backgroundColor: bgColor,
+        tension: 0.3, borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#fff',
         yAxisID: 'y', fill: true
     }];
 
     // Si on ne regarde pas les tirs ou le TOI, on affiche les tirs en fond pour comparer l'efficacité
     if (metric !== 'shots' && metric !== 'toi') {
-        datasets.push({ 
-            label: 'Tirs', 
-            data: shotsData, 
-            borderColor: '#4ADE80', 
-            backgroundColor: 'transparent', 
-            tension: 0.3, borderWidth: 2, borderDash: [5, 5], pointRadius: 4, 
-            yAxisID: 'y1' 
+        datasets.push({
+            label: 'Tirs',
+            data: shotsData,
+            borderColor: '#4ADE80',
+            backgroundColor: 'transparent',
+            tension: 0.3, borderWidth: 2, borderDash: [5, 5], pointRadius: 4,
+            yAxisID: 'y1'
         });
     }
 
-    window.psModalChart = new Chart(ctx, { 
-        type: 'line', 
-        data: { labels: dates, datasets: datasets }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false, 
-            scales: { 
-                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: metricLabel, color: chartColor, font: {weight: 'bold'} }, ticks: { color: '#ccc', stepSize: metric === 'toi' ? 2 : 1 } }, 
-                y1: { type: 'linear', display: metric !== 'shots' && metric !== 'toi', position: 'right', title: { display: true, text: 'Tirs', color: '#4ADE80' }, grid: { drawOnChartArea: false }, ticks: { color: '#ccc', stepSize: 1 } }, 
-                x: { ticks: { color: '#9CA3AF', font: {family: 'Montserrat', size: 10} } } 
-            }, 
-            plugins: { 
+    window.psModalChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: dates, datasets: datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+                y: { type: 'linear', display: true, position: 'left', title: { display: true, text: metricLabel, color: chartColor, font: { weight: 'bold' } }, ticks: { color: '#ccc', stepSize: metric === 'toi' ? 2 : 1 } },
+                y1: { type: 'linear', display: metric !== 'shots' && metric !== 'toi', position: 'right', title: { display: true, text: 'Tirs', color: '#4ADE80' }, grid: { drawOnChartArea: false }, ticks: { color: '#ccc', stepSize: 1 } },
+                x: { ticks: { color: '#9CA3AF', font: { family: 'Montserrat', size: 10 } } }
+            },
+            plugins: {
                 legend: { labels: { color: '#fff', font: { family: 'Montserrat', weight: 'bold' } } },
                 tooltip: { backgroundColor: 'rgba(0,0,0,0.9)', titleFont: { family: 'Montserrat' }, bodyFont: { family: 'Montserrat', size: 13, weight: 'bold' }, borderColor: chartColor, borderWidth: 1 }
-            } 
-        } 
+            }
+        }
     });
 };
 
@@ -1238,7 +1259,7 @@ window.closePlayerProfile = function () {
     document.getElementById('player-search-input').value = '';
     cachedSearchId = null;
 
-// ⚡ NOUVEAU : On nettoie l'URL pour enlever le nom du joueur
+    // ⚡ NOUVEAU : On nettoie l'URL pour enlever le nom du joueur
     window.history.pushState(null, null, `#tab-performances`);
 
 };
@@ -1405,8 +1426,8 @@ window.silentGlobalScan = async function () {
         const res = await fetch(`${API_BASE}/predict_all?nocache=${new Date().getTime()}`);
         const data = await res.json();
         if (data.status === "success") {
-            window.globalPredictionsPool = data.global_predictions || []; 
-            window.hasScannedGlobal = true; 
+            window.globalPredictionsPool = data.global_predictions || [];
+            window.hasScannedGlobal = true;
         }
     } catch (e) { console.error("Erreur chargement silencieux IA", e); }
 };
@@ -1421,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof loadBankroll === 'function') loadBankroll();
 
         // ⚡ LECTURE DU LIEN PARTAGÉ (AVEC DEEP LINKING)
-        const currentHash = window.location.hash; 
+        const currentHash = window.location.hash;
         if (currentHash && currentHash.length > 1) {
             // On sépare l'onglet (#tab-xxx) des paramètres (?player=xxx)
             const [hashPart, queryPart] = currentHash.substring(1).split('?');
@@ -1429,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (document.getElementById(targetTabId)) {
                 window.switchTab(targetTabId);
-                
+
                 // Si l'URL contient une demande d'ouverture de fiche joueur
                 if (queryPart) {
                     const params = new URLSearchParams(queryPart);
@@ -1439,7 +1460,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (typeof window.executePlayerSearchByName === 'function') {
                                 window.executePlayerSearchByName(params.get('player'));
                             }
-                        }, 800); 
+                        }, 800);
                     }
                 }
             }
@@ -1470,7 +1491,7 @@ window.toggleSidebar = function () {
             // Ouvrir le menu
             sidebar.classList.remove('-translate-x-full');
             if (overlay) overlay.classList.remove('hidden');
-            
+
             // 🔒 Bloque le scroll de manière robuste (PC + Mobile/iOS)
             document.body.classList.add('overflow-hidden');
             document.documentElement.classList.add('overflow-hidden');
@@ -1478,7 +1499,7 @@ window.toggleSidebar = function () {
             // Fermer le menu
             sidebar.classList.add('-translate-x-full');
             if (overlay) overlay.classList.add('hidden');
-            
+
             // 🔓 Réactive le scroll
             document.body.classList.remove('overflow-hidden');
             document.documentElement.classList.remove('overflow-hidden');
@@ -2074,7 +2095,7 @@ window.toggleOracleLiveSync = function (isActive) {
 const SUPABASE_URL = 'https://gfmquozjspyuoppunojs.supabase.co';
 
 // ⚠️ N'OUBLIE PAS DE COLLER TA VRAIE CLÉ PUBLIQUE ICI
-const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g'; 
+const SUPABASE_ANON_KEY = 'sb_publishable_RagDo4tDNADuXBv8-dokYg_AYYnta1g';
 
 // ⚡ LA CORRECTION EST ICI : On renomme la variable en "supabaseClient"
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -2085,7 +2106,7 @@ window.currentUserEmail = ""; // NOUVELLE VARIABLE
 // Supabase écoute tout seul si on est connecté ou non
 supabaseClient.auth.onAuthStateChange((event, session) => {
     window.isUserLoggedIn = !!session;
-    window.currentUserEmail = session ? session.user.email : ""; 
+    window.currentUserEmail = session ? session.user.email : "";
     window.updateAuthUI();
 
     // ⚡ On charge la bankroll ET l'infirmerie dès qu'on est connecté !
@@ -2129,25 +2150,25 @@ window.switchAuth = function (mode) {
     }
 };
 
-window.updateAuthUI = function() {
+window.updateAuthUI = function () {
     const btnText = document.getElementById('auth-btn-text');
     const statusDot = document.getElementById('auth-status-dot');
     const emailText = document.getElementById('auth-user-email'); // NOUVEAU
-    
+
     if (window.isUserLoggedIn) {
-        if(btnText) btnText.textContent = "Mon Espace";
-        if(statusDot) {
+        if (btnText) btnText.textContent = "Mon Espace";
+        if (statusDot) {
             statusDot.classList.remove('bg-red-500');
             statusDot.classList.add('bg-green-500');
         }
-        if(emailText) emailText.textContent = window.currentUserEmail; // AFFICHE L'EMAIL
+        if (emailText) emailText.textContent = window.currentUserEmail; // AFFICHE L'EMAIL
     } else {
-        if(btnText) btnText.textContent = "Se connecter";
-        if(statusDot) {
+        if (btnText) btnText.textContent = "Se connecter";
+        if (statusDot) {
             statusDot.classList.remove('bg-green-500');
             statusDot.classList.add('bg-red-500');
         }
-        if(emailText) emailText.textContent = "Espace Privé"; // REMET LE TEXTE PAR DÉFAUT
+        if (emailText) emailText.textContent = "Espace Privé"; // REMET LE TEXTE PAR DÉFAUT
     }
 };
 
@@ -2155,26 +2176,26 @@ window.updateAuthUI = function() {
 // 🚀 MOTEUR DE L'ESPACE PERSONNEL (DASHBOARD)
 // =========================================================================
 
-window.openUserDashboard = function() {
+window.openUserDashboard = function () {
     document.getElementById('user-dashboard-modal').classList.remove('hidden');
     document.getElementById('user-dashboard-modal').classList.add('flex');
-    
+
     // Afficher l'email
     let emailEl = document.getElementById('dashboard-user-email');
-    if(emailEl) emailEl.innerText = window.currentUserEmail || "Utilisateur connecté";
-    
+    if (emailEl) emailEl.innerText = window.currentUserEmail || "Utilisateur connecté";
+
     // Générer les données
     window.renderDashboardOverview();
     window.renderDashboardHistory();
     window.renderDashboardInfirmary();
 };
 
-window.closeUserDashboard = function() {
+window.closeUserDashboard = function () {
     document.getElementById('user-dashboard-modal').classList.add('hidden');
     document.getElementById('user-dashboard-modal').classList.remove('flex');
 };
 
-window.switchDashboardTab = function(tabName) {
+window.switchDashboardTab = function (tabName) {
     // Cacher tous les panneaux
     document.querySelectorAll('.dash-content-panel').forEach(el => {
         el.classList.add('hidden');
@@ -2185,22 +2206,22 @@ window.switchDashboardTab = function(tabName) {
         btn.classList.remove('bg-gray-900', 'border-purple-500', 'text-white');
         btn.classList.add('bg-black', 'border-transparent', 'text-gray-500');
     });
-    
+
     // Afficher le panneau ciblé
     document.getElementById(`dash-tab-${tabName}`).classList.remove('hidden');
     document.getElementById(`dash-tab-${tabName}`).classList.add('flex');
-    
+
     // Activer le bouton ciblé
     let activeBtn = document.getElementById(`btn-dash-${tabName}`);
-    if(activeBtn) {
+    if (activeBtn) {
         activeBtn.classList.add('bg-gray-900', 'border-purple-500', 'text-white');
         activeBtn.classList.remove('bg-black', 'border-transparent', 'text-gray-500');
     }
 };
 
-window.renderDashboardOverview = function() {
+window.renderDashboardOverview = function () {
     let container = document.getElementById('dash-overview-stats');
-    if(!container) return;
+    if (!container) return;
 
     let totalInvesti = 0; let totalGains = 0; let parisTermines = 0; let parisGagnes = 0;
 
@@ -2217,7 +2238,7 @@ window.renderDashboardOverview = function() {
     let benefice = totalGains - totalInvesti;
     let roi = totalInvesti > 0 ? (benefice / totalInvesti) * 100 : 0;
     let winrate = parisTermines > 0 ? (parisGagnes / parisTermines) * 100 : 0;
-    
+
     let benefColor = benefice >= 0 ? 'text-money' : 'text-blood';
 
     container.innerHTML = `
@@ -2240,9 +2261,9 @@ window.renderDashboardOverview = function() {
     `;
 };
 
-window.renderDashboardHistory = function() {
+window.renderDashboardHistory = function () {
     let container = document.getElementById('dash-history-list');
-    if(!container) return;
+    if (!container) return;
 
     if (window.globalBankroll.length === 0) {
         container.innerHTML = `<div class="text-center p-10 bg-black/40 rounded-xl border border-gray-800 border-dashed text-gray-500 font-bold text-xs uppercase tracking-widest italic">Aucun ticket dans votre historique.</div>`;
@@ -2253,7 +2274,7 @@ window.renderDashboardHistory = function() {
     // On utilise la même logique que la bankroll principale, mais adaptée pour le Dashboard
     window.globalBankroll.forEach(b => {
         let dateStr = new Date(b.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-        
+
         let statusBadge = '';
         if (b.status === "PENDING") statusBadge = `<span class="bg-yellow-500/20 text-yellow-500 border border-yellow-500 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest animate-pulse">En Cours</span>`;
         else if (b.status === "WON") statusBadge = `<span class="bg-money/20 text-money border border-money px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest">Gagné (+${(b.stake * b.odds - b.stake).toFixed(2)}€)</span>`;
@@ -2279,13 +2300,13 @@ window.renderDashboardHistory = function() {
     container.innerHTML = html;
 };
 
-window.renderDashboardInfirmary = function() {
+window.renderDashboardInfirmary = function () {
     let container = document.getElementById('dash-infirmary-list');
-    if(!container) return;
+    if (!container) return;
 
-    if (!window.userBannedPlayers || window.userBannedPlayers.size === 0) { 
+    if (!window.userBannedPlayers || window.userBannedPlayers.size === 0) {
         container.innerHTML = `<div class="w-full text-center p-10 bg-black/40 rounded-xl border border-gray-800 border-dashed text-gray-500 font-bold text-xs uppercase tracking-widest italic">Votre infirmerie est vide.</div>`;
-        return; 
+        return;
     }
 
     let html = "";
@@ -2307,7 +2328,7 @@ window.renderDashboardInfirmary = function() {
 };
 
 // --- RECHERCHE INTELLIGENTE INFIRMERIE ---
-window.filterInfirmarySearch = function() {
+window.filterInfirmarySearch = function () {
     let input = document.getElementById('infirmary-search-input').value.toLowerCase().trim();
     let dropdown = document.getElementById('infirmary-search-results');
 
@@ -2324,7 +2345,7 @@ window.filterInfirmarySearch = function() {
 
     for (let p of pool) {
         if (count >= 10) break; // On affiche max 10 résultats pour ne pas surcharger
-        
+
         // On cherche le joueur, et on s'assure qu'il n'est pas DEJA dans l'infirmerie
         if (p.name.toLowerCase().includes(input) && !window.userBannedPlayers.has(String(p.id))) {
             matchesHtml += `
@@ -2354,24 +2375,24 @@ window.filterInfirmarySearch = function() {
 };
 
 // Fonction déclenchée au clic sur un résultat
-window.addPlayerToInfirmaryFromDashboard = function(id, name, team) {
+window.addPlayerToInfirmaryFromDashboard = function (id, name, team) {
     // 1. On vide et on cache la barre de recherche
     document.getElementById('infirmary-search-input').value = '';
     document.getElementById('infirmary-search-results').classList.add('hidden');
-    
+
     // 2. On utilise ta fonction existante (qui sauvegarde sur Supabase !)
     window.banPlayerFromTickets(id, name, team);
-    
+
     // 3. On rafraîchit l'affichage du Dashboard
     setTimeout(() => {
-        if(typeof window.renderDashboardInfirmary === 'function') {
+        if (typeof window.renderDashboardInfirmary === 'function') {
             window.renderDashboardInfirmary();
         }
     }, 500); // Petit délai pour laisser Supabase travailler
 };
 
 // Fermer le menu déroulant si on clique à côté
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     let dropdown = document.getElementById('infirmary-search-results');
     let input = document.getElementById('infirmary-search-input');
     if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
@@ -2379,8 +2400,8 @@ document.addEventListener('click', function(e) {
     }
 });
 
-window.logoutUser = async function() {
-    if(confirm("Voulez-vous vraiment fermer votre session HOCKAI ?")) {
+window.logoutUser = async function () {
+    if (confirm("Voulez-vous vraiment fermer votre session HOCKAI ?")) {
         await supabaseClient.auth.signOut();
         // Réinitialisation locale des variables critiques
         window.isUserLoggedIn = false;
@@ -2388,10 +2409,10 @@ window.logoutUser = async function() {
         window.globalBankroll = [];
         window.userBannedPlayers.clear();
         window.bannedPlayersDetails = {};
-        
+
         window.updateAuthUI();
         window.closeUserDashboard();
-        
+
         alert("Déconnexion réussie. À bientôt dans l'Arène !");
         location.reload(); // Recharge la page pour vider complètement la mémoire cache de l'UI
     }
@@ -2399,7 +2420,7 @@ window.logoutUser = async function() {
 
 // On attend que tout le HTML soit lu par le navigateur avant d'attacher les actions
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     // --- LOGIQUE DE CONNEXION ---
     const formLogin = document.getElementById('form-login');
     if (formLogin) {
@@ -2409,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let password = document.getElementById('login-password').value;
             let btn = e.target.querySelector('button');
             let originalHtml = btn.innerHTML;
-            
+
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> CONNEXION...`;
             btn.disabled = true;
 
@@ -2423,12 +2444,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 window.closeAuthModal();
                 const welcome = document.getElementById('welcome-screen');
-                if(welcome) {
+                if (welcome) {
                     welcome.classList.remove('hidden');
                     setTimeout(() => welcome.classList.add('hidden'), 2000);
                 }
             }
-            
+
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         });
@@ -2460,7 +2481,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('signup-email').value = "";
                 document.getElementById('signup-password').value = "";
             }
-            
+
             btn.innerText = originalText;
             btn.disabled = false;
         });
@@ -2517,7 +2538,7 @@ function updatePerformanceLists() {
 document.addEventListener('DOMContentLoaded', () => {
     // On cible tous les boutons et liens dans le menu de navigation
     const navItems = document.querySelectorAll('#sidebar nav button, #sidebar nav a, #sidebar nav div');
-    
+
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const sidebar = document.getElementById('sidebar');
@@ -2532,7 +2553,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // =========================================================================
 // HOCKAI | Système de Tunnel de Navigation (Step-by-Step) pour les Tickets
 // =========================================================================
-window.goToTicketStep = function(step) {
+window.goToTicketStep = function (step) {
     console.log(`[HOCKAI] Navigation vers l'étape ${step}...`);
 
     // 1. Sécurité : Vérifier qu'un match est sélectionné avant de passer à l'étape 2
@@ -2558,7 +2579,7 @@ window.goToTicketStep = function(step) {
     step2.classList.remove('flex');
     step3.classList.add('hidden');
     step3.classList.remove('flex');
-    
+
     // On affiche l'étape demandée
     const activeStep = document.getElementById(`ticket-step-${step}`);
     activeStep.classList.remove('hidden');
@@ -2580,7 +2601,7 @@ window.goToTicketStep = function(step) {
     }
 
     // 4. Remonter en haut de page en douceur sur mobile pour un confort parfait
-    if(window.innerWidth < 1024) {
+    if (window.innerWidth < 1024) {
         const tabContainer = document.getElementById('tab-tickets');
         if (tabContainer) tabContainer.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -2733,7 +2754,7 @@ const HOME_MODAL_CONTENT = {
 };
 
 // 2. FONCTIONS DE GESTION DES MODALES (C'est ça qui manquait !)
-window.openHomeModal = function(type) {
+window.openHomeModal = function (type) {
     const modal = document.getElementById('home-content-modal');
     const body = document.getElementById('home-modal-body');
     const content = HOME_MODAL_CONTENT[type];
@@ -2780,7 +2801,7 @@ window.openHomeModal = function(type) {
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    
+
     // NOUVEAU : Demander à MathJax de redessiner les formules LaTeX si présentes (ex: intro)
     if (typeof MathJax !== 'undefined' && type === 'intro') {
         MathJax.typesetPromise([body]).catch(function (err) {
@@ -2789,7 +2810,7 @@ window.openHomeModal = function(type) {
     }
 };
 
-window.closeHomeModal = function() {
+window.closeHomeModal = function () {
     const modal = document.getElementById('home-content-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
@@ -2805,7 +2826,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.silentGlobalScan === 'function') window.silentGlobalScan();
         if (typeof loadBankroll === 'function') loadBankroll();
 
-        const currentHash = window.location.hash; 
+        const currentHash = window.location.hash;
         if (currentHash && currentHash.length > 1) {
             const [hashPart, queryPart] = currentHash.substring(1).split('?');
             const targetTabId = hashPart;
@@ -2844,9 +2865,9 @@ const LEXICON_DB = {
     }
 };
 
-window.openLexicon = function(term) {
+window.openLexicon = function (term) {
     const data = LEXICON_DB[term];
-    if(!data) return;
+    if (!data) return;
     document.getElementById('lexicon-title').innerHTML = data.title;
     document.getElementById('lexicon-desc').innerHTML = data.desc;
     const modal = document.getElementById('lexicon-modal');
@@ -2854,7 +2875,7 @@ window.openLexicon = function(term) {
     modal.classList.add('flex');
 };
 
-window.closeLexicon = function() {
+window.closeLexicon = function () {
     const modal = document.getElementById('lexicon-modal');
     modal.classList.add('hidden');
     modal.classList.remove('flex');
