@@ -72,10 +72,6 @@
 
     <aside id="sidebar"
         class="fixed md:relative h-full w-[85%] max-w-[320px] md:w-64 bg-[#0d1321] border-r border-gray-800 flex flex-col justify-between flex-shrink-0 shadow-[5px_0_15px_rgba(0,0,0,0.5)] z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out overflow-x-hidden touch-pan-y">
-        <div id="live-clock"
-            class="text-center text-ice font-black text-sm tracking-widest mt-4 mb-2 drop-shadow-[0_0_8px_rgba(0,229,255,0.8)] border-b border-gray-800 pb-2 mx-4">
-            --:--:--
-        </div>
         <div class="p-6 text-center border-b border-gray-800">
             <img src="assets/logo_hockAI.png" alt="HOCKAI" onerror="this.src='assets/logo_hockAI.jpg'"
                 class="w-48 mx-auto drop-shadow-[0_0_20px_rgba(0,229,255,0.8)] mb-4 hover:scale-105 transition">
@@ -148,44 +144,40 @@
 
     <main class="flex-1 p-2 md:p-8 overflow-hidden relative flex flex-col">
         <div
-            class="bg-[#0d1321]/95 backdrop-blur-md border-b border-gray-800 p-3 md:p-4 flex flex-col md:flex-row justify-between items-center gap-3 shadow-lg z-20 relative sticky top-0 w-full">
+            class="bg-[#0d1321]/95 backdrop-blur-md border-b border-gray-800 px-4 h-[60px] md:h-[70px] flex justify-between items-center shadow-lg z-20 sticky top-0 w-full">
 
-            <div class="flex items-center justify-between w-full md:w-auto">
-                <div class="flex items-center gap-3 md:gap-4">
-                    <button onclick="toggleSidebar()"
-                        class="md:hidden text-ice hover:text-white text-2xl transition focus:outline-none">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h1 id="top-title"
-                        class="text-base md:text-xl font-black text-white tracking-widest uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] truncate cursor-pointer md:cursor-default"
-                        onclick="if(window.innerWidth < 768) toggleSidebar()">
-                        <span class="hidden sm:inline"><i class="fas fa-network-wired text-ice mr-2"></i>Terminal
-                            IA</span>
-                        <span class="sm:hidden text-ice">Menu</span>
-                    </h1>
-                </div>
-
-                <button onclick="window.fetchMatches(false); window.globalPredictionsPool = [];"
-                    class="md:hidden text-ice hover:text-white transition text-lg bg-gray-800 p-2 rounded-lg border border-gray-700 shadow-inner group relative"
-                    title="Actualiser">
-                    <i class="fas fa-sync-alt group-hover:animate-spin"></i>
+            <div class="flex items-center gap-4 w-1/3">
+                <button onclick="toggleSidebar()"
+                    class="md:hidden text-ice hover:text-white text-2xl transition focus:outline-none">
+                    <i class="fas fa-bars"></i>
                 </button>
+                <h1 id="top-title"
+                    class="hidden md:flex items-center text-lg md:text-xl font-black text-white tracking-widest uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] truncate cursor-default">
+                    <i class="fas fa-network-wired text-ice mr-3"></i>Terminal IA
+                </h1>
             </div>
 
-            <div class="flex items-center w-full md:w-auto gap-2">
+            <div class="md:hidden flex justify-center w-1/3">
+                <span
+                    class="text-xl font-black text-white uppercase tracking-widest italic drop-shadow-[0_0_10px_rgba(0,229,255,0.5)]">HOCK<span
+                        class="text-ice">AI</span></span>
+            </div>
+
+            <div class="flex items-center justify-end w-1/3 gap-2">
                 <button onclick="window.openAuthModal()"
-                    class="bg-gradient-to-r from-blue-900/80 to-purple-900/80 hover:from-blue-600 hover:to-purple-600 border border-purple-500/50 hover:border-purple-400 text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl font-black uppercase tracking-widest text-[9px] md:text-xs transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] flex items-center gap-2 group">
-                    <div class="relative">
+                    class="bg-gradient-to-r from-blue-900/80 to-purple-900/80 hover:from-blue-600 hover:to-purple-600 border border-purple-500/50 hover:border-purple-400 text-white px-3 md:px-5 py-2 rounded-full md:rounded-xl font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)] flex items-center gap-2 group">
+                    <div class="relative flex items-center justify-center">
                         <i
                             class="fas fa-user-astronaut text-lg md:text-xl text-purple-300 group-hover:text-white transition"></i>
                         <div id="auth-status-dot"
-                            class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-black"></div>
+                            class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#0d1321]">
+                        </div>
                     </div>
-                    <div class="hidden sm:flex flex-col text-left leading-none">
-                        <span id="auth-btn-text" class="text-purple-300 group-hover:text-white transition block">Se
-                            connecter</span>
+                    <div class="hidden md:flex flex-col text-left leading-none">
+                        <span id="auth-btn-text"
+                            class="text-purple-300 group-hover:text-white transition block text-xs">Se connecter</span>
                         <span id="auth-user-email"
-                            class="text-[7px] text-gray-400 block mt-0.5 truncate max-w-[120px]">Espace Privé</span>
+                            class="text-[8px] text-gray-400 block mt-0.5 truncate max-w-[120px]">Espace Privé</span>
                     </div>
                 </button>
             </div>
@@ -426,22 +418,34 @@
                     <div
                         class="bg-gray-900/80 border border-yellow-500/30 p-4 md:p-6 rounded-2xl shadow-[0_0_20px_rgba(234,179,8,0.1)] mb-4 relative z-30 backdrop-blur-md">
                         <div class="flex flex-col gap-3 md:gap-4">
-                            
+
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 items-start">
-                                
+
                                 <div class="relative w-full">
-                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
-                                    <div class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
-                                        <input type="text" id="radar-player-search" autocomplete="off" onkeyup="window.searchRadarPlayer()" placeholder="Global (Top Ligue)..." class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
-                                        <button onclick="window.clearRadarPlayer()" class="text-gray-500 hover:text-white transition" id="radar-clear-btn" style="display:none;"><i class="fas fa-times"></i></button>
+                                    <label
+                                        class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                            class="fas fa-search text-ice mr-1"></i> Joueur Ciblé</label>
+                                    <div
+                                        class="flex items-center bg-black border border-gray-700 rounded-xl px-3 focus-within:border-ice transition shadow-inner h-[46px]">
+                                        <input type="text" id="radar-player-search" autocomplete="off"
+                                            onkeyup="window.searchRadarPlayer()" placeholder="Global (Top Ligue)..."
+                                            class="w-full bg-transparent text-white text-xs md:text-sm font-bold outline-none placeholder-gray-600">
+                                        <button onclick="window.clearRadarPlayer()"
+                                            class="text-gray-500 hover:text-white transition" id="radar-clear-btn"
+                                            style="display:none;"><i class="fas fa-times"></i></button>
                                     </div>
-                                    <div id="radar-autocomplete" class="absolute z-50 w-[calc(100%-2rem)] md:w-full min-w-[250px] bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar"></div>
+                                    <div id="radar-autocomplete"
+                                        class="absolute z-50 w-[calc(100%-2rem)] md:w-full min-w-[250px] bg-gray-800 border border-gray-600 rounded-b-xl hidden max-h-48 overflow-y-auto shadow-2xl mt-1 custom-scrollbar">
+                                    </div>
                                     <input type="hidden" id="radar-selected-player" value="all">
                                 </div>
 
                                 <div class="w-full">
-                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
-                                    <select id="radar-metric" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
+                                    <label
+                                        class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                            class="fas fa-filter text-yellow-500 mr-1"></i> Data & Prédictions</label>
+                                    <select id="radar-metric" onchange="window.updateGlobalRadar()"
+                                        class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-yellow-500 outline-none cursor-pointer shadow-inner appearance-none transition">
                                         <optgroup label="Prédictions IA">
                                             <option value="breakout" selected>🧠 Indice d'Explosion (Breakout)</option>
                                         </optgroup>
@@ -460,28 +464,44 @@
                                 </div>
 
                                 <div class="w-full">
-                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-day text-money mr-1"></i> Matchs du Jour</label>
-                                    <select id="radar-team-filter" onchange="window.updateGlobalRadar()" class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-money outline-none cursor-pointer shadow-inner appearance-none transition">
+                                    <label
+                                        class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                            class="fas fa-calendar-day text-money mr-1"></i> Matchs du Jour</label>
+                                    <select id="radar-team-filter" onchange="window.updateGlobalRadar()"
+                                        class="w-full bg-black border border-gray-700 text-white text-xs md:text-sm font-bold rounded-xl px-3 h-[46px] focus:border-money outline-none cursor-pointer shadow-inner appearance-none transition">
                                         <option value="all" selected>Toute la Ligue</option>
-                                        </select>
+                                    </select>
                                 </div>
 
                                 <div class="w-full">
-                                    <label class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
-                                    <div class="w-full flex bg-gray-950 border border-gray-700 rounded-xl p-1 h-[46px] shadow-inner relative overflow-hidden">
-                                        <div id="radar-period-segment-indicator" class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-blood rounded-lg shadow-lg transition-all duration-300 transform translate-x-0"></div>
-                                        <button id="radar-mode-btn-recent" onclick="window.setRadarPeriodMode('recent')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-white">Matchs</button>
-                                        <button id="radar-mode-btn-season" onclick="window.setRadarPeriodMode('season')" class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-gray-500 hover:text-white">Saison</button>
+                                    <label
+                                        class="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-1.5 block"><i
+                                            class="fas fa-calendar-alt text-blood mr-1"></i> Période</label>
+                                    <div
+                                        class="w-full flex bg-gray-950 border border-gray-700 rounded-xl p-1 h-[46px] shadow-inner relative overflow-hidden">
+                                        <div id="radar-period-segment-indicator"
+                                            class="absolute top-1 left-1 bottom-1 w-[calc(50%-4px)] bg-blood rounded-lg shadow-lg transition-all duration-300 transform translate-x-0">
+                                        </div>
+                                        <button id="radar-mode-btn-recent" onclick="window.setRadarPeriodMode('recent')"
+                                            class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-white">Matchs</button>
+                                        <button id="radar-mode-btn-season" onclick="window.setRadarPeriodMode('season')"
+                                            class="flex-1 text-center font-black uppercase tracking-widest text-[9px] md:text-[10px] relative z-10 transition text-gray-500 hover:text-white">Saison</button>
                                         <input type="hidden" id="radar-period-mode" value="recent">
                                     </div>
                                 </div>
                             </div>
 
-                            <div id="radar-slider-container" class="w-full lg:w-1/4 lg:ml-auto bg-black border border-gray-800 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
+                            <div id="radar-slider-container"
+                                class="w-full lg:w-1/4 lg:ml-auto bg-black border border-gray-800 rounded-xl p-3 h-[46px] shadow-inner flex items-center gap-3 transition-all relative overflow-hidden">
                                 <span class="text-gray-500 text-[10px] font-black uppercase whitespace-nowrap">L1</span>
-                                <input type="range" id="radar-game-slider" min="1" max="10" value="5" class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10" oninput="document.getElementById('radar-slider-val').innerText = this.value;" onchange="window.updateGlobalRadar()">
+                                <input type="range" id="radar-game-slider" min="1" max="10" value="5"
+                                    class="w-full accent-blood h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer relative z-10"
+                                    oninput="document.getElementById('radar-slider-val').innerText = this.value;"
+                                    onchange="window.updateGlobalRadar()">
                                 <div class="flex items-center gap-1 w-8 justify-end whitespace-nowrap">
-                                    <span class="text-gray-600 text-[8px] font-black">L</span><span class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]" id="radar-slider-val">5</span>
+                                    <span class="text-gray-600 text-[8px] font-black">L</span><span
+                                        class="text-blood font-black text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,51,51,0.8)]"
+                                        id="radar-slider-val">5</span>
                                 </div>
                             </div>
 
@@ -3705,8 +3725,10 @@
             </div>
         </div>
     </div>
-    <div id="lexicon-modal" class="fixed inset-0 bg-black/90 z-[4000] hidden items-center justify-center p-4 backdrop-blur-sm transition-all fade-in">
-        <div class="bg-gray-900 border-2 border-purple-500 rounded-2xl w-full max-w-sm shadow-[0_0_30px_rgba(168,85,247,0.4)] overflow-hidden relative">
+    <div id="lexicon-modal"
+        class="fixed inset-0 bg-black/90 z-[4000] hidden items-center justify-center p-4 backdrop-blur-sm transition-all fade-in">
+        <div
+            class="bg-gray-900 border-2 border-purple-500 rounded-2xl w-full max-w-sm shadow-[0_0_30px_rgba(168,85,247,0.4)] overflow-hidden relative">
             <div class="bg-gray-950 p-4 border-b border-gray-800 flex justify-between items-center">
                 <h3 class="text-white font-black text-sm tracking-widest uppercase flex items-center gap-2">
                     <i class="fas fa-book text-purple-500"></i> Lexique HOCKAI
@@ -3716,8 +3738,10 @@
                 </button>
             </div>
             <div class="p-6">
-                <h4 id="lexicon-title" class="text-purple-400 font-black text-xl mb-3 uppercase tracking-widest">Titre</h4>
-                <p id="lexicon-desc" class="text-gray-300 text-xs md:text-sm leading-relaxed font-bold">Description...</p>
+                <h4 id="lexicon-title" class="text-purple-400 font-black text-xl mb-3 uppercase tracking-widest">Titre
+                </h4>
+                <p id="lexicon-desc" class="text-gray-300 text-xs md:text-sm leading-relaxed font-bold">Description...
+                </p>
             </div>
         </div>
     </div>

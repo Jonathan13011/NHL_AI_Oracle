@@ -17,14 +17,6 @@ function getProbColor(prob) { return window.getProbColor(prob); }
 window.getLogoUrl = function(team) { return `https://assets.nhle.com/logos/nhl/svg/${team}_light.svg`; };
 function getLogoUrl(team) { return window.getLogoUrl(team); }
 
-// Horloge en temps réel
-setInterval(function () {
-    const clockEl = document.getElementById('live-clock');
-    if (clockEl) {
-        let now = new Date();
-        clockEl.innerText = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' (FR)';
-    }
-}, 1000);
 window.switchTab = function(tabId, btnElement) {
     // 1. Cacher tous les contenus
     document.querySelectorAll('.tab-content').forEach(el => {
