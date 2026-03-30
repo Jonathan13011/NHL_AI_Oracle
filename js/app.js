@@ -1349,19 +1349,20 @@ window.enrichPlayerProfile = async function () {
             recentGames.forEach(g => {
                 let pcolor = g.points > 0 ? 'text-ice font-black drop-shadow-[0_0_5px_#00e5ff]' : 'text-gray-600 font-bold';
                 let gcolor = g.goals > 0 ? 'text-blood font-black drop-shadow-[0_0_5px_#ff3333]' : 'text-gray-600 font-bold';
-                let scolor = g.shots >= 3 ? 'text-white font-black' : 'text-gray-500 font-bold';
+                let realShots = parseInt(g.shots) || 0;
+                let scolor = realShots >= 3 ? 'text-white font-black' : 'text-gray-500 font-bold';
 
                 logHtml += `
-                            <tr class="border-b border-gray-800/50 hover:bg-gray-800 transition group cursor-default">
-                                <td class="px-4 py-3 font-bold text-xs text-gray-400 group-hover:text-white transition">${g.date}</td>
-                                <td class="px-4 py-3 font-black text-white text-xs">${g.match}</td>
-                                <td class="px-4 py-3 text-center text-sm ${gcolor}">${g.goals}</td>
-                                <td class="px-4 py-3 text-center text-sm ${g.assists > 0 ? 'text-white font-black' : 'text-gray-600 font-bold'}">${g.assists}</td>
-                                <td class="px-4 py-3 text-center text-sm ${pcolor}">${g.points}</td>
-                                <td class="px-4 py-3 text-center text-sm ${scolor}">${g.shots}</td>
-                                <td class="px-4 py-3 text-center text-[10px] font-black text-gray-500 bg-gray-900/50">${g.toi || '-'}</td>
-                            </tr>
-                        `;
+                    <tr class="border-b border-gray-800/50 hover:bg-gray-800 transition group cursor-default">
+                        <td class="px-4 py-3 font-bold text-xs text-gray-400 group-hover:text-white transition">${g.date}</td>
+                        <td class="px-4 py-3 font-black text-white text-xs">${g.match}</td>
+                        <td class="px-4 py-3 text-center text-sm ${gcolor}">${g.goals}</td>
+                        <td class="px-4 py-3 text-center text-sm ${g.assists > 0 ? 'text-white font-black' : 'text-gray-600 font-bold'}">${g.assists}</td>
+                        <td class="px-4 py-3 text-center text-sm ${pcolor}">${g.points}</td>
+                        <td class="px-4 py-3 text-center text-sm ${scolor}">${realShots}</td>
+                        <td class="px-4 py-3 text-center text-[10px] font-black text-gray-500 bg-gray-900/50">${g.toi || '-'}</td>
+                    </tr>
+                `;
             });
             document.getElementById('perf-game-log-body').innerHTML = logHtml;
         }
@@ -1369,40 +1370,84 @@ window.enrichPlayerProfile = async function () {
         console.error("Erreur de récupération du Game Log", e);
     }
 
-    // --- B) L'ŒIL DE L'ORACLE & PRÉDICTIONS ---
+    // --- B) L'ŒIL DE L'ORACLE & PRÉDICTIONS (MOTEUR HYPER-DÉVELOPPÉ) ---
     let pool = window.globalPredictionsPool || [];
     let p = pool.find(pl => String(pl.id) === String(playerId));
 
     if (!p) {
         document.getElementById('perf-oracle-text').innerHTML = "<span class='text-gray-500'>Ce joueur ne joue pas ce soir. Les probabilités IA sont en veille.</span>";
-        document.getElementById('perf-match-prediction').innerHTML = "<span class='text-gray-500 text-xs font-bold w-full text-center mt-4 block'>Aucun match programmé dans les prochaines 24h</span>";
-        return; // On arrête ici s'il ne joue pas ce soir (le Game Log est déjà affiché !)
+        document.getElementById('perf-match-prediction').innerHTML = "<span class='text-gray-500 text-xs italic font-bold w-full text-center mt-4 block'>Aucun match programmé dans les prochaines 24h</span>";
+        return; // On arrête ici s'il ne joue pas ce soir
     }
 
-    // Analyse Narrative
-    let recentGoals = p.last_5_games ? p.last_5_games.reduce((s, g) => s + g.goals, 0) : 0;
-    let recentShots = p.last_5_games ? p.last_5_games.reduce((s, g) => s + g.shots, 0) : 0;
+    // 1. Calcul Quantitatif des Données
+    let recentGames = p.last_10_games ? p.last_10_games.slice(0, 5) : (p.last_5_games || []);
+    let recentGoals = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
+    let recentAssists = recentGames.reduce((s, g) => s + (g.assists || 0), 0);
+    let recentPoints = recentGoals + recentAssists;
+    let recentShots = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
+    
+    let isDefender = p.position === 'D';
+    let oppGa = p.opp_ga || 3.1;
+    let oppTeam = p.opp_team || "l'adversaire";
+    let matchupMultiplier = oppGa / 3.1;
+
+    // 2. Génération de l'Analyse Narrative par Rôle (L'Œil de l'Oracle)
     let oracleText = "";
 
-    if (recentGoals >= 3) {
-        oracleText = `<span class="text-blood drop-shadow-[0_0_5px_rgba(255,51,51,0.5)]">🔥 Main chaude absolue.</span> Avec ${recentGoals} buts sur ses 5 derniers matchs, il est dans la "Zone". L'algorithme recommande de surfer sur sa dynamique de confiance.`;
-    } else if (recentShots >= 16 && recentGoals <= 1) {
-        oracleText = `<span class="text-ice drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">❄️ Régression positive imminente.</span> L'anomalie est totale : ${recentShots} tirs récents mais peu de buts (${recentGoals}). Le plafond de verre va céder ce soir, la "Value" est énorme.`;
-    } else if (recentShots < 9) {
-        oracleText = `<span class="text-orange-500">⚠️ Volume offensif en berne.</span> Il génère extrêmement peu de danger (${recentShots} tirs en 5 matchs). Profil très risqué pour les marchés "Buteurs", privilégiez les passes.`;
+    if (isDefender) {
+        if (recentAssists >= 3) {
+            oracleText = `<span class="text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">🎯 Quarterback Élite.</span> Avec ${recentAssists} passes décisives récentes, il gère parfaitement la relance et le Power Play. Un pari très solide pour l'Over Passes.`;
+        } else if (recentShots >= 12) {
+            oracleText = `<span class="text-ice drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">💣 Artilleur de la ligne bleue.</span> Il bombarde la cage (${recentShots} tirs). Face à la défense de ${oppTeam}, les rebonds pourraient être fatals.`;
+        } else {
+            oracleText = `<span class="text-gray-400">🛡️ Profil purement défensif.</span> Son rôle est de protéger le filet. Évitez les marchés offensifs sur lui ce soir.`;
+        }
     } else {
-        oracleText = `<span class="text-green-400">✅ Rendement constant.</span> Le joueur maintient ses métriques habituelles sans sur-performer. Un choix de pari "Safe" et prévisible.`;
+        if (recentGoals >= 3) {
+            oracleText = `<span class="text-blood drop-shadow-[0_0_5px_rgba(255,51,51,0.5)]">🔥 En pleine "Zone" (Hot Streak).</span> La finition est létale (${recentGoals} buts). Les modèles indiquent qu'il faut surfer sur la vague tant que la variance est de son côté.`;
+        } else if (recentShots >= 16 && recentGoals <= 1) {
+            oracleText = `<span class="text-ice drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">❄️ Régression mathématique imminente.</span> L'anomalie est parfaite : ${recentShots} tirs pour seulement ${recentGoals} but. La "Value" est colossale pour qu'il trouve le fond du filet ce soir.`;
+        } else if (recentPoints >= 5) {
+            oracleText = `<span class="text-yellow-400 drop-shadow-[0_0_5px_rgba(234,179,8,0.5)]">⭐ Chef d'orchestre absolu.</span> Avec ${recentPoints} points, il est impliqué dans la majorité des buts de son équipe. Le pari "Over 0.5 Point" est sa valeur refuge.`;
+        } else if (recentShots < 7) {
+            oracleText = `<span class="text-orange-500">⚠️ Fantôme offensif.</span> Seulement ${recentShots} tirs tentés. L'IA déconseille tout pari Buteur sur lui aujourd'hui.`;
+        } else {
+            oracleText = `<span class="text-green-400">✅ Production standard.</span> Ses métriques sont parfaitement dans la moyenne LNH. Un match sans historique extrême.`;
+        }
     }
+
+    // 🔥 LE SECRET QUANTITATIF : L'Analyse du Matchup injectée dans le texte !
+    if (oppGa >= 3.4) {
+        oracleText += ` <br><br><span class="text-money font-black"><i class="fas fa-search-dollar mr-1"></i> EDGE MATCHUP :</span> La défense de ${oppTeam} est extrêmement perméable (${oppGa} buts encaissés/m). Son plafond de points est massivement augmenté ce soir.`;
+    } else if (oppGa <= 2.6) {
+        oracleText += ` <br><br><span class="text-red-500 font-black"><i class="fas fa-shield-alt mr-1"></i> ALERTE BLOCAGE :</span> Attention, ${oppTeam} possède l'une des meilleures forteresses de la ligue (${oppGa} buts encaissés/m). Ses probabilités sont bridées par l'IA.`;
+    }
+
     document.getElementById('perf-oracle-text').innerHTML = oracleText;
 
-    // Prédictions du Match
+    // 3. Prédictions du Match (Connectées au Multiplicateur Défensif !)
+    // On limite à 95% maximum et on applique la faiblesse/force adverse
+    let finalProbGoal = Math.min(95, (p.prob_goal || 0) * matchupMultiplier);
+    let finalProbAssist = Math.min(95, (p.prob_assist || 0) * matchupMultiplier);
+    let finalProbPoint = Math.min(95, (p.prob_point || 0) * matchupMultiplier);
+
     let predHtml = "";
-    if (p.prob_point > 0) {
+    if (finalProbPoint > 0) {
         predHtml = `
-                    <div class="text-center w-1/3"><div class="text-3xl font-black text-blood drop-shadow-[0_0_10px_#ff3333]">${(p.prob_goal || 0).toFixed(1)}%</div><div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">BUT</div></div>
-                    <div class="text-center w-1/3"><div class="text-3xl font-black text-white drop-shadow-[0_0_10px_#ffffff]">${(p.prob_assist || 0).toFixed(1)}%</div><div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">PASSE</div></div>
-                    <div class="text-center w-1/3"><div class="text-3xl font-black text-ice drop-shadow-[0_0_10px_#00e5ff]">${(p.prob_point || 0).toFixed(1)}%</div><div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">POINT</div></div>
-                 `;
+            <div class="text-center w-1/3">
+                <div class="text-3xl font-black text-blood drop-shadow-[0_0_10px_#ff3333]">${finalProbGoal.toFixed(1)}%</div>
+                <div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">BUT</div>
+            </div>
+            <div class="text-center w-1/3">
+                <div class="text-3xl font-black text-white drop-shadow-[0_0_10px_#ffffff]">${finalProbAssist.toFixed(1)}%</div>
+                <div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">PASSE</div>
+            </div>
+            <div class="text-center w-1/3">
+                <div class="text-3xl font-black text-ice drop-shadow-[0_0_10px_#00e5ff]">${finalProbPoint.toFixed(1)}%</div>
+                <div class="text-[9px] text-gray-400 uppercase tracking-widest mt-1">POINT</div>
+            </div>
+        `;
     } else {
         predHtml = "<span class='text-gray-500 text-xs italic font-bold w-full text-center mt-4 block'>Cotes non calculées</span>";
     }
