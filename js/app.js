@@ -566,14 +566,16 @@ window.updateGlobalRadar = async function () {
         // On trie TOUS les joueurs d'abord pour vérifier si le serveur Python a bien envoyé des données
         filteredPool.sort((a, b) => b._radarValue - a._radarValue);
         
-        // 🚨 SÉCURITÉ SERVEUR : Si le meilleur joueur a 0, le flux est vide ou en cours de téléchargement
+        // 🚨 SÉCURITÉ SERVEUR : Affichage propre au milieu du graphique
         if (filteredPool.length === 0 || filteredPool[0]._radarValue === 0) {
-            gridContainer.innerHTML = `
-                <div class="col-span-full text-center py-8 bg-gray-900 border border-gray-700 rounded-xl shadow-inner my-4">
-                    <i class="fas fa-satellite-dish text-ice text-3xl mb-3 animate-pulse"></i>
-                    <h4 class="text-white font-black uppercase tracking-widest text-xs mb-1">Synchronisation IA en cours...</h4>
-                    <p class="text-gray-500 font-bold text-[10px] uppercase">L'Oracle télécharge les données officielles. Rafraîchissez la page dans quelques secondes.</p>
+            let chartContainerDiv = document.getElementById('globalRadarChart').parentElement;
+            chartContainerDiv.innerHTML = `
+                <div class="w-full h-full flex flex-col items-center justify-center text-center px-4">
+                    <i class="fas fa-satellite-dish text-ice text-4xl mb-4 animate-pulse drop-shadow-[0_0_10px_#00e5ff]"></i>
+                    <h4 class="text-white font-black uppercase tracking-widest text-sm mb-2">Synchronisation IA en cours...</h4>
+                    <p class="text-gray-500 font-bold text-[10px] md:text-xs uppercase">L'Oracle compile l'historique complet. Rafraîchissez la page dans 30 secondes.</p>
                 </div>`;
+            rankingSection.style.display = 'none';
             if (globalRadarChartInstance) { globalRadarChartInstance.destroy(); globalRadarChartInstance = null; }
             return;
         }
