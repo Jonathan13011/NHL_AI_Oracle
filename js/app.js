@@ -522,7 +522,7 @@ window.updateGlobalRadar = async function () {
             let recentGames = historyArray.slice(0, recentCount);
             let gamesCount = recentGames.length;
 
-            // 🧠 1. INDICE D'EXPLOSION (Modèle Avancé de Régression xG)
+            // 🧠 1. INDICE D'EXPLOSION HYPER-DÉVELOPPÉ (xG + Matchup Multiplier)
             if (metric === 'breakout') {
                 let shots = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
                 let goals = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
@@ -531,8 +531,21 @@ window.updateGlobalRadar = async function () {
                 let badLuckFactor = expectedGoals - goals; 
                 let aiConfidence = p.prob_goal || 15;
                 
-                p._radarValue = aiConfidence + (badLuckFactor * 22);
-                if (aiConfidence > 35 && badLuckFactor > 0) p._radarValue *= 1.25;
+                // 🛡️ L'ANALYSE DU MATCHUP : L'IA regarde la défense adverse (envoyée par le Python)
+                let oppGa = p.opp_ga || 3.1; 
+                // Si l'adversaire encaisse 4.5 buts/match, le multiplicateur sera de 1.45 (énorme boost)
+                let matchupMultiplier = oppGa / 3.1; // 3.1 = Moyenne historique LNH
+                
+                // Le Score de base croise la probabilité de l'IA et la malchance du joueur
+                let baseScore = aiConfidence + (badLuckFactor * 22);
+                
+                // 💥 LE MULTIPLICATEUR FINAL : On applique la passoire adverse !
+                p._radarValue = baseScore * matchupMultiplier;
+                
+                // 🧨 SUPER-NOVA : S'il est malchanceux ET qu'il affronte une équipe très faible défensivement (> 3.5 buts)
+                if (aiConfidence > 35 && badLuckFactor > 0 && oppGa > 3.5) {
+                    p._radarValue *= 1.30; // Bonus de synergie massive
+                }
 
                 if (shots < (gamesCount * 1.2) || gamesCount === 0) p._radarValue = 0; 
             } 
