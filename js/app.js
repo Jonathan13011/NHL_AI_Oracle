@@ -512,33 +512,31 @@ window.updateGlobalRadar = async function () {
             filteredPool = filteredPool.filter(p => teams.includes(p.team));
         }
 
-        // ⚡ MOTEUR QUANTITATIF DE POINTE (Algorithme Adaptatif)
+        // ⚡ MOTEUR QUANTITATIF DE POINTE (Algorithme Adaptatif V3)
         filteredPool.forEach(p => {
             p._radarValue = 0; 
             p._radarLabel = metricText;
             
-            // 📡 Détection des données : Vraies statistiques envoyées par le serveur
-            let hasHistory = p.last_5_games && p.last_5_games.length > 0;
-            let recentGames = hasHistory ? p.last_5_games.slice(0, recentCount) : [];
-            let gamesCount = hasHistory ? recentGames.length : recentCount;
+            // 📡 Détection des VRAIES données du serveur (last_10_games ajouté dans le Python)
+            let historyArray = p.last_10_games || p.last_5_games || [];
+            let recentGames = historyArray.slice(0, recentCount);
+            let gamesCount = recentGames.length;
 
             // 🧠 1. INDICE D'EXPLOSION (Modèle Avancé de Régression xG)
             if (metric === 'breakout') {
-                // Pour l'IA, si on a pas l'historique, on utilise la VRAIE moyenne de la saison du joueur (sans inventer de chiffre)
-                let shots = hasHistory ? recentGames.reduce((s, g) => s + (g.shots || 0), 0) : (p.avg_shots || 0) * gamesCount;
-                let goals = hasHistory ? recentGames.reduce((s, g) => s + (g.goals || 0), 0) : (p.avg_goals || 0) * gamesCount;
+                let shots = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
+                let goals = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
                 
                 let expectedGoals = shots * 0.095; 
                 let badLuckFactor = expectedGoals - goals; 
-                
                 let aiConfidence = p.prob_goal || 15;
+                
                 p._radarValue = aiConfidence + (badLuckFactor * 22);
                 if (aiConfidence > 35 && badLuckFactor > 0) p._radarValue *= 1.25;
 
-                let minShotsRequired = gamesCount * 1.2; 
-                if (shots < minShotsRequired) p._radarValue = 0; 
+                if (shots < (gamesCount * 1.2) || gamesCount === 0) p._radarValue = 0; 
             } 
-            // 📊 2. LES MOYENNES DE LA SAISON (Vue Macroscopique)
+            // 📊 2. LES MOYENNES DE LA SAISON
             else if (periodMode === 'season') {
                 if (metric === 'goals') p._radarValue = p.avg_goals || 0;
                 else if (metric === 'points') p._radarValue = p.avg_points || 0; 
@@ -548,38 +546,44 @@ window.updateGlobalRadar = async function () {
                 else if (metric === 'pass_pct') p._radarValue = p.pass_pct || 0;
                 else if (metric === 'toi') p._radarValue = p.avg_toi || 0;
             } 
-            // 🔥 3. DYNAMIQUE TEMPORELLE L1 à L10 (La Forme du Moment)
+            // 🔥 3. DYNAMIQUE TEMPORELLE L1 à L10 (Vraies Datas Réelles)
             else {
-                if (hasHistory) {
+                if (gamesCount > 0) {
                     if (metric === 'goals') p._radarValue = recentGames.reduce((s, g) => s + (g.goals || 0), 0);
                     else if (metric === 'points') p._radarValue = recentGames.reduce((s, g) => s + (g.points || 0), 0);
                     else if (metric === 'assists') p._radarValue = recentGames.reduce((s, g) => s + (g.assists || 0), 0);
                     else if (metric === 'shots') p._radarValue = recentGames.reduce((s, g) => s + (g.shots || 0), 0);
                     else if (metric === 'toi') {
                         let totalToi = recentGames.reduce((s, g) => s + (typeof g.toi === 'string' ? parseFloat(g.toi.replace(':','.')) : g.toi || 0), 0);
-                        p._radarValue = gamesCount > 0 ? (totalToi / gamesCount) : 0;
+                        p._radarValue = totalToi / gamesCount;
                     }
                 } else {
-                    // 🛑 VÉTO ABSOLU : On n'invente plus de statistiques. 
-                    // Si l'historique de ce joueur n'est pas fourni par l'API, son score reste à 0 et il est exclu du classement.
-                    p._radarValue = 0;
+                    p._radarValue = 0; // AUCUNE INVENTION DE DATA
                 }
             }
         });
 
-        // 🧹 Nettoyage absolu et Tri mathématique implacable
-        filteredPool = filteredPool.filter(p => p._radarValue > 0);
+        // On trie TOUS les joueurs d'abord pour vérifier si le serveur Python a bien envoyé des données
         filteredPool.sort((a, b) => b._radarValue - a._radarValue);
         
-        let topPlayers = filteredPool.slice(0, 30);
-        let chartPlayers = filteredPool.slice(0, 10);
-
-        if (topPlayers.length === 0) {
-            gridContainer.innerHTML = `<div class="col-span-full text-center py-10 text-gray-500 font-bold italic">Données historiques insuffisantes pour ces joueurs sur cette période.</div>`;
+        // 🚨 SÉCURITÉ SERVEUR : Si le meilleur joueur a 0, le flux est vide ou en cours de téléchargement
+        if (filteredPool.length === 0 || filteredPool[0]._radarValue === 0) {
+            gridContainer.innerHTML = `
+                <div class="col-span-full text-center py-8 bg-gray-900 border border-gray-700 rounded-xl shadow-inner my-4">
+                    <i class="fas fa-satellite-dish text-ice text-3xl mb-3 animate-pulse"></i>
+                    <h4 class="text-white font-black uppercase tracking-widest text-xs mb-1">Synchronisation IA en cours...</h4>
+                    <p class="text-gray-500 font-bold text-[10px] uppercase">L'Oracle télécharge les données officielles. Rafraîchissez la page dans quelques secondes.</p>
+                </div>`;
             if (globalRadarChartInstance) { globalRadarChartInstance.destroy(); globalRadarChartInstance = null; }
             return;
         }
 
+        // Si les données existent, on nettoie les zéros et on affiche le top 10/30
+        filteredPool = filteredPool.filter(p => p._radarValue > 0);
+        let topPlayers = filteredPool.slice(0, 30);
+        let chartPlayers = filteredPool.slice(0, 10);
+
+        // 🎨 LE CODE QUI DESSINE LE GRAPHIQUE
         globalRadarChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -597,7 +601,6 @@ window.updateGlobalRadar = async function () {
                 responsive: true, maintainAspectRatio: false, indexAxis: 'y',
                 plugins: {
                     legend: { display: false },
-                    // ⚡ FIX : UX Mobile épurée (suppression du carré de couleur, police réduite)
                     tooltip: {
                         backgroundColor: 'rgba(0,0,0,0.95)',
                         titleFont: { family: 'Montserrat', size: window.innerWidth < 768 ? 10 : 13 },
@@ -605,7 +608,7 @@ window.updateGlobalRadar = async function () {
                         padding: window.innerWidth < 768 ? 8 : 12,
                         borderColor: borderColor,
                         borderWidth: 1,
-                        displayColors: false, // 🛑 Supprime le gros carré de couleur inutile
+                        displayColors: false,
                         callbacks: {
                             label: function (context) {
                                 return metricText + ' : ' + context.parsed.x;
@@ -620,10 +623,11 @@ window.updateGlobalRadar = async function () {
             }
         });
 
+        // 🃏 LE CODE QUI CRÉE LES CARTES DES JOUEURS
         gridContainer.innerHTML = topPlayers.map((p, index) => `
             <div onclick="window.jumpToPlayerScouting('${p.name.replace(/'/g, "\\'")}')" class="bg-gray-900/80 backdrop-blur-sm border border-gray-800 rounded-2xl p-3 md:p-4 relative shadow-[0_0_15px_rgba(0,0,0,0.5)] group hover:border-[${borderColor}] hover:-translate-y-1 transition transform cursor-pointer flex flex-col items-center">
                 <div class="absolute top-2 left-2 bg-black text-gray-400 text-[8px] md:text-[10px] font-black px-2 py-0.5 flex items-center justify-center rounded border border-gray-800 shadow-inner group-hover:text-[${borderColor}] transition">#${index + 1}</div>
-                ${metric === 'breakout' && index < 3 ? `<div class="absolute -right-2 -top-2 text-xl animate-bounce drop-shadow-[0_0_5px_#EAB308]">🚨</div>` : ''}
+                ${metric === 'breakout' && index < 3 ? '<div class="absolute -right-2 -top-2 text-xl animate-bounce drop-shadow-[0_0_5px_#EAB308]">🚨</div>' : ''}
                 <div class="relative mt-2 mb-2">
                     <div class="absolute inset-0 bg-[${borderColor}] rounded-full blur opacity-20 group-hover:opacity-50 transition"></div>
                     <img src="https://assets.nhle.com/mugs/nhl/latest/${p.id}.png" onerror="this.src='assets/logo_hockAI.png'" class="relative w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-gray-700 object-cover bg-black group-hover:border-[${borderColor}] transition z-10">
